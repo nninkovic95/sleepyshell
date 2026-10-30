@@ -1,6 +1,6 @@
 # Tasks
 
-The work list for sleepyshell, by goal. Each goal says what "reached" means, then the tasks that get
+The work list for sleepyshell, by goal (`docs/tasks_page.py` renders it as a page). Each goal says what "reached" means, then the tasks that get
 there, with subtasks. `[x]` done, `[~]` started, `[ ]` open. Inside a goal the order is the order of
 work; "Next up" at the end is the order across goals. Ticked items stay until the next release tag, then
 move to the changelog. The same list is published as a page for reading away from the repository.
@@ -43,6 +43,10 @@ no personal data, no machine state and no AI tooling files; a release can be ins
         lock screen, a community theme preset, the Caps Lock peek, the polkit prompt, the Wi-Fi and
         Bluetooth lists.
   - [ ] Frame folders under `tests/jobs/` deleted once the showcase is in.
+- [ ] A logo: one mark that reads as sleepyshell (the islands, a crescent, a sleeping shell: sketch three
+      directions and pick one), as SVG in `docs/logo/`, legible at 16 px (tab icon, the settings
+      sidebar) and at 512 px (the README header, the GitHub social preview), in the theme's accent on
+      light and dark, with a one-colour variant; the README header and the System tab carry it.
 - [ ] GitHub settings: private vulnerability reporting switched on (the Security tab), the README checked
       on GitHub (dropdowns, table layout, relative links), a short "About" with the website field empty.
 - [ ] `docs/ARCHITECTURE.md`: the three processes and what each may import; the island host contract
@@ -78,11 +82,14 @@ guard proves no test touches a real file.
 - [ ] Thorough test of the current shell (the islands refactor plus the small changes since).
   - [x] Stage 0, pre-flight: selftest, checksum snapshot, log baseline (seven `Cannot close destroyed
         notification` errors noted).
-  - [ ] Stage 1, static gates: compile; `py_compile` and `bash -n` for the scripts; the script checks in
-        the sandbox (`idle.py --print` both power sources against the live `hypridle.conf`,
-        `hyprconf.py discover` and `parse-binds --resolve`, `defaultapps.py` dry runs, `edid.py` on fake
-        EDIDs, `theme.py --list-presets` and `--dry-run`, `sysinfo.py`, `filecheck.py`); the toml round
-        trip against a copy of the live file.
+  - [x] Stage 1, static gates: compile 154 files, 0 failed; every script compiles and parses; in the
+        sandbox: `idle.py --print` for both power sources (identical to the live `hypridle.conf` apart
+        from the lock command's folder path, see Goal 3), `hyprconf.py discover` and `parse-binds
+        --resolve`, `defaultapps.py scan`, `edid.py` on fake EDIDs, `theme.py --list-presets` and a
+        `--dry-run` render, `sysinfo.py`, `filecheck.py`; the legacy script tests: theme scripts 66
+        passed, workspace apps 10 passed; the checksum guard clean afterwards.
+  - [ ] Stage 1 leftover: the toml round trip through the legacy toml root (parse, render, parse equal;
+        a broken file refused with its line), to run with Stage 2's sandboxed instances.
   - [ ] Stage 2, the repaired legacy settings and lock suites on a silent workspace (names and paths only
         in the repair, stop after ten misses), every failure classified: stale expectation, real bug,
         timing.
@@ -144,6 +151,10 @@ Reached when every item below is fixed, or recorded as accepted with the reason.
 - [ ] A cursor moved by Hyprland's `cursor.move` dispatcher (a warp) opens the control centre on hover
       but fires none of the finer hover effects (tile and card Lift-and-tilt); a motion event from a real
       or virtual pointer does. Decide whether the hover handlers should also react to a warp.
+- [ ] `scripts/idle.py` (and any script that derives the shell folder from its own location) writes the
+      real folder into Hyprland files when the config folder is a symlink (`lock_cmd` now says the real
+      path where the live file says the config path). Prefer the XDG config path when the script lives
+      under it, so written paths stay stable across a move of the repository.
 - [ ] The right island's items shift when a conditional widget (bell, updates, Caps Lock) appears, so
       everything left of it moves; consider reserving the slot or anchoring from the left.
 - [ ] A click on the pill's slider or a scroll on the pill leaves the control centre pinned open until a

@@ -34,6 +34,8 @@ TARGETS = [
 # the repository's folders inside the shell folder (same list as REPO_DIRS in env.sh): the kit writes
 # under tests/ and git under .git/, so neither can count as a real file a test touched
 SKIP_DIRS = {".git", "tests", "docs", "__pycache__"}
+# the repository's root documents (REPO_FILES in env.sh): edited by hand between runs, not by tests
+REPO_FILES = {"README.md", "TASKS.md", "LICENSE", "SECURITY.md", "CLAUDE.md", "CLAUDE.local.md", ".gitignore"}
 
 
 def sums():
@@ -43,7 +45,10 @@ def sums():
             out[str(t)] = digest(t)
         elif t.is_dir():
             for p in sorted(t.rglob("*")):
-                if p.is_file() and not p.is_symlink() and not (SKIP_DIRS & set(p.relative_to(t).parts)):
+                rel = p.relative_to(t)
+                if len(rel.parts) == 1 and rel.name in REPO_FILES:
+                    continue
+                if p.is_file() and not p.is_symlink() and not (SKIP_DIRS & set(rel.parts)):
                     out[str(p)] = digest(p)
     return out
 
