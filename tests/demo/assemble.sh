@@ -53,7 +53,7 @@ for dir in "$FR"/*/; do
     list=$dir/frames.txt
     python3 -I - "$dir" > "$list" <<'PY_LIST'
 import pathlib, sys
-d = pathlib.Path(sys.argv[1])
+d = pathlib.Path(sys.argv[1]).resolve()   # absolute: the concat demuxer resolves entries against the list file
 fs = sorted((*d.glob("*.jpg"), *d.glob("*.png")), key=lambda p: int(p.stem))
 for a, b in zip(fs, fs[1:]):
     print(f"file '{a}'\nduration {(int(b.stem) - int(a.stem)) / 1000:.3f}")
