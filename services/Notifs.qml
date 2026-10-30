@@ -68,7 +68,7 @@ Singleton {
             // untracked notifications are dropped
             n.tracked = true;
             n.closed.connect(() => root.forget(n));
-            root.capHistory();
+            root.capHistory(n);
             if (n.lastGeneration)
                 return;
             if (!root.dnd || n.urgency === NotificationUrgency.Critical)
@@ -82,12 +82,14 @@ Singleton {
     // notification that is still a popup on screen is skipped, so a critical warning is never taken away before it was seen; the next
     // oldest goes instead.
     readonly property int maxHistory: 100
-    function capHistory() {
+    // `arriving` is the one that triggered the cap: it is never the one dismissed (it is not yet a popup, so the
+    // critical exemption cannot see it; dismissed here it would still be added to the popups as a closed object)
+    function capHistory(arriving) {
         const all = server.trackedNotifications.values;
         let over = all.length - root.maxHistory;
         for (let i = 0; i < all.length && over > 0; i++) {
             const o = all[i];
-            if (o.urgency === NotificationUrgency.Critical && root.popups.includes(o))
+            if (o === arriving || (o.urgency === NotificationUrgency.Critical && root.popups.includes(o)))
                 continue;
             o.dismiss();
             over--;
@@ -144,10 +146,11 @@ Singleton {
         // (it may open the chat or tab the notification is about)
         const focused = focusApp(n);
         if (a)
-            a.invoke();
+            a.invoke();   // invoking an action closes a non-resident notification by itself
         else if (!focused)
             openImage(n);
-        if (!n.resident)
+        // a second close on one already closed by its action logs "Cannot close destroyed notification"
+        if (!a && !n.resident)
             n.dismiss();
     }
 

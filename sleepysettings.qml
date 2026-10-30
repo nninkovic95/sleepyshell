@@ -59,15 +59,25 @@ ShellRoot {
                 win.tab = name;
         }
 
+        // only plain keys (a number within its range, a boolean, a string); list and object keys
+        // (customTools, keybindExtraFiles, toolOverrides) are refused, a raw string there would be
+        // written as-is and lose the list on the next read
         function stage(key: string, value: string): void {
             const entry = Settings.schema[key];
-            if (!entry)
+            if (!entry || typeof entry.def === "object")
                 return;
             let v = value;
-            if (typeof entry.def === "boolean")
+            if (typeof entry.def === "boolean") {
                 v = value === "true";
-            else if (typeof entry.def === "number")
+            } else if (typeof entry.def === "number") {
                 v = Number(value);
+                if (!isFinite(v))
+                    return;
+                if (entry.min !== undefined)
+                    v = Math.max(entry.min, v);
+                if (entry.max !== undefined)
+                    v = Math.min(entry.max, v);
+            }
             Settings.stage(key, v);
         }
 

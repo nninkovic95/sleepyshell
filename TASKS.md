@@ -93,11 +93,13 @@ guard proves no test touches a real file.
   - [ ] Stage 2, the repaired legacy settings and lock suites on a silent workspace (names and paths only
         in the repair, stop after ten misses), every failure classified: stale expectation, real bug,
         timing.
-  - [ ] Stage 3, adversarial read-only review of the risky surfaces: the notification service and cards,
-        the lock and its launcher (flock, exit codes, the 3 s take-lock timeout, the sleep cover),
-        `defaultapps.py` with the Apps tab and `idle.py` with the Idle and Power tabs, the island host
-        contract, the settings writer (single writer while linked, `broken` makes writes no-ops, the
-        migration guard, the draft re-sent on reconnect).
+  - [x] Stage 3, adversarial read-only review of the five risky surfaces (notifications, lock, settings
+        writer and socket, islands, the idle, power and default-apps scripts): 40 findings, 3 high, 14
+        medium, 23 low, one dismissed after checking. Three fixed and deployed the same night (the
+        double close behind `Cannot close destroyed notification`, verified live; the history cap
+        dismissing an arriving notification; the settings `stage` IPC validated and clamped). The rest
+        are Goal 3 and Goal 4 items below; the full table is the report
+        (`tests/jobs/2026-10-30-thorough/stage3-review.md`, also in the vault).
   - [ ] Stage 4, the live shell read-only: error and warning counts, layer surfaces, IPC listing, the
         settings file parses, `hypridle.conf` content, no stray lock process, checksum guard clean.
   - [ ] Stage 5, on real hardware one at a time: lock and unlock, a second lock request exits quietly,
@@ -135,8 +137,30 @@ guard proves no test touches a real file.
 
 Reached when every item below is fixed, or recorded as accepted with the reason.
 
-- [ ] `Cannot close destroyed notification` in the log (seven since the last restart). Suspect: a card's
-      exit animation or the history cap calling `dismiss()` on a notification already closed.
+- [x] `Cannot close destroyed notification` in the log: a click invoked the app's default action, which
+      closes a non-resident notification by itself, and the handler dismissed it again. Fixed and verified.
+- [ ] Lock, high (laptops): a power-source change restarts `hypridle.service`, which kills a lock the
+      `lock_cmd` started with it; the session stays locked with no client. Start the lock outside
+      hypridle's cgroup (`systemd-run --user --scope`) or a `KillMode=process` drop-in.
+- [ ] Settings, high: with a broken `sleepysettings.toml`, an Apply on the Idle or Theme tab runs
+      `idle.py` / `theme.py`, which read the file as empty and write the defaults; the scripts must refuse
+      a file that does not parse, or the window must not run them while `broken`.
+- [ ] Settings, high: a linked commit is fire-and-forget; if the bar dies between receipt and write the
+      value is shown as applied and never reaches disk. Keep the commit until `committed` arrives and
+      resend it on reconnect.
+- [ ] Lock: `flock -o` so children of the lock process cannot keep the lock file held after a crash; the
+      3 s watchdog should retry or tell the user; a `pam_faillock` lockout must be shown as such;
+      Escape during a running check must not answer the PAM prompt with an empty password.
+- [ ] Scripts: `idle.py` quotes the lock command's path and clamps and type-checks what it reads
+      (minute 0 or 0.5 gives `timeout = 0`; the string `"false"` is truthy); `defaultapps.py apply` sets
+      only the types the chosen app declares; the critical-battery countdown does not restart on charge
+      jitter and treats an `Unknown` UPower state as unchanged.
+- [ ] Islands: a dropdown destroyed while open must release the island; a widget that hides while its
+      dropdown is open must close it (or the geometry must follow); `toggle` of a hidden widget's popup
+      and of the hover-only `sysinfo` popup refused or made to close on their own.
+- [ ] Notifications: one `NotifPopups` set of timers for all screens; Clear all leaves notifications that
+      arrive while it runs; a replaced notification (`replaces_id`) toasts again; a null guard on
+      `expireTimeout`; the Clear all in-view check for cards above the viewport.
 - [ ] The temporary `[osd]` diagnostic in `OsdState.qml`; remove it once the cause is found. Volume keys
       reach the inaudible EasyEffects sink, so the volume flash is suppressed as a device switch; the
       pill's own scroll moves the hardware sink and does flash.

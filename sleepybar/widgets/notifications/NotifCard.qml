@@ -299,11 +299,8 @@ Item {
                         glued: false
                         hpad: 10
                         bg: Theme.tileBg
-                        onClicked: {
-                            modelData.invoke();
-                            if (!root.notif?.resident)
-                                root.notif?.dismiss();
-                        }
+                        // invoking closes a non-resident notification by itself; a dismiss on top logged a warning
+                        onClicked: modelData.invoke()
                     }
                 }
             }
