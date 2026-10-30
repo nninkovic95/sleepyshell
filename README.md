@@ -5,8 +5,6 @@ with Python helpers. Floating islands on the top edge, a control centre, notific
 display, a polkit agent, a lock screen and a full settings app, all themed from your wallpaper or from a
 community colour theme.
 
-![The centre island opening into the control centre](docs/demo/control-centre.webp)
-
 **Built to be modified.** sleepyshell is plain QML and Python with no build step: every widget is a
 folder, every settings tab is a file, every setting is one line in a schema, and the bar reloads itself
 when you save. A test kit in the repository lets you compile, preview and deploy a change with a backup
@@ -27,14 +25,10 @@ and an automatic rollback, so breaking your own desktop is hard. See [Make it yo
 
 ## What it looks like
 
-| | |
-|---|---|
-| ![Islands](docs/demo/islands.webp) A side island widens so its dropdown hangs flush under it ("Extend"), or the dropdown floats as a card | ![Notifications](docs/demo/notifications.webp) Toasts arrive, the bell shows, Clear all sweeps the cards out one by one |
-| ![Workspaces](docs/demo/workspaces.webp) The accent disc slides between the workspace dots | ![Settings](docs/demo/settings.webp) Sleepysettings, one tab after another |
-| ![Theme](docs/demo/theme.webp) Change the wallpaper and every colour follows | |
-
-Eleven recordings in all, one per feature, in [`docs/demo/`](docs/demo/README.md). They use Hyprland's own
-fallback wallpapers.
+Recordings, one per feature, are being made and go into [`docs/demo/`](docs/demo/README.md); that page
+lists each clip and what it shows. The kit holds the scripts that drive the shell for them
+(`tests/demo/`): a virtual pointer that glides, clicks and scrolls, an automated tour of Sleepysettings
+through its IPC, and an assembler that cuts frames into animated WebP.
 
 ## Make it yours
 
@@ -108,7 +102,9 @@ islands' padding are settings.
     under it), Bluetooth (with the device list: connect, pair, forget), Do not disturb, Keep awake (an idle
     inhibitor that survives a reload), Power profile (cycles power-saver, balanced, performance) and Night
     light;
-  - a tools grid: Shuffle wallpaper, Colour picker, Calendar, Audio mixer, Shuffle colours, Sleepysettings,
+  - a tools grid: Shuffle wallpaper, Wallpapers (the picker), Calendar, Audio mixer, Shuffle colours,
+    Sleepysettings, and a Colour picker (hyprpicker) that is off until you switch it on in the Centre island
+    tab and drag it into place,
     plus your own tools (an installed app, a command with or without a terminal, or a link), each with a
     label and a Material icon picked by name. A tool whose program is missing is greyed with the reason;
   - output and input audio panels (mute, slider, device list; Easy Effects chains resolve to the hardware
@@ -322,7 +318,7 @@ sleepyshell targets Arch Linux and its derivatives.
 | walker with its elephant service | The clipboard button opens walker's clipboard mode (hidden without walker); a good launcher to bind next to it |
 | khal | The calendar popup and the Calendar tool; hidden without it |
 | pciutils | GPU names in the System tab instead of PCI ids |
-| pwvucontrol, hyprpicker | The Audio mixer and Colour picker tools |
+| pwvucontrol, hyprpicker | The Audio mixer tool, and the Colour picker tool once switched on |
 | A terminal, file manager, editor, browser | Your own choice, set in the Apps tab; a missing one is reported, never assumed |
 
 ## Install
@@ -373,6 +369,10 @@ From scripts:
 qs -c sleepyshell ipc call sleepybar toggle <name>
 qs -c sleepyshell ipc call sleepybar sleepylock
 qs -c sleepyshell ipc call sleepybar clearNotifications
+# the settings window, while it is open: a tab by key, a value staged for the live preview, drop the staged values
+qs -p ~/.config/quickshell/sleepyshell/sleepysettings.qml ipc call sleepysettings tab theme
+qs -p ~/.config/quickshell/sleepyshell/sleepysettings.qml ipc call sleepysettings stage corners round
+qs -p ~/.config/quickshell/sleepyshell/sleepysettings.qml ipc call sleepysettings discard
 scripts/theme.py                          # a random wallpaper from your folder, and its palette
 scripts/theme.py ~/Pictures/wall.jpg      # that wallpaper and its palette
 scripts/theme.py --palette                # a new palette for the current wallpaper
@@ -439,9 +439,12 @@ MIT, see [LICENSE](LICENSE). The community theme palettes keep their own licence
 
 ## AI disclaimer
 
-sleepyshell is built with AI assistance (Claude Code). The maintainer sets the direction and makes every
-design decision; the code is written in scoped jobs that agents carry out in isolated copies of the shell,
-and nothing reaches the desktop without the compile gate, a sandboxed run and a review. Expect prose in
-comments and documents that reads as written with a model's help; expect the bugs to be the maintainer's.
-If something in the code or the documentation is wrong, a bug report is welcome like for any other
-project, and so are contributions, with or without AI.
+sleepyshell is AI-assisted, not AI-generated. The maintainer designed the shell, decided every feature,
+every setting and every "not planned", wrote the direction for each piece of work and tested the result
+on a real desktop, and uses Claude Code as a pair programmer. The assistant writes code to that direction
+in scoped jobs on isolated copies of the shell; the maintainer reads the changes, runs them through the
+compile gate and the sandboxed checks, and keeps them only when they do what was asked. Reviews of the
+code, including the security notes, were made the same way and checked against the code by hand. Prose in
+comments and documents may read as written with a model's help; the decisions, the bugs and the
+responsibility are the maintainer's. Bug reports and contributions are welcome like for any other
+project, with or without AI.

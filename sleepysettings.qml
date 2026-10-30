@@ -11,6 +11,7 @@
 // IPC: qs -p ~/.config/quickshell/sleepyshell/sleepysettings.qml ipc call sleepysettings close
 import QtQuick
 import Quickshell
+import qs.services
 import Quickshell.Io
 import qs.sleepysettings
 import qs.components
@@ -43,11 +44,35 @@ ShellRoot {
     // while the window is up reloads this instance)
     ReloadToast {}
 
+    // qs -p <this file> ipc call sleepysettings close | tab <key> | stage <key> <value> | discard
+    // tab, stage and discard are for scripts and recordings: a staged value shows on the bar at once
+    // (the live preview) and is written only by Apply; discard drops everything staged
     IpcHandler {
         target: "sleepysettings"
 
         function close(): void {
             win.leave(() => win.open = false);
+        }
+
+        function tab(name: string): void {
+            if (win.pages.some(p => p.key === name))
+                win.tab = name;
+        }
+
+        function stage(key: string, value: string): void {
+            const entry = Settings.schema[key];
+            if (!entry)
+                return;
+            let v = value;
+            if (typeof entry.def === "boolean")
+                v = value === "true";
+            else if (typeof entry.def === "number")
+                v = Number(value);
+            Settings.stage(key, v);
+        }
+
+        function discard(): void {
+            Settings.drop(Object.keys(Settings.pending));
         }
     }
 }

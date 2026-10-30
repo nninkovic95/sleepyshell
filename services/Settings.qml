@@ -97,8 +97,8 @@ Singleton {
             // the control centre's tiles (Wi-Fi ... Night light) are ordered and hidden like the tools
             tilesOrder: { tab: "centre", def: "wifi,bluetooth,dnd,awake,profile,night" },
             tilesHidden: { tab: "centre", def: "" },
-            toolsOrder: { tab: "centre", def: "shuffle,picker,calendar,mixer,palette,settings" },
-            toolsHidden: { tab: "centre", def: "" },
+            toolsOrder: { tab: "centre", def: "shuffle,wallpaper,picker,calendar,mixer,palette,settings" },
+            toolsHidden: { tab: "centre", def: "picker" },   // the colour picker is off until switched on in the Centre island tab
             // tools the user added: [{ id, label, icon (codepoint), kind: "app"|"command"|"link", value, terminal }], ids stable;
             // and the label / icon a built-in tool is shown with instead of its own: { name: { label, icon } }
             customTools: { tab: "centre", def: [] },
@@ -385,9 +385,10 @@ Singleton {
     // editor in the settings window both read these); the action of each is in ControlCentre's
     // table (the settings window cannot load that file), so a new tool goes in both
     // "wallpapers" is now "calendar"; a stored order or hidden list that still says wallpapers is read as calendar (`renamed`)
-    readonly property var toolNames: ["shuffle", "picker", "calendar", "mixer", "palette", "settings"]
+    readonly property var toolNames: ["shuffle", "wallpaper", "picker", "calendar", "mixer", "palette", "settings"]
     readonly property var toolLabels: ({
             shuffle: "Shuffle wallpaper",
+            wallpaper: "Wallpapers",
             picker: "Colour picker",
             calendar: "Calendar",
             mixer: "Audio mixer",
@@ -396,6 +397,7 @@ Singleton {
         })
     readonly property var toolIcons: ({
             shuffle: 0xF049D,
+            wallpaper: 0xF0E09,   // md-wallpaper
             picker: 0xF020A,
             calendar: 0xF0E18,   // md-calendar_month_outline
             mixer: 0xF057E,
@@ -407,6 +409,7 @@ Singleton {
     // scripts/theme.py (python3, magick, matugen, awww).
     readonly property var toolRequires: ({
             shuffle: ["python3", "magick", "matugen", "awww"],
+            wallpaper: ["python3", "magick", "matugen", "awww"],
             picker: ["hyprpicker"],
             calendar: ["khal"],
             mixer: ["pwvucontrol"],

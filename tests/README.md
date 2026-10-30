@@ -81,4 +81,6 @@ Planned, one per part of the shell, each a short run that checks what is seen an
 than every row: `bar/` (islands open as one shape, dropdown fit, control centre, widgets on fake data,
 events, popups), `settings/` (stage, Apply, the file written, file safety, one flow per tab) and
 `lock/` (starts, takes the lock, unlocks, exits; never a wrong password, which counts against
-pam_faillock). The list is in [`TASKS.md`](../TASKS.md).
+pam_faillock). The settings suite drives the window through its own IPC (`tab`, `stage`, `discard`), so
+it can open every tab and stage every key through its range and watch the bar's live preview, without
+knowing where a row sits. The list is in [`TASKS.md`](../TASKS.md).

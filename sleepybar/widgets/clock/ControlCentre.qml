@@ -384,9 +384,13 @@ RowLayout {
             // session menu still lock, hyprshot has its bind).
             readonly property var table: ({
                     shuffle: () => root.theme([]),
+                    // the wallpaper picker (WallpaperPicker.qml), also behind the Theme tab's Choose wallpaper
+                    wallpaper: () => {
+                        root.centre.open = false;
+                        Popouts.toggle("wallpaper");
+                    },
                     picker: () => root.run("sleep 0.2; hyprpicker -a"),
-                    // the Calendar tool (Wallpapers stay on the Theme tab's Choose
-                    // wallpaper and the `toggle wallpaper` IPC): the month popup, khal is its backend
+                    // the Calendar tool: the month popup, khal is its backend
                     calendar: () => {
                         root.centre.open = false;
                         Popouts.toggle("calendar"); // the month popup (CalendarPopup); khal is its backend
