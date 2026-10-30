@@ -1,0 +1,31 @@
+name = "Moonfly"
+source = "https://github.com/bluz71/vim-moonfly-colors"
+source_urls = ["https://github.com/bluz71/vim-moonfly-colors", "https://raw.githubusercontent.com/bluz71/vim-moonfly-colors/master/autoload/moonfly.vim", "https://raw.githubusercontent.com/bluz71/vim-moonfly-colors/master/LICENSE"]
+license = "MIT, Copyright (c) 2017-present vim-moonfly-colors authors"
+# Names are the s:name colours of autoload/moonfly.vim.
+
+[variants.dark]
+mode = "dark"
+primary = "#80a0ff"                     # blue
+on_primary = "#080808"                  # black
+primary_container = "#2c3652"           # derived: mix(black #080808, blue #80a0ff, 0.3)
+on_primary_container = "#c6c6c6"        # white
+secondary = "#cf87e8"                   # violet
+on_secondary = "#080808"                # black
+secondary_container = "#442e4b"         # derived: mix(black #080808, violet #cf87e8, 0.3)
+on_secondary_container = "#c6c6c6"      # white
+tertiary = "#36c692"                    # emerald
+on_tertiary = "#080808"                 # black
+error = "#ff5d5d"                       # red
+on_error = "#080808"                    # black
+error_container = "#522222"             # derived: mix(black #080808, red #ff5d5d, 0.3)
+on_error_container = "#c6c6c6"          # white
+surface = "#080808"                     # black
+on_surface = "#c6c6c6"                  # white
+on_surface_variant = "#b2b2b2"          # grey70
+surface_container = "#1c1c1c"           # grey11
+surface_container_high = "#2e2e2e"      # grey18
+surface_container_highest = "#444444"   # grey27
+outline = "#808080"                     # grey50
+outline_variant = "#4e4e4e"             # grey30
+derived = ["primary_container", "secondary_container", "error_container"]

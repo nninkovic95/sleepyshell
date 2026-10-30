@@ -1,0 +1,58 @@
+name = "Oxocarbon"
+source = "https://github.com/nyoom-engineering/oxocarbon.nvim"
+source_urls = ["https://github.com/nyoom-engineering/oxocarbon.nvim", "https://raw.githubusercontent.com/nyoom-engineering/oxocarbon.nvim/main/lua/oxocarbon/init.lua", "https://raw.githubusercontent.com/nyoom-engineering/base16-oxocarbon/main/base16-oxocarbon-dark.yaml", "https://raw.githubusercontent.com/nyoom-engineering/base16-oxocarbon/main/base16-oxocarbon-light.yaml", "https://raw.githubusercontent.com/nyoom-engineering/oxocarbon.nvim/main/LICENSE"]
+license = "MIT, Copyright (c) 2022 Riccardo Mazzarini (as stated in the LICENSE file of oxocarbon.nvim; the base16-oxocarbon repository shows no licence)"
+# base00..base15 are the names in oxocarbon.nvim lua/oxocarbon/init.lua. The nvim file computes dark base01-base05 by blending, so those use the explicit hex of base16-oxocarbon-dark.yaml (base01..base05).
+# g10, g20, g80 are base00, base01, base05 of base16-oxocarbon-light.yaml (#f2f4f8, #dde1e6, #393939); the light nvim base01/base02 are blends too.
+
+[variants.dark]
+mode = "dark"
+primary = "#78a9ff"                     # base09
+on_primary = "#161616"                  # base00
+primary_container = "#33425c"           # derived: mix(base00 #161616, base09 #78a9ff, 0.3)
+on_primary_container = "#f2f4f8"        # base05
+secondary = "#be95ff"                   # base14
+on_secondary = "#161616"                # base00
+secondary_container = "#483c5c"         # derived: mix(base00 #161616, base14 #be95ff, 0.3)
+on_secondary_container = "#f2f4f8"      # base05
+tertiary = "#08bdba"                    # base07
+on_tertiary = "#161616"                 # base00
+error = "#ee5396"                       # base10
+on_error = "#161616"                    # base00
+error_container = "#57283c"             # derived: mix(base00 #161616, base10 #ee5396, 0.3)
+on_error_container = "#f2f4f8"          # base05
+surface = "#161616"                     # base00
+on_surface = "#f2f4f8"                  # base05
+on_surface_variant = "#dde1e6"          # base04
+surface_container = "#262626"           # base01
+surface_container_high = "#393939"      # base02
+surface_container_highest = "#525252"   # base03
+outline = "#838486"                     # derived: mix(base03 #525252, base04 #dde1e6, 0.35)
+outline_variant = "#525252"             # base03
+derived = ["primary_container", "secondary_container", "error_container", "outline"]
+
+[variants.light]
+mode = "light"
+primary = "#0f62fe"                     # base11
+on_primary = "#ffffff"                  # base00
+primary_container = "#c3d8ff"           # derived: mix(base00 #ffffff, base11 #0f62fe, 0.25)
+on_primary_container = "#161616"        # base03
+secondary = "#673ab7"                   # base12
+on_secondary = "#ffffff"                # base00
+secondary_container = "#d9ceed"         # derived: mix(base00 #ffffff, base12 #673ab7, 0.25)
+on_secondary_container = "#161616"      # base03
+tertiary = "#08bdba"                    # base07
+on_tertiary = "#161616"                 # base03
+error = "#ee5396"                       # base09
+on_error = "#161616"                    # base03
+error_container = "#fbd4e5"             # derived: mix(base00 #ffffff, base09 #ee5396, 0.25)
+on_error_container = "#161616"          # base03
+surface = "#ffffff"                     # base00
+on_surface = "#161616"                  # base03
+on_surface_variant = "#393939"          # g80
+surface_container = "#f2f4f8"           # g10
+surface_container_high = "#dde1e6"      # g20
+surface_container_highest = "#c1c4c8"   # derived: mix(g20 #dde1e6, base06 #525252, 0.2)
+outline = "#919295"                     # derived: mix(g20 #dde1e6, base06 #525252, 0.55)
+outline_variant = "#dde1e6"             # g20
+derived = ["primary_container", "secondary_container", "error_container", "surface_container_highest", "outline"]

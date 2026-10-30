@@ -1,0 +1,32 @@
+# sleepyshell is both the Quickshell config folder and the repository root.
+
+# user state written by Sleepysettings on Apply; the defaults live in services/Settings.qml
+/sleepysettings.toml
+/sleepysettings.toml.*
+/settings.json
+/settings.json.*
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Claude Code files: per-machine notes and settings, never part of the project
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+.claude-plugin/
+.mcp.json
+
+# test kit: per-machine state and output, not code
+/tests/backups/
+/tests/jobs/
+/tests/run/
+/tests/candidate/
+/tests/legacy/
+/tests/*.sha256
+
+# editors and systems
+*.swp
+*~
+.DS_Store
+Thumbs.db

@@ -1,0 +1,56 @@
+name = "Gruvbox"
+source = "https://github.com/morhetz/gruvbox"
+source_urls = ["https://github.com/morhetz/gruvbox", "https://raw.githubusercontent.com/morhetz/gruvbox/master/colors/gruvbox.vim"]
+license = "MIT/X11 as declared in the repository README (no LICENSE file found at the raw URL, no copyright line); author morhetz"
+
+[variants.dark]
+mode = "dark"
+primary = "#83a598"                     # bright_blue
+on_primary = "#1d2021"                  # dark0_hard
+primary_container = "#434e4a"           # derived: mix(dark0 #282828, bright_blue #83a598, 0.3)
+on_primary_container = "#ebdbb2"        # light1
+secondary = "#8ec07c"                   # bright_aqua
+on_secondary = "#1d2021"                # dark0_hard
+secondary_container = "#475641"         # derived: mix(dark0 #282828, bright_aqua #8ec07c, 0.3)
+on_secondary_container = "#ebdbb2"      # light1
+tertiary = "#fabd2f"                    # bright_yellow
+on_tertiary = "#1d2021"                 # dark0_hard
+error = "#fb4934"                       # bright_red
+on_error = "#1d2021"                    # dark0_hard
+error_container = "#67322c"             # derived: mix(dark0 #282828, bright_red #fb4934, 0.3)
+on_error_container = "#ebdbb2"          # light1
+surface = "#282828"                     # dark0
+on_surface = "#ebdbb2"                  # light1
+on_surface_variant = "#a89984"          # light4
+surface_container = "#3c3836"           # dark1
+surface_container_high = "#504945"      # dark2
+surface_container_highest = "#665c54"   # dark3
+outline = "#928374"                     # gray
+outline_variant = "#7c6f64"             # dark4
+derived = ["primary_container", "secondary_container", "error_container"]
+
+[variants.light]
+mode = "light"
+primary = "#076678"                     # faded_blue
+on_primary = "#fbf1c7"                  # light0
+primary_container = "#beceb3"           # derived: mix(light0 #fbf1c7, faded_blue #076678, 0.25)
+on_primary_container = "#3c3836"        # dark1
+secondary = "#427b58"                   # faded_aqua
+on_secondary = "#f9f5d7"                # light0_hard
+secondary_container = "#cdd4ab"         # derived: mix(light0 #fbf1c7, faded_aqua #427b58, 0.25)
+on_secondary_container = "#3c3836"      # dark1
+tertiary = "#b57614"                    # faded_yellow
+on_tertiary = "#1b1918"                 # derived: dark1 #3c3836 moved 0.55 toward black for contrast >= 4.5
+error = "#9d0006"                       # faded_red
+on_error = "#fbf1c7"                    # light0
+error_container = "#e4b597"             # derived: mix(light0 #fbf1c7, faded_red #9d0006, 0.25)
+on_error_container = "#3c3836"          # dark1
+surface = "#fbf1c7"                     # light0
+on_surface = "#3c3836"                  # dark1
+on_surface_variant = "#665c54"          # dark3
+surface_container = "#ebdbb2"           # light1
+surface_container_high = "#d5c4a1"      # light2
+surface_container_highest = "#bdae93"   # light3
+outline = "#928374"                     # gray
+outline_variant = "#a89984"             # light4
+derived = ["primary_container", "secondary_container", "error_container", "on_tertiary"]

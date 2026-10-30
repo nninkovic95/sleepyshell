@@ -1,0 +1,31 @@
+name = "Cyberdream"
+source = "https://github.com/scottmckendry/cyberdream.nvim"
+source_urls = ["https://github.com/scottmckendry/cyberdream.nvim", "https://raw.githubusercontent.com/scottmckendry/cyberdream.nvim/main/lua/cyberdream/colors.lua", "https://raw.githubusercontent.com/scottmckendry/cyberdream.nvim/main/LICENSE"]
+license = "MIT, Copyright (c) 2023 Scott McKendry"
+# Names are the keys of the default (dark) table in lua/cyberdream/colors.lua.
+
+[variants.dark]
+mode = "dark"
+primary = "#5ef1ff"                     # cyan
+on_primary = "#16181a"                  # bg
+primary_container = "#2c595f"           # derived: mix(bg #16181a, cyan #5ef1ff, 0.3)
+on_primary_container = "#ffffff"        # fg
+secondary = "#bd5eff"                   # purple
+on_secondary = "#16181a"                # bg
+secondary_container = "#482d5f"         # derived: mix(bg #16181a, purple #bd5eff, 0.3)
+on_secondary_container = "#ffffff"      # fg
+tertiary = "#ff5ea0"                    # pink
+on_tertiary = "#16181a"                 # bg
+error = "#ff6e5e"                       # red
+on_error = "#16181a"                    # bg
+error_container = "#5c322e"             # derived: mix(bg #16181a, red #ff6e5e, 0.3)
+on_error_container = "#ffffff"          # fg
+surface = "#16181a"                     # bg
+on_surface = "#ffffff"                  # fg
+on_surface_variant = "#7b8496"          # grey
+surface_container = "#1e2124"           # bg_alt
+surface_container_high = "#2d3036"      # derived: mix(bg_alt #1e2124, bg_highlight #3c4048, 0.5)
+surface_container_highest = "#3c4048"   # bg_highlight
+outline = "#7b8496"                     # grey
+outline_variant = "#3c4048"             # bg_highlight
+derived = ["primary_container", "secondary_container", "error_container", "surface_container_high"]

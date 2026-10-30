@@ -1,0 +1,31 @@
+name = "Night Owl"
+source = "https://github.com/sdras/night-owl-vscode-theme"
+source_urls = ["https://github.com/sdras/night-owl-vscode-theme", "https://raw.githubusercontent.com/sdras/night-owl-vscode-theme/main/themes/Night%20Owl-color-theme.json", "https://raw.githubusercontent.com/sdras/night-owl-vscode-theme/main/LICENSE.md"]
+license = "MIT, Copyright (c) 2018 Sarah Drasner"
+# Names are VS Code theme keys: bg = editor.background, fg = editor.foreground, input = input.background, tab = tab.activeBackground, border = focusBorder / contrastBorder, red = errorForeground / terminal.ansiRed, blue = terminal.ansiBlue, magenta = terminal.ansiMagenta, brightcyan = terminal.ansiBrightCyan, comment = comment token colour.
+
+[variants.dark]
+mode = "dark"
+primary = "#82aaff"                     # blue
+on_primary = "#011627"                  # bg
+primary_container = "#284268"           # derived: mix(bg #011627, blue #82aaff, 0.3)
+on_primary_container = "#d6deeb"        # fg
+secondary = "#c792ea"                   # magenta
+on_secondary = "#011627"                # bg
+secondary_container = "#3c3b62"         # derived: mix(bg #011627, magenta #c792ea, 0.3)
+on_secondary_container = "#d6deeb"      # fg
+tertiary = "#7fdbca"                    # brightcyan
+on_tertiary = "#011627"                 # bg
+error = "#ef5350"                       # red
+on_error = "#011627"                    # bg
+error_container = "#482833"             # derived: mix(bg #011627, red #ef5350, 0.3)
+on_error_container = "#d6deeb"          # fg
+surface = "#011627"                     # bg
+on_surface = "#d6deeb"                  # fg
+on_surface_variant = "#718486"          # derived: mix(fg #d6deeb, comment #637777, 0.875); comment alone is only 3.87:1
+surface_container = "#0b253a"           # input
+surface_container_high = "#0b2942"      # tab
+surface_container_highest = "#122d42"   # border
+outline = "#637777"                     # comment
+outline_variant = "#122d42"             # border
+derived = ["primary_container", "secondary_container", "error_container", "on_surface_variant"]

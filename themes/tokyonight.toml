@@ -1,0 +1,82 @@
+name = "Tokyo Night"
+source = "https://github.com/folke/tokyonight.nvim/tree/main/extras/lua"
+source_urls = ["https://github.com/folke/tokyonight.nvim/tree/main/extras/lua", "https://raw.githubusercontent.com/folke/tokyonight.nvim/main/extras/lua/tokyonight_night.lua", "https://raw.githubusercontent.com/folke/tokyonight.nvim/main/extras/lua/tokyonight_storm.lua", "https://raw.githubusercontent.com/folke/tokyonight.nvim/main/extras/lua/tokyonight_day.lua"]
+license = "Apache-2.0, folke/tokyonight.nvim (LICENSE text fetched is the unfilled Apache template; copyright holder folke not stated in it)"
+
+[variants.night]
+mode = "dark"
+primary = "#7aa2f7"                     # blue
+on_primary = "#16161e"                  # bg_dark
+primary_container = "#374465"           # derived: mix(bg #1a1b26, blue #7aa2f7, 0.3)
+on_primary_container = "#c0caf5"        # fg
+secondary = "#bb9af7"                   # magenta
+on_secondary = "#16161e"                # bg_dark
+secondary_container = "#4a4165"         # derived: mix(bg #1a1b26, magenta #bb9af7, 0.3)
+on_secondary_container = "#c0caf5"      # fg
+tertiary = "#7dcfff"                    # cyan
+on_tertiary = "#16161e"                 # bg_dark
+error = "#f7768e"                       # red
+on_error = "#16161e"                    # bg_dark
+error_container = "#5c3645"             # derived: mix(bg #1a1b26, red #f7768e, 0.3)
+on_error_container = "#c0caf5"          # fg
+surface = "#1a1b26"                     # bg
+on_surface = "#c0caf5"                  # fg
+on_surface_variant = "#a9b1d6"          # fg_dark
+surface_container = "#292e42"           # bg_highlight
+surface_container_high = "#323852"      # derived: mix(bg_highlight #292e42, fg_gutter #3b4261, 0.5)
+surface_container_highest = "#3b4261"   # fg_gutter
+outline = "#565f89"                     # comment
+outline_variant = "#414868"             # terminal_black
+derived = ["primary_container", "secondary_container", "error_container", "surface_container_high"]
+
+[variants.storm]
+mode = "dark"
+primary = "#7aa2f7"                     # blue
+on_primary = "#1f2335"                  # bg_dark
+primary_container = "#3e4d73"           # derived: mix(bg #24283b, blue #7aa2f7, 0.3)
+on_primary_container = "#c0caf5"        # fg
+secondary = "#bb9af7"                   # magenta
+on_secondary = "#1f2335"                # bg_dark
+secondary_container = "#514a73"         # derived: mix(bg #24283b, magenta #bb9af7, 0.3)
+on_secondary_container = "#c0caf5"      # fg
+tertiary = "#7dcfff"                    # cyan
+on_tertiary = "#1f2335"                 # bg_dark
+error = "#f7768e"                       # red
+on_error = "#1f2335"                    # bg_dark
+error_container = "#633f54"             # derived: mix(bg #24283b, red #f7768e, 0.3)
+on_error_container = "#c0caf5"          # fg
+surface = "#24283b"                     # bg
+on_surface = "#c0caf5"                  # fg
+on_surface_variant = "#a9b1d6"          # fg_dark
+surface_container = "#292e42"           # bg_highlight
+surface_container_high = "#323852"      # derived: mix(bg_highlight #292e42, fg_gutter #3b4261, 0.5)
+surface_container_highest = "#3b4261"   # fg_gutter
+outline = "#565f89"                     # comment
+outline_variant = "#414868"             # terminal_black
+derived = ["primary_container", "secondary_container", "error_container", "surface_container_high"]
+
+[variants.day]
+mode = "light"
+primary = "#006a83"                     # blue5
+on_primary = "#e1e2e7"                  # bg
+primary_container = "#a9c4ce"           # derived: mix(bg #e1e2e7, blue5 #006a83, 0.25)
+on_primary_container = "#29488f"        # derived: fg #3760bf moved 0.25 toward black for contrast >= 4.5
+secondary = "#7847bd"                   # purple
+on_secondary = "#e1e2e7"                # bg
+secondary_container = "#c7bbdc"         # derived: mix(bg #e1e2e7, purple #7847bd, 0.25)
+on_secondary_container = "#29488f"      # derived: fg #3760bf moved 0.25 toward black for contrast >= 4.5
+tertiary = "#587539"                    # green
+on_tertiary = "#edeef1"                 # derived: bg #e1e2e7 moved 0.40 toward white for contrast >= 4.5
+error = "#c64343"                       # red1
+on_error = "#f6f6f8"                    # derived: bg #e1e2e7 moved 0.70 toward white for contrast >= 4.5
+error_container = "#dababe"             # derived: mix(bg #e1e2e7, red1 #c64343, 0.25)
+on_error_container = "#29488f"          # derived: fg #3760bf moved 0.25 toward black for contrast >= 4.5
+surface = "#e1e2e7"                     # bg
+on_surface = "#3760bf"                  # fg
+on_surface_variant = "#6172b0"          # fg_dark
+surface_container = "#d0d5e3"           # bg_dark
+surface_container_high = "#c1c9df"      # bg_dark1
+surface_container_highest = "#b7c1e3"   # bg_visual
+outline = "#848cb5"                     # comment
+outline_variant = "#a8aecb"             # fg_gutter
+derived = ["primary_container", "secondary_container", "error_container", "on_tertiary", "on_error", "on_primary_container", "on_secondary_container", "on_error_container"]

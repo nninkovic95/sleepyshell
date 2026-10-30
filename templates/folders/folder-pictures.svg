@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- sleepyshell folder icon "folder-pictures": a flat folder in the theme's primary colour (matugen template; written to
+     ~/.local/share/icons/Sleepytheme-Folders/scalable/places/folder-pictures.svg). Drawn for this shell; the colours are
+     primary and on_primary of the palette in use. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <path d="M9 10H24Q26 10 27.5 11.5L30 14H55Q58 14 58 17V51Q58 54 55 54H9Q6 54 6 51V13Q6 10 9 10Z" fill="{{colors.primary.default.hex}}" fill-opacity="0.58"/>
+  <path d="M9 20H55Q58 20 58 23V51Q58 54 55 54H9Q6 54 6 51V23Q6 20 9 20Z" fill="{{colors.primary.default.hex}}"/>
+  <g fill="{{colors.on_primary.default.hex}}" fill-opacity="0.92" stroke="none">
+    <rect x="22.5" y="28.5" width="19" height="16" rx="2.2"/>
+  </g>
+  <path d="M24.8 42.5L30 35.5L33.6 40L35.8 37.4L39.2 42.5Z" fill="{{colors.primary.default.hex}}"/>
+  <circle cx="36.4" cy="33.2" r="1.7" fill="{{colors.primary.default.hex}}"/>
+</svg>

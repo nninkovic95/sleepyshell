@@ -1,0 +1,108 @@
+name = "Catppuccin"
+source = "https://github.com/catppuccin/palette"
+source_urls = ["https://github.com/catppuccin/palette", "https://raw.githubusercontent.com/catppuccin/palette/main/palette.json"]
+license = "MIT, Copyright (c) 2021 Catppuccin"
+
+[variants.mocha]
+mode = "dark"
+primary = "#cba6f7"                     # mauve
+on_primary = "#11111b"                  # crust
+primary_container = "#52476a"           # derived: mix(base #1e1e2e, mauve #cba6f7, 0.3)
+on_primary_container = "#cdd6f4"        # text
+secondary = "#89b4fa"                   # blue
+on_secondary = "#11111b"                # crust
+secondary_container = "#3e4b6b"         # derived: mix(base #1e1e2e, blue #89b4fa, 0.3)
+on_secondary_container = "#cdd6f4"      # text
+tertiary = "#94e2d5"                    # teal
+on_tertiary = "#11111b"                 # crust
+error = "#f38ba8"                       # red
+on_error = "#11111b"                    # crust
+error_container = "#5e3f53"             # derived: mix(base #1e1e2e, red #f38ba8, 0.3)
+on_error_container = "#cdd6f4"          # text
+surface = "#1e1e2e"                     # base
+on_surface = "#cdd6f4"                  # text
+on_surface_variant = "#bac2de"          # subtext1
+surface_container = "#313244"           # surface0
+surface_container_high = "#45475a"      # surface1
+surface_container_highest = "#585b70"   # surface2
+outline = "#6c7086"                     # overlay0
+outline_variant = "#585b70"             # surface2
+derived = ["primary_container", "secondary_container", "error_container"]
+
+[variants.macchiato]
+mode = "dark"
+primary = "#c6a0f6"                     # mauve
+on_primary = "#181926"                  # crust
+primary_container = "#554b72"           # derived: mix(base #24273a, mauve #c6a0f6, 0.3)
+on_primary_container = "#cad3f5"        # text
+secondary = "#8aadf4"                   # blue
+on_secondary = "#181926"                # crust
+secondary_container = "#434f72"         # derived: mix(base #24273a, blue #8aadf4, 0.3)
+on_secondary_container = "#cad3f5"      # text
+tertiary = "#8bd5ca"                    # teal
+on_tertiary = "#181926"                 # crust
+error = "#ed8796"                       # red
+on_error = "#181926"                    # crust
+error_container = "#604456"             # derived: mix(base #24273a, red #ed8796, 0.3)
+on_error_container = "#cad3f5"          # text
+surface = "#24273a"                     # base
+on_surface = "#cad3f5"                  # text
+on_surface_variant = "#b8c0e0"          # subtext1
+surface_container = "#363a4f"           # surface0
+surface_container_high = "#494d64"      # surface1
+surface_container_highest = "#5b6078"   # surface2
+outline = "#6e738d"                     # overlay0
+outline_variant = "#5b6078"             # surface2
+derived = ["primary_container", "secondary_container", "error_container"]
+
+[variants.frappe]
+mode = "dark"
+primary = "#ca9ee6"                     # mauve
+on_primary = "#232634"                  # crust
+primary_container = "#5e5476"           # derived: mix(base #303446, mauve #ca9ee6, 0.3)
+on_primary_container = "#c6d0f5"        # text
+secondary = "#8caaee"                   # blue
+on_secondary = "#232634"                # crust
+secondary_container = "#4c5778"         # derived: mix(base #303446, blue #8caaee, 0.3)
+on_secondary_container = "#c6d0f5"      # text
+tertiary = "#81c8be"                    # teal
+on_tertiary = "#232634"                 # crust
+error = "#e78284"                       # red
+on_error = "#232634"                    # crust
+error_container = "#674b59"             # derived: mix(base #303446, red #e78284, 0.3)
+on_error_container = "#c6d0f5"          # text
+surface = "#303446"                     # base
+on_surface = "#c6d0f5"                  # text
+on_surface_variant = "#b5bfe2"          # subtext1
+surface_container = "#414559"           # surface0
+surface_container_high = "#51576d"      # surface1
+surface_container_highest = "#626880"   # surface2
+outline = "#737994"                     # overlay0
+outline_variant = "#626880"             # surface2
+derived = ["primary_container", "secondary_container", "error_container"]
+
+[variants.latte]
+mode = "light"
+primary = "#8839ef"                     # mauve
+on_primary = "#eff1f5"                  # base
+primary_container = "#d5c3f4"           # derived: mix(base #eff1f5, mauve #8839ef, 0.25)
+on_primary_container = "#4c4f69"        # text
+secondary = "#1e66f5"                   # blue
+on_secondary = "#f4f5f8"                # derived: base #eff1f5 moved 0.30 toward white for contrast >= 4.5
+secondary_container = "#bbcef5"         # derived: mix(base #eff1f5, blue #1e66f5, 0.25)
+on_secondary_container = "#4c4f69"      # text
+tertiary = "#179299"                    # teal
+on_tertiary = "#1b1c25"                 # derived: text #4c4f69 moved 0.65 toward black for contrast >= 4.5
+error = "#d20f39"                       # red
+on_error = "#eff1f5"                    # base
+error_container = "#e8b8c6"             # derived: mix(base #eff1f5, red #d20f39, 0.25)
+on_error_container = "#4c4f69"          # text
+surface = "#eff1f5"                     # base
+on_surface = "#4c4f69"                  # text
+on_surface_variant = "#6c6f85"          # subtext0
+surface_container = "#e6e9ef"           # mantle
+surface_container_high = "#dce0e8"      # crust
+surface_container_highest = "#ccd0da"   # surface0
+outline = "#8c8fa1"                     # overlay1
+outline_variant = "#bcc0cc"             # surface1
+derived = ["primary_container", "secondary_container", "error_container", "on_secondary", "on_tertiary"]
