@@ -187,6 +187,7 @@ Scope {
                     Layout.fillWidth: true
                     visible: text !== ""
                     wrapMode: Text.WordWrap
+                    textFormat: Text.PlainText   // the helper's text, never markup
                     text: root.flow ? root.flow.supplementaryMessage : ""
                     font.family: Theme.font
                     font.pixelSize: Theme.fontSize - 1

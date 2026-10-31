@@ -30,7 +30,7 @@ menus, device names, configuration files written by someone else.
 | Screenshot preview on a card | A sender named "hyprshot" or a path containing `/Screenshots/` | Decodes the local image for display only, nothing is sent anywhere. Any app can ask for a preview of an image the user can read; turn it off with the `shotPreview` setting. |
 | System tray items: labels, icons, menu structure | Tray clients | Plain text. |
 | Wi-Fi and Bluetooth names | Nearby access points and devices | Plain text. A Bluetooth device is marked trusted only after pairing has succeeded. |
-| PipeWire application names, EDID monitor names, polkit request text, package names, QML error text | PipeWire, the monitors, the polkit helper, pacman and paru, Quickshell | Plain text. Two places still use Qt's default text format (the polkit helper's supplementary message and the package list); see Known limitations. |
+| PipeWire application names, EDID monitor names, polkit request text, package names, QML error text | PipeWire, the monitors, the polkit helper, pacman and paru, Quickshell | Plain text, everywhere. |
 | A keybind file imported in the Keybinds tab | Often written by someone else | Parsed as text, never evaluated: no `load`, `require`, variables, concatenation or function calls. Only `hl.bind("KEYS", hl.dsp.<action>(<literal>)[, { option = true }])` lines are accepted, with the action and the options from closed lists; the line written to `sleepybinds.lua` is rebuilt from the parsed values. Everything else is refused and listed with its line number. The file must be text and at most 256 KB. Nothing is written until Add and Apply, and the previous file is backed up first. |
 | The user's Hyprland files | `~/.config/hypr` | Read as text for keybind discovery and the Config tab checks; never evaluated. |
 | `sleepysettings.toml` | The shell's own settings file | Parsed by the shell's own `Toml.js`. Numbers are clamped to their ranges on read. A file that does not parse names the line, keeps the last good values and makes every write a no-op until it parses again; the damaged text is copied to `sleepysettings.toml.broken` first. |
@@ -129,9 +129,6 @@ not load.
   `ipc call sleepybar sleepylock`).
 - Notification images and tray icons are passed to the image loaders without a scheme check. Whether a
   remote URL would be fetched has not been settled; treat it as possible.
-- Two texts are still rendered with Qt's default format instead of plain text: the polkit helper's
-  supplementary message and the package names in the updates dropdown. Both come from local system
-  components rather than from an unprivileged caller.
 - The PAM check and the update check have no timeout, and Escape cannot cancel the polkit prompt while
   PAM is checking.
 - An IPC `toggle` with a name that is not a popup raises a caught error and does nothing.

@@ -217,8 +217,8 @@ Reached when every item below is fixed, or recorded as accepted with the reason.
 
 Reached when `SECURITY.md`'s "Known limitations" lists only the items accepted by design.
 
-- [ ] Two texts still use Qt's default text format instead of plain text: the polkit helper's
-      supplementary message and the package names in the updates dropdown.
+- [x] Two texts still used Qt's default text format: the polkit helper's supplementary message and the
+      package names in the updates dropdown. Both plain text now.
 - [ ] Notification images and tray icons are passed to the image loaders without a scheme check; settle
       whether a remote URL is fetched and refuse anything but local files.
 - [ ] A timeout on the PAM check and on `checkupdates.sh`; Escape cancels the polkit prompt while PAM is

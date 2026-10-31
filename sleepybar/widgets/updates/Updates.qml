@@ -148,6 +148,7 @@ BarButton {
             Text {
                 required property string modelData
                 Layout.leftMargin: 10
+                textFormat: Text.PlainText   // a package name from pacman or paru, never markup
                 text: modelData
                 font.family: Theme.font
                 font.pixelSize: Theme.fontSize - 1
