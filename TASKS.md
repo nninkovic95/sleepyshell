@@ -90,13 +90,19 @@ guard proves no test touches a real file.
         passed, workspace apps 10 passed; the checksum guard clean afterwards.
   - [ ] Stage 1 leftover: the toml round trip through the legacy toml root (parse, render, parse equal;
         a broken file refused with its line), to run with Stage 2's sandboxed instances.
-  - [~] Stage 2, the legacy suites. Repair of the builders (names, paths and moved blocks only): the
-        settings sandbox builds after five fixes (two widget folders, the renamed settings window, the
-        moved folder browser, the lock block with the sleep cover). The bar sandbox is skipped (twelve
-        moved files; the bar suite is a rewrite). The lock sandbox is not built tonight: after four
-        fixes its final scan refuses the sleep cover's key handler ("a key handler other than
-        Escape's"), which is a change of what a check expects, the plan's stop condition. Next: the
-        settings suite run on the silent workspace, every failure classified.
+  - [x] Stage 2, the legacy settings suite, once: 1539 checks, 1301 passed, 238 failed, 160 s, no
+        placement alarm, nothing left running. Every failure classified: 200 harness (188 the cascade
+        after two sandboxed settings windows died, 9 a sandbox missing `sleepybar/components`, 1 the
+        absent virtual monitor, 1 the lock sandbox's stale scan, 1 a rounding probe), 19 layout checks
+        that cannot pass while the window is never drawn (the sandbox windows were off screen), 18 stale
+        expectations (the seventh tool and the hidden picker, the Sleep wording, the three mail handlers,
+        the Island padding row), 2 real candidates: the two window deaths, which are the two core dumps
+        under Goal 3. The lock suite was not built (its scan refuses the sleep cover's key handler);
+        the bar suite is a rewrite.
+  - [ ] Stage 2 rerun, in daylight: the sandbox windows on a screen that is drawn (the virtual monitor
+        or the `tests` workspace with the window made visible), the kit restarting a window that dies,
+        and the 188 cascaded checks classified properly; the kit's screenshots must never capture the
+        real screen (they did tonight, and were deleted).
   - [x] Stage 3, adversarial read-only review of the five risky surfaces (notifications, lock, settings
         writer and socket, islands, the idle, power and default-apps scripts): 40 findings, 3 high, 14
         medium, 23 low, one dismissed after checking. Three fixed and deployed the same night (the
@@ -154,12 +160,14 @@ Reached when every item below is fixed, or recorded as accepted with the reason.
 
 - [x] `Cannot close destroyed notification` in the log: a click invoked the app's default action, which
       closes a non-resident notification by itself, and the handler dismissed it again. Fixed and verified.
-- [ ] Settings window, high: two Quickshell processes crashed (SIGSEGV) during the legacy suite run on
-      30 Oct at 23:54:54 and 23:55:17, the first the look-config lane's sandboxed settings window, in
-      `QGridLayoutEngine::sizeHint` under `QQuickStackLayout::collectItemSizeHints`. That lane resizes
-      the window to its narrowest widths and switches tabs, so the suspect is a layout size-hint loop
-      when a tab's `GridLayout`/pair rows are narrower than their minimum. Reproduce in the kit's sandbox
-      with a window resized step by step, then fix (a minimum width or a layout that cannot go negative).
+- [ ] Settings window, high: two sandboxed settings windows died (SIGSEGV in `QGridLayoutEngine::
+      fillRowData` under `QQuickLayout::effectiveSizeHints_helper`) during the legacy suite run on 30 Oct:
+      the look-config lane on a switch to the Idle tab after a visit to the Theme tab at 784 px and two
+      resizes, the file-checks lane on a switch to the Theme tab after Config had pointed the wallpaper
+      folder at a missing path and Colours at the state file. Both follow a tab switch shortly after the
+      Theme tab, in windows that were never drawn. Reproduce in a lane with the window on screen (the
+      Theme tab's Wallpaper section and the stack's enter animation are the first places to look), then
+      fix.
 - [ ] Lock, high (laptops): a power-source change restarts `hypridle.service`, which kills a lock the
       `lock_cmd` started with it; the session stays locked with no client. Start the lock outside
       hypridle's cgroup (`systemd-run --user --scope`) or a `KillMode=process` drop-in.
