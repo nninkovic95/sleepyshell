@@ -104,8 +104,11 @@ guard proves no test touches a real file.
         dismissing an arriving notification; the settings `stage` IPC validated and clamped). The rest
         are Goal 3 and Goal 4 items below; the full table is the report
         (`tests/jobs/2026-10-30-thorough/stage3-review.md`, also in the vault).
-  - [ ] Stage 4, the live shell read-only: error and warning counts, layer surfaces, IPC listing, the
-        settings file parses, `hypridle.conf` content, no stray lock process, checksum guard clean.
+  - [x] Stage 4, the live shell read-only (31 Oct 02:12): 0 ERROR and 9 WARN lines since the last
+        reload, the three layer namespaces present, the IPC listing complete, the settings file parses
+        (12 sections, 95 keys), `hypridle.conf` with dim and lock listeners and no suspend (the owner's
+        setting), no sandbox instance left, the checksum guard clean; the idle lock was up at the time,
+        which is hypridle doing its job.
   - [ ] Stage 5, on real hardware one at a time: lock and unlock, a second lock request exits quietly,
         suspend and wake with the sleep cover, every popup, the tray right-click menu.
   - [ ] Stage 6, the report: one table per stage, confirmed findings with file and line, what was out of
@@ -148,6 +151,12 @@ Reached when every item below is fixed, or recorded as accepted with the reason.
 
 - [x] `Cannot close destroyed notification` in the log: a click invoked the app's default action, which
       closes a non-resident notification by itself, and the handler dismissed it again. Fixed and verified.
+- [ ] Settings window, high: two Quickshell processes crashed (SIGSEGV) during the legacy suite run on
+      30 Oct at 23:54:54 and 23:55:17, the first the look-config lane's sandboxed settings window, in
+      `QGridLayoutEngine::sizeHint` under `QQuickStackLayout::collectItemSizeHints`. That lane resizes
+      the window to its narrowest widths and switches tabs, so the suspect is a layout size-hint loop
+      when a tab's `GridLayout`/pair rows are narrower than their minimum. Reproduce in the kit's sandbox
+      with a window resized step by step, then fix (a minimum width or a layout that cannot go negative).
 - [ ] Lock, high (laptops): a power-source change restarts `hypridle.service`, which kills a lock the
       `lock_cmd` started with it; the session stays locked with no client. Start the lock outside
       hypridle's cgroup (`systemd-run --user --scope`) or a `KillMode=process` drop-in.
