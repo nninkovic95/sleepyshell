@@ -90,9 +90,13 @@ guard proves no test touches a real file.
         passed, workspace apps 10 passed; the checksum guard clean afterwards.
   - [ ] Stage 1 leftover: the toml round trip through the legacy toml root (parse, render, parse equal;
         a broken file refused with its line), to run with Stage 2's sandboxed instances.
-  - [ ] Stage 2, the repaired legacy settings and lock suites on a silent workspace (names and paths only
-        in the repair, stop after ten misses), every failure classified: stale expectation, real bug,
-        timing.
+  - [~] Stage 2, the legacy suites. Repair of the builders (names, paths and moved blocks only): the
+        settings sandbox builds after five fixes (two widget folders, the renamed settings window, the
+        moved folder browser, the lock block with the sleep cover). The bar sandbox is skipped (twelve
+        moved files; the bar suite is a rewrite). The lock sandbox is not built tonight: after four
+        fixes its final scan refuses the sleep cover's key handler ("a key handler other than
+        Escape's"), which is a change of what a check expects, the plan's stop condition. Next: the
+        settings suite run on the silent workspace, every failure classified.
   - [x] Stage 3, adversarial read-only review of the five risky surfaces (notifications, lock, settings
         writer and socket, islands, the idle, power and default-apps scripts): 40 findings, 3 high, 14
         medium, 23 low, one dismissed after checking. Three fixed and deployed the same night (the
@@ -127,6 +131,11 @@ guard proves no test touches a real file.
 - [ ] Headless mode for `sandbox.sh` (a nested compositor), then GitHub Actions: the compile gate and
       the script tests on every push, the suites once headless works, a badge in the README.
 - [ ] Legacy kit (`tests/legacy/`, not in git): keep what the new suites reuse, then delete the folder.
+      **Note, 30 Oct 23:35:** the checksum guard flagged `sleepysettings.toml` and `hypridle.conf` after
+      the night's runs. The write came from a real settings window open for 26 s at 23:34 (the owner
+      switching Sleep when idle off before leaving the machine on), not from a test; it was first
+      misread as a test write and reverted, then put back as the owner had set it at 00:12. Rule kept
+      anyway: nothing from `tests/legacy/` runs except through `sleepytest` lanes.
 - [ ] Kit hygiene: `guard.py` snapshots to the runtime folder or documented as per-machine; `selftest.sh`
       checks the exit status of the sandboxed step and gets a window-placement guard; a
       `candidate.sh refresh` that copies the live tree without the repository's files and refuses a
@@ -200,6 +209,10 @@ Reached when `SECURITY.md`'s "Known limitations" lists only the items accepted b
       whether SVG counts as an image for the click.
 - [ ] The settings socket relies on the runtime directory's mode; consider checking the peer's uid with
       `SO_PEERCRED` where Quickshell exposes it, and refusing to start the socket under `/tmp`.
+- [ ] The settings socket path is global (`$XDG_RUNTIME_DIR/sleepyshell-settings.sock`), so a settings
+      window started from any copy of the shell links to whichever bar owns that path: a test copy
+      applied settings to the live bar on 30 Oct. Derive the socket name from the shell folder (a hash
+      of `Quickshell.shellDir`) so only the matching bar and window find each other.
 - [ ] A review of what the test-kit's own scripts can reach when run by hand outside the sandbox
       (`deploy.sh`, `record.sh` write real files by design; say so in their headers, done for
       `record.sh`).
