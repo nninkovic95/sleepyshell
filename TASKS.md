@@ -134,11 +134,14 @@ guard proves no test touches a real file.
 - [ ] Headless mode for `sandbox.sh` (a nested compositor), then GitHub Actions: the compile gate and
       the script tests on every push, the suites once headless works, a badge in the README.
 - [ ] Legacy kit (`tests/legacy/`, not in git): keep what the new suites reuse, then delete the folder.
-      **Note, 30 Oct 23:35:** the checksum guard flagged `sleepysettings.toml` and `hypridle.conf` after
-      the night's runs. The write came from a real settings window open for 26 s at 23:34 (the owner
-      switching Sleep when idle off before leaving the machine on), not from a test; it was first
-      misread as a test write and reverted, then put back as the owner had set it at 00:12. Rule kept
-      anyway: nothing from `tests/legacy/` runs except through `sleepytest` lanes.
+      **Open, 30 Oct 23:35:** the checksum guard flagged `sleepysettings.toml` and `hypridle.conf`: a
+      settings-window instance that lived from 23:34:42 to 23:35:08 applied the Idle tab (`idleSuspend`
+      true to false, `hypridle.conf` regenerated) while the session had been locked since 23:18:51, so
+      not by hand. The instance started when a legacy builder and an IPC probe of the window ran; which
+      path produced an Apply is not established. Both files were put back to the pre-incident values
+      (`idleSuspend = true`, the suspend listener). Until the cause is known: nothing from
+      `tests/legacy/` runs except through `sleepytest` lanes, and no `stage`/`close` IPC against a window
+      linked to the live bar.
 - [ ] Kit hygiene: `guard.py` snapshots to the runtime folder or documented as per-machine; `selftest.sh`
       checks the exit status of the sandboxed step and gets a window-placement guard; a
       `candidate.sh refresh` that copies the live tree without the repository's files and refuses a
