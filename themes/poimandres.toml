@@ -1,0 +1,31 @@
+name = "Poimandres"
+source = "https://github.com/drcmda/poimandres-theme"
+source_urls = ["https://github.com/drcmda/poimandres-theme", "https://raw.githubusercontent.com/drcmda/poimandres-theme/main/themes/poimandres-color-theme.json", "https://raw.githubusercontent.com/drcmda/poimandres-theme/main/LICENSE"]
+license = "MIT, Copyright (c) 2023 drcmda"
+# Names are VS Code theme keys: bg = editor.background, fg = editor.foreground, white = input.foreground, surface2 = editorHoverWidget.statusBarBackground, surface3 = button.background, slate = inputValidation.infoBackground (#506477), comment = sideBar.foreground, mint = terminal.ansiGreen, ice = editorLink.activeForeground, pink = terminal.ansiMagenta, rose = terminal.ansiRed.
+
+[variants.dark]
+mode = "dark"
+primary = "#5de4c7"                     # mint
+on_primary = "#1b1e28"                  # bg
+primary_container = "#2f5958"           # derived: mix(bg #1b1e28, mint #5de4c7, 0.3)
+on_primary_container = "#c1c5dc"        # derived: fg #a6accd moved 0.30 toward white for contrast >= 4.5
+secondary = "#add7ff"                   # ice
+on_secondary = "#1b1e28"                # bg
+secondary_container = "#475668"         # derived: mix(bg #1b1e28, ice #add7ff, 0.3)
+on_secondary_container = "#c5c9de"      # derived: fg #a6accd moved 0.35 toward white for contrast >= 4.5
+tertiary = "#f087bd"                    # pink
+on_tertiary = "#1b1e28"                 # bg
+error = "#d0679d"                       # rose
+on_error = "#1b1e28"                    # bg
+error_container = "#51344b"             # derived: mix(bg #1b1e28, rose #d0679d, 0.3)
+on_error_container = "#a6accd"          # fg
+surface = "#1b1e28"                     # bg
+on_surface = "#a6accd"                  # fg
+on_surface_variant = "#7e84a5"          # derived: mix(fg #a6accd, comment #767c9d, 0.825); comment alone is only 4.07:1
+surface_container = "#202430"           # surface2
+surface_container_high = "#303340"      # surface3
+surface_container_highest = "#404c5c"   # derived: mix(surface3 #303340, slate #506477, 0.5)
+outline = "#767c9d"                     # comment
+outline_variant = "#506477"             # slate
+derived = ["primary_container", "secondary_container", "error_container", "on_surface_variant", "on_primary_container", "on_secondary_container", "surface_container_highest"]

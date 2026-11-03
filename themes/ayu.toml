@@ -1,0 +1,83 @@
+name = "Ayu"
+source = "https://github.com/ayu-theme/ayu-vim"
+source_urls = ["https://github.com/ayu-theme/ayu-vim", "https://raw.githubusercontent.com/ayu-theme/ayu-vim/master/colors/ayu.vim", "https://raw.githubusercontent.com/ayu-theme/ayu-vim/master/LICENSE"]
+license = "Apache-2.0, ayu-theme/ayu-vim (LICENSE text fetched is the unfilled Apache template; copyright holder not stated in it)"
+# Names are the s:palette keys of ayu.vim (the dark, mirage and light columns).
+
+[variants.dark]
+mode = "dark"
+primary = "#f29718"                     # accent
+on_primary = "#0f1419"                  # bg
+primary_container = "#533b19"           # derived: mix(bg #0f1419, accent #f29718, 0.3)
+on_primary_container = "#e6e1cf"        # fg
+secondary = "#36a3d9"                   # tag
+on_secondary = "#0f1419"                # bg
+secondary_container = "#1b3f53"         # derived: mix(bg #0f1419, tag #36a3d9, 0.3)
+on_secondary_container = "#e6e1cf"      # fg
+tertiary = "#95e6cb"                    # regexp
+on_tertiary = "#0f1419"                 # bg
+error = "#ff3333"                       # error
+on_error = "#0f1419"                    # bg
+error_container = "#571d21"             # derived: mix(bg #0f1419, error #ff3333, 0.3)
+on_error_container = "#e6e1cf"          # fg
+surface = "#0f1419"                     # bg
+on_surface = "#e6e1cf"                  # fg
+on_surface_variant = "#787f85"          # derived: mix(fg #e6e1cf, comment #5c6773, 0.800); comment alone is only 3.21:1
+surface_container = "#14191f"           # panel
+surface_container_high = "#253340"      # selection
+surface_container_highest = "#2d3640"   # guide
+outline = "#3e4b59"                     # fg_idle
+outline_variant = "#2d3640"             # guide
+derived = ["primary_container", "secondary_container", "error_container", "on_surface_variant"]
+
+[variants.mirage]
+mode = "dark"
+primary = "#ffcc66"                     # accent
+on_primary = "#212733"                  # bg
+primary_container = "#645842"           # derived: mix(bg #212733, accent #ffcc66, 0.3)
+on_primary_container = "#d9d7ce"        # fg
+secondary = "#5ccfe6"                   # tag
+on_secondary = "#212733"                # bg
+secondary_container = "#335969"         # derived: mix(bg #212733, tag #5ccfe6, 0.3)
+on_secondary_container = "#d9d7ce"      # fg
+tertiary = "#d4bfff"                    # constant
+on_tertiary = "#212733"                 # bg
+error = "#ff3333"                       # error
+on_error = "#1a1f29"                    # derived: bg #212733 moved 0.20 toward black for contrast >= 4.5
+error_container = "#642b33"             # derived: mix(bg #212733, error #ff3333, 0.3)
+on_error_container = "#d9d7ce"          # fg
+surface = "#212733"                     # bg
+on_surface = "#d9d7ce"                  # fg
+on_surface_variant = "#888e93"          # derived: mix(fg #d9d7ce, comment #5c6773, 0.650); comment alone is only 2.60:1
+surface_container = "#272d38"           # panel
+surface_container_high = "#343f4c"      # selection
+surface_container_highest = "#3d4751"   # guide
+outline = "#607080"                     # fg_idle
+outline_variant = "#3d4751"             # guide
+derived = ["primary_container", "secondary_container", "error_container", "on_surface_variant", "on_error"]
+
+[variants.light]
+mode = "light"
+primary = "#ff6a00"                     # accent
+on_primary = "#292e34"                  # derived: fg #5c6773 moved 0.55 toward black for contrast >= 4.5
+primary_container = "#fbd6bc"           # derived: mix(bg #fafafa, accent #ff6a00, 0.25)
+on_primary_container = "#57626d"        # derived: fg #5c6773 moved 0.05 toward black for contrast >= 4.5
+secondary = "#36a3d9"                   # tag
+on_secondary = "#292e34"                # derived: fg #5c6773 moved 0.55 toward black for contrast >= 4.5
+secondary_container = "#c9e4f2"         # derived: mix(bg #fafafa, tag #36a3d9, 0.25)
+on_secondary_container = "#57626d"      # derived: fg #5c6773 moved 0.05 toward black for contrast >= 4.5
+tertiary = "#a37acc"                    # constant
+on_tertiary = "#202428"                 # derived: fg #5c6773 moved 0.65 toward black for contrast >= 4.5
+error = "#ff3333"                       # error
+on_error = "#1c1f23"                    # derived: fg #5c6773 moved 0.70 toward black for contrast >= 4.5
+error_container = "#fbc8c8"             # derived: mix(bg #fafafa, error #ff3333, 0.25)
+on_error_container = "#535d68"          # derived: fg #5c6773 moved 0.10 toward black for contrast >= 4.5
+surface = "#fafafa"                     # bg
+on_surface = "#5c6773"                  # fg
+on_surface_variant = "#697480"          # derived: mix(fg #5c6773, fg_idle #828c99, 0.350); fg_idle alone is only 3.27:1
+surface_container = "#f3f3f3"           # line
+surface_container_high = "#f0eee4"      # selection
+surface_container_highest = "#d9d8d7"   # guide
+outline = "#828c99"                     # fg_idle
+outline_variant = "#d9d8d7"             # guide
+derived = ["primary_container", "secondary_container", "error_container", "on_surface_variant", "on_primary", "on_secondary", "on_tertiary", "on_error", "on_primary_container", "on_secondary_container", "on_error_container"]

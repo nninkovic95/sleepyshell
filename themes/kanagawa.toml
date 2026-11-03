@@ -1,0 +1,56 @@
+name = "Kanagawa"
+source = "https://github.com/rebelot/kanagawa.nvim"
+source_urls = ["https://github.com/rebelot/kanagawa.nvim", "https://raw.githubusercontent.com/rebelot/kanagawa.nvim/master/lua/kanagawa/colors.lua", "https://raw.githubusercontent.com/rebelot/kanagawa.nvim/master/lua/kanagawa/themes.lua"]
+license = "MIT, Copyright (c) 2021 Tommaso Laurenzi"
+
+[variants.wave]
+mode = "dark"
+primary = "#7e9cd8"                     # crystalBlue
+on_primary = "#16161d"                  # sumiInk0
+primary_container = "#3c445d"           # derived: mix(sumiInk3 #1f1f28, crystalBlue #7e9cd8, 0.3)
+on_primary_container = "#dcd7ba"        # fujiWhite
+secondary = "#957fb8"                   # oniViolet
+on_secondary = "#16161d"                # sumiInk0
+secondary_container = "#423c53"         # derived: mix(sumiInk3 #1f1f28, oniViolet #957fb8, 0.3)
+on_secondary_container = "#dcd7ba"      # fujiWhite
+tertiary = "#d27e99"                    # sakuraPink
+on_tertiary = "#16161d"                 # sumiInk0
+error = "#ff5d62"                       # peachRed
+on_error = "#16161d"                    # sumiInk0
+error_container = "#623239"             # derived: mix(sumiInk3 #1f1f28, peachRed #ff5d62, 0.3)
+on_error_container = "#dcd7ba"          # fujiWhite
+surface = "#1f1f28"                     # sumiInk3
+on_surface = "#dcd7ba"                  # fujiWhite
+on_surface_variant = "#c8c093"          # oldWhite
+surface_container = "#2a2a37"           # sumiInk4
+surface_container_high = "#363646"      # sumiInk5
+surface_container_highest = "#45455a"   # derived: mix(sumiInk5 #363646, sumiInk6 #54546d, 0.5)
+outline = "#727169"                     # fujiGray
+outline_variant = "#54546d"             # sumiInk6
+derived = ["primary_container", "secondary_container", "error_container", "surface_container_highest"]
+
+[variants.lotus]
+mode = "light"
+primary = "#4d699b"                     # lotusBlue4
+on_primary = "#f2ecbc"                  # lotusWhite3
+primary_container = "#c9cbb4"           # derived: mix(lotusWhite3 #f2ecbc, lotusBlue4 #4d699b, 0.25)
+on_primary_container = "#50505f"        # derived: lotusInk1 #545464 moved 0.05 toward black for contrast >= 4.5
+secondary = "#624c83"                   # lotusViolet4
+on_secondary = "#f2ecbc"                # lotusWhite3
+secondary_container = "#cec4ae"         # derived: mix(lotusWhite3 #f2ecbc, lotusViolet4 #624c83, 0.25)
+on_secondary_container = "#50505f"      # derived: lotusInk1 #545464 moved 0.05 toward black for contrast >= 4.5
+tertiary = "#5d57a3"                    # lotusBlue5
+on_tertiary = "#f2ecbc"                 # lotusWhite3
+error = "#c84053"                       # lotusRed
+on_error = "#faf7e4"                    # derived: lotusWhite3 #f2ecbc moved 0.60 toward white for contrast >= 4.5
+error_container = "#e8c1a2"             # derived: mix(lotusWhite3 #f2ecbc, lotusRed #c84053, 0.25)
+on_error_container = "#50505f"          # derived: lotusInk1 #545464 moved 0.05 toward black for contrast >= 4.5
+surface = "#f2ecbc"                     # lotusWhite3
+on_surface = "#545464"                  # lotusInk1
+on_surface_variant = "#716e61"          # lotusGray2
+surface_container = "#e5ddb0"           # lotusWhite2
+surface_container_high = "#dcd5ac"      # lotusWhite1
+surface_container_highest = "#d5cea3"   # lotusWhite0
+outline = "#8a8980"                     # lotusGray3
+outline_variant = "#a09cac"             # lotusViolet1
+derived = ["primary_container", "secondary_container", "error_container", "on_error", "on_primary_container", "on_secondary_container", "on_error_container"]

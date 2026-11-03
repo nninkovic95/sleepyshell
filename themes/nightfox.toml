@@ -1,0 +1,83 @@
+name = "Nightfox"
+source = "https://github.com/EdenEast/nightfox.nvim/tree/main/lua/nightfox/palette"
+source_urls = ["https://github.com/EdenEast/nightfox.nvim/tree/main/lua/nightfox/palette", "https://raw.githubusercontent.com/EdenEast/nightfox.nvim/main/lua/nightfox/palette/nightfox.lua", "https://raw.githubusercontent.com/EdenEast/nightfox.nvim/main/lua/nightfox/palette/dayfox.lua", "https://raw.githubusercontent.com/EdenEast/nightfox.nvim/main/lua/nightfox/palette/duskfox.lua", "https://raw.githubusercontent.com/EdenEast/nightfox.nvim/main/LICENSE"]
+license = "MIT, Copyright (c) 2021 James Simpson"
+# Names are the palette keys of the three palette files (base colours of each Shade, bg0-4, fg0-3, sel0-1, comment). The bright/dim shades are computed at runtime by the plugin and are not used.
+
+[variants.nightfox]
+mode = "dark"
+primary = "#719cd6"                     # blue
+on_primary = "#131a24"                  # bg0
+primary_container = "#334762"           # derived: mix(bg1 #192330, blue #719cd6, 0.3)
+on_primary_container = "#cdcecf"        # fg1
+secondary = "#9d79d6"                   # magenta
+on_secondary = "#131a24"                # bg0
+secondary_container = "#413d62"         # derived: mix(bg1 #192330, magenta #9d79d6, 0.3)
+on_secondary_container = "#cdcecf"      # fg1
+tertiary = "#63cdcf"                    # cyan
+on_tertiary = "#131a24"                 # bg0
+error = "#c94f6d"                       # red
+on_error = "#090c10"                    # derived: bg0 #131a24 moved 0.55 toward black for contrast >= 4.5
+error_container = "#4e3042"             # derived: mix(bg1 #192330, red #c94f6d, 0.3)
+on_error_container = "#cdcecf"          # fg1
+surface = "#192330"                     # bg1
+on_surface = "#cdcecf"                  # fg1
+on_surface_variant = "#aeafb0"          # fg2
+surface_container = "#212e3f"           # bg2
+surface_container_high = "#29394f"      # bg3
+surface_container_highest = "#39506d"   # bg4
+outline = "#738091"                     # comment
+outline_variant = "#3c5372"             # sel1
+derived = ["primary_container", "secondary_container", "error_container", "on_error"]
+
+[variants.dayfox]
+mode = "light"
+primary = "#2848a9"                     # blue
+on_primary = "#f6f2ee"                  # bg1
+primary_container = "#c2c8dd"           # derived: mix(bg1 #f6f2ee, blue #2848a9, 0.25)
+on_primary_container = "#3d2b5a"        # fg1
+secondary = "#6e33ce"                   # magenta
+on_secondary = "#f6f2ee"                # bg1
+secondary_container = "#d4c2e6"         # derived: mix(bg1 #f6f2ee, magenta #6e33ce, 0.25)
+on_secondary_container = "#3d2b5a"      # fg1
+tertiary = "#287980"                    # cyan
+on_tertiary = "#f6f2ee"                 # bg1
+error = "#a5222f"                       # red
+on_error = "#f6f2ee"                    # bg1
+error_container = "#e2bebe"             # derived: mix(bg1 #f6f2ee, red #a5222f, 0.25)
+on_error_container = "#3d2b5a"          # fg1
+surface = "#f6f2ee"                     # bg1
+on_surface = "#3d2b5a"                  # fg1
+on_surface_variant = "#643f61"          # fg2
+surface_container = "#e4dcd4"           # bg0
+surface_container_high = "#dbd1dd"      # bg2
+surface_container_highest = "#d3c7bb"   # bg3
+outline = "#837a72"                     # comment
+outline_variant = "#aab0ad"             # bg4
+derived = ["primary_container", "secondary_container", "error_container"]
+
+[variants.duskfox]
+mode = "dark"
+primary = "#c4a7e7"                     # magenta
+on_primary = "#191726"                  # bg0
+primary_container = "#53496b"           # derived: mix(bg1 #232136, magenta #c4a7e7, 0.3)
+on_primary_container = "#e0def4"        # fg1
+secondary = "#569fba"                   # blue
+on_secondary = "#191726"                # bg0
+secondary_container = "#32475e"         # derived: mix(bg1 #232136, blue #569fba, 0.3)
+on_secondary_container = "#e0def4"      # fg1
+tertiary = "#eb98c3"                    # pink
+on_tertiary = "#191726"                 # bg0
+error = "#eb6f92"                       # red
+on_error = "#191726"                    # bg0
+error_container = "#5f3852"             # derived: mix(bg1 #232136, red #eb6f92, 0.3)
+on_error_container = "#e0def4"          # fg1
+surface = "#232136"                     # bg1
+on_surface = "#e0def4"                  # fg1
+on_surface_variant = "#cdcbe0"          # fg2
+surface_container = "#2d2a45"           # bg2
+surface_container_high = "#373354"      # bg3
+surface_container_highest = "#4b4673"   # bg4
+outline = "#817c9c"                     # comment
+outline_variant = "#433c59"             # sel0
+derived = ["primary_container", "secondary_container", "error_container"]

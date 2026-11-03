@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# A merge that went through without conflicts: refuse dev into main and main into dev.
+exec bash "$(dirname "$0")/no-branch-merge.sh"

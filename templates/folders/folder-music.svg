@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- sleepyshell folder icon "folder-music": a flat folder in the theme's primary colour (matugen template; written to
+     ~/.local/share/icons/Sleepytheme-Folders/scalable/places/folder-music.svg). Drawn for this shell; the colours are
+     primary and on_primary of the palette in use. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <path d="M9 10H24Q26 10 27.5 11.5L30 14H55Q58 14 58 17V51Q58 54 55 54H9Q6 54 6 51V13Q6 10 9 10Z" fill="{{colors.primary.default.hex}}" fill-opacity="0.58"/>
+  <path d="M9 20H55Q58 20 58 23V51Q58 54 55 54H9Q6 54 6 51V23Q6 20 9 20Z" fill="{{colors.primary.default.hex}}"/>
+  <g fill="{{colors.on_primary.default.hex}}" fill-opacity="0.92" stroke="none">
+    <ellipse cx="28.5" cy="43.5" rx="4.2" ry="3.2"/>
+    <rect x="31.5" y="28" width="2.4" height="15.5"/>
+    <path d="M33.9 28L41.5 30.2V35L33.9 32.8Z"/>
+  </g>
+</svg>

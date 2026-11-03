@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- sleepyshell folder icon "folder-open": a flat folder in the theme's primary colour (matugen template; written to
+     ~/.local/share/icons/Sleepytheme-Folders/scalable/places/folder-open.svg). Drawn for this shell; the colours are
+     primary and on_primary of the palette in use. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <path d="M9 10H24Q26 10 27.5 11.5L30 14H55Q58 14 58 17V51Q58 54 55 54H9Q6 54 6 51V13Q6 10 9 10Z" fill="{{colors.primary.default.hex}}" fill-opacity="0.58"/>
+  <path d="M13 24Q13.6 21 17 21H60.4Q63.4 21 62.6 24L56.2 50.6Q55.4 54 52 54H9Q5.8 54 6.6 50.6Z" fill="{{colors.primary.default.hex}}"/>
+</svg>

@@ -1,0 +1,150 @@
+# Pushes to main: the dev-only guard (no API cost), then a Claude review unless the push is a merge of dev
+# that was already reviewed, then the release decision (only while RELEASES is "on"). The manual run checks the guard on any branch.
+name: main
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch to run the dev-only guard on (guard only, nothing else runs)
+        required: true
+        default: main
+
+permissions: {}
+
+jobs:
+  guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Dev-only guard
+        env:
+          REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || '' }}
+        run: |
+          git fetch --quiet --no-tags origin +refs/heads/dev:refs/remotes/origin/dev
+          if [[ -n $REF ]]; then
+            [[ $REF =~ ^[A-Za-z0-9._/-]+$ && $REF != -* ]] || { echo "::error::invalid branch name"; exit 2; }
+            git fetch --quiet --no-tags origin "+refs/heads/$REF:refs/remotes/origin/$REF"
+            target="origin/$REF"
+          else
+            target="$GITHUB_SHA"
+          fi
+          bash .github/scripts/guard.sh "$target" origin/dev
+
+  classify:
+    if: github.event_name == 'push'
+    needs: guard
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      checks: read
+      actions: read
+    outputs:
+      mode: ${{ steps.classify.outputs.mode }}
+      p2: ${{ steps.classify.outputs.p2 }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Reviewed merge of dev, or a direct push?
+        id: classify
+        run: |
+          git fetch --quiet --no-tags origin +refs/heads/dev:refs/remotes/origin/dev
+          python3 .github/scripts/review_range.py classify --head "$GITHUB_SHA"
+
+  review:
+    if: github.event_name == 'push'
+    needs: [guard, classify]
+    uses: ./.github/workflows/review.yml
+    with:
+      branch: main
+      mode: ${{ needs.classify.outputs.mode }}
+      p2: ${{ needs.classify.outputs.p2 }}
+    secrets:
+      ADVISORY_TOKEN: ${{ secrets.ADVISORY_TOKEN }}
+    permissions:
+      contents: read
+      checks: write
+      issues: write
+      id-token: write
+
+  release:
+    # RELEASES (a repository variable) other than "on" skips the job: no API call, no notes, nothing released
+    if: >-
+      always() && github.event_name == 'push' && vars.RELEASES == 'on' && needs.guard.result == 'success' &&
+      needs.review.result == 'success' && needs.review.outputs.serious != 'true' &&
+      needs.review.outputs.credit != 'true'
+    needs: [guard, classify, review]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      id-token: write
+    outputs:
+      credit: ${{ steps.release.outputs.credit }}
+      api_ok: ${{ steps.release.outputs.api_ok }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASES: ${{ vars.RELEASES }}
+      ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+      ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+      ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+      ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - name: Install the Anthropic SDK (hash-pinned)
+        run: |
+          git fetch --quiet --no-tags origin +refs/heads/dev:refs/remotes/origin/dev
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet --no-deps --require-hashes -r .github/scripts/requirements.txt
+      - name: Release decision
+        id: release
+        run: '"$RUNNER_TEMP/venv/bin/python" .github/scripts/release.py --head "$GITHUB_SHA"'
+
+  notice:
+    # the release job has no issue rights: the credit-exhausted issue is kept from here
+    if: always() && github.event_name == 'push' && needs.release.result != 'skipped'
+    needs: release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    concurrency:
+      group: credit-notice
+      cancel-in-progress: false
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CREDIT: ${{ needs.release.outputs.credit }}
+      API_OK: ${{ needs.release.outputs.api_ok }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - name: Credit-exhausted issue
+        run: |
+          cd .github/scripts
+          if [[ $CREDIT == true ]]; then
+            python3 -c 'import credit_issue as c, os; c.record_skip("release decision for main " + os.environ["GITHUB_SHA"][:12])'
+          elif [[ $API_OK == true ]]; then
+            python3 -c 'import credit_issue as c; c.close_if_open()'
+          fi

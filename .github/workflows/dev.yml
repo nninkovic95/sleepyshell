@@ -1,0 +1,26 @@
+# Every push to dev gets a Claude review. A newer push cancels the running one; the next run then reviews
+# everything since the last completed review, so nothing is skipped.
+name: dev
+
+on:
+  push:
+    branches: [dev]
+
+permissions: {}
+
+concurrency:
+  group: review-dev
+  cancel-in-progress: true
+
+jobs:
+  review:
+    uses: ./.github/workflows/review.yml
+    with:
+      branch: dev
+    secrets:
+      ADVISORY_TOKEN: ${{ secrets.ADVISORY_TOKEN }}
+    permissions:
+      contents: read
+      checks: write
+      issues: write
+      id-token: write

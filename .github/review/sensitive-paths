@@ -1,0 +1,32 @@
+# Changes to these paths get at least Opus as reviewer, whatever the router picks.
+# fnmatch globs against the repository path; * also matches /.
+# The settings socket and the window's link to it
+services/SettingsServer.qml
+sleepysettings/BarLink.qml
+# Settings parsing and writing
+services/Settings.qml
+services/Toml.js
+# Running commands, reading and writing the user's files
+services/ToolRun.qml
+services/HyprConfig.qml
+services/FileChecks.qml
+services/*Launcher.qml
+services/DefaultApps.qml
+services/Keybinds.qml
+services/Displays.qml
+services/MonitorCtl.qml
+services/NightLight.qml
+services/Appearance.qml
+scripts/*
+# Authentication: lock screen and polkit agent
+sleepylock.qml
+sleepylock/*
+sleepybar/popups/polkit/*
+# Installing, packaging, CI and repository tooling
+install*
+PKGBUILD
+*.install
+.github/*
+tools/*.sh
+tests/deploy.sh
+tests/common/*

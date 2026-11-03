@@ -1,0 +1,7 @@
+# Paths that exist only on the dev branch and must never reach main.
+# tools/merge-dev.sh leaves them out of every merge into main; .github/scripts/guard.sh (CI and the
+# pre-push hook) fails when one of them appears on main.
+# One entry per line. A trailing / means the whole folder; *, ? and [...] are shell globs.
+tools/showoff/
+docs/
+tests/demo/

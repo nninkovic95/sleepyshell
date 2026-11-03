@@ -1,0 +1,30 @@
+name = "Dracula"
+source = "https://github.com/dracula/dracula-theme"
+source_urls = ["https://github.com/dracula/dracula-theme", "https://raw.githubusercontent.com/dracula/dracula-theme/main/README.md"]
+license = "MIT, Copyright (c) Dracula Theme"
+
+[variants.dark]
+mode = "dark"
+primary = "#bd93f9"                     # purple
+on_primary = "#282a36"                  # background
+primary_container = "#554a70"           # derived: mix(background #282a36, purple #bd93f9, 0.3)
+on_primary_container = "#f8f8f2"        # foreground
+secondary = "#ff79c6"                   # pink
+on_secondary = "#282a36"                # background
+secondary_container = "#684261"         # derived: mix(background #282a36, pink #ff79c6, 0.3)
+on_secondary_container = "#f8f8f2"      # foreground
+tertiary = "#8be9fd"                    # cyan
+on_tertiary = "#282a36"                 # background
+error = "#ff5555"                       # red
+on_error = "#282a36"                    # background
+error_container = "#68373f"             # derived: mix(background #282a36, red #ff5555, 0.3)
+on_error_container = "#f8f8f2"          # foreground
+surface = "#282a36"                     # background
+on_surface = "#f8f8f2"                  # foreground
+on_surface_variant = "#8894b8"          # derived: mix(comment #6272a4, foreground #f8f8f2, 0.25)
+surface_container = "#323443"           # derived: mix(background #282a36, current_line #44475a, 0.35)
+surface_container_high = "#3c3e4f"      # derived: mix(background #282a36, current_line #44475a, 0.7)
+surface_container_highest = "#44475a"   # current_line
+outline = "#6272a4"                     # comment
+outline_variant = "#44475a"             # current_line
+derived = ["primary_container", "secondary_container", "error_container", "surface_container", "surface_container_high", "on_surface_variant"]

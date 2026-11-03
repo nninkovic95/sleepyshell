@@ -1,0 +1,57 @@
+name = "Solarized"
+source = "https://github.com/altercation/solarized"
+source_urls = ["https://github.com/altercation/solarized", "https://raw.githubusercontent.com/altercation/solarized/master/README.md", "https://raw.githubusercontent.com/altercation/solarized/master/LICENSE"]
+license = "MIT, Copyright (c) 2011 Ethan Schoonover"
+# Colour names are the SOLARIZED HEX table names in the repository README (both variants use the same 16 colours).
+
+[variants.dark]
+mode = "dark"
+primary = "#268bd2"                     # blue
+on_primary = "#00222b"                  # derived: base03 #002b36 moved 0.20 toward black for contrast >= 4.5
+primary_container = "#0b4865"           # derived: mix(base03 #002b36, blue #268bd2, 0.3)
+on_primary_container = "#a9b4b4"        # derived: base1 #93a1a1 moved 0.20 toward white for contrast >= 4.5
+secondary = "#2aa198"                   # cyan
+on_secondary = "#002b36"                # base03
+secondary_container = "#0d4e53"         # derived: mix(base03 #002b36, cyan #2aa198, 0.3)
+on_secondary_container = "#aeb8b8"      # derived: base1 #93a1a1 moved 0.25 toward white for contrast >= 4.5
+tertiary = "#6c71c4"                    # violet
+on_tertiary = "#000d10"                 # derived: base03 #002b36 moved 0.70 toward black for contrast >= 4.5
+error = "#dc322f"                       # red
+on_error = "#000000"                    # derived: base03 #002b36 moved 1.00 toward black for contrast >= 4.5
+error_container = "#422d34"             # derived: mix(base03 #002b36, red #dc322f, 0.3)
+on_error_container = "#93a1a1"          # base1
+surface = "#002b36"                     # base03
+on_surface = "#93a1a1"                  # base1
+on_surface_variant = "#839496"          # base0
+surface_container = "#073642"           # base02
+surface_container_high = "#30525c"      # derived: mix(base02 #073642, base01 #586e75, 0.5)
+surface_container_highest = "#586e75"   # base01
+outline = "#657b83"                     # base00
+outline_variant = "#586e75"             # base01
+derived = ["primary_container", "secondary_container", "error_container", "on_primary", "on_tertiary", "on_error", "on_primary_container", "on_secondary_container", "surface_container_high"]
+
+[variants.light]
+mode = "light"
+primary = "#268bd2"                     # blue
+on_primary = "#00222b"                  # derived: base03 #002b36 moved 0.20 toward black for contrast >= 4.5
+primary_container = "#c7dbdf"           # derived: mix(base3 #fdf6e3, blue #268bd2, 0.25)
+on_primary_container = "#4b5e63"        # derived: base01 #586e75 moved 0.15 toward black for contrast >= 4.5
+secondary = "#2aa198"                   # cyan
+on_secondary = "#002b36"                # base03
+secondary_container = "#c8e1d0"         # derived: mix(base3 #fdf6e3, cyan #2aa198, 0.25)
+on_secondary_container = "#4f6369"      # derived: base01 #586e75 moved 0.10 toward black for contrast >= 4.5
+tertiary = "#6c71c4"                    # violet
+on_tertiary = "#000d10"                 # derived: base03 #002b36 moved 0.70 toward black for contrast >= 4.5
+error = "#dc322f"                       # red
+on_error = "#fefcf5"                    # derived: base3 #fdf6e3 moved 0.65 toward white for contrast >= 4.5
+error_container = "#f5c5b6"             # derived: mix(base3 #fdf6e3, red #dc322f, 0.25)
+on_error_container = "#46585e"          # derived: base01 #586e75 moved 0.20 toward black for contrast >= 4.5
+surface = "#fdf6e3"                     # base3
+on_surface = "#586e75"                  # base01
+on_surface_variant = "#5f757c"          # derived: mix(base01 #586e75, base00 #657b83, 0.525); base00 alone is only 4.13:1
+surface_container = "#eee8d5"           # base2
+surface_container_high = "#cecfc3"      # derived: mix(base2 #eee8d5, base1 #93a1a1, 0.35)
+surface_container_highest = "#aeb6b1"   # derived: mix(base2 #eee8d5, base1 #93a1a1, 0.7)
+outline = "#93a1a1"                     # base1
+outline_variant = "#aeb6b1"             # derived: mix(base2 #eee8d5, base1 #93a1a1, 0.7)
+derived = ["primary_container", "secondary_container", "error_container", "on_surface_variant", "on_primary", "on_tertiary", "on_error", "on_primary_container", "on_secondary_container", "on_error_container", "surface_container_high", "surface_container_highest", "outline_variant"]

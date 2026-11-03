@@ -1,0 +1,82 @@
+name = "Rosé Pine"
+source = "https://github.com/rose-pine/neovim/blob/main/lua/rose-pine/palette.lua"
+source_urls = ["https://github.com/rose-pine/neovim/blob/main/lua/rose-pine/palette.lua", "https://raw.githubusercontent.com/rose-pine/neovim/main/lua/rose-pine/palette.lua"]
+license = "MIT, Copyright (c) 2023 Rosé Pine (rose-pine/rose-pine-theme)"
+
+[variants.main]
+mode = "dark"
+primary = "#c4a7e7"                     # iris
+on_primary = "#191724"                  # base
+primary_container = "#4c425e"           # derived: mix(base #191724, iris #c4a7e7, 0.3)
+on_primary_container = "#e0def4"        # text
+secondary = "#9ccfd8"                   # foam
+on_secondary = "#191724"                # base
+secondary_container = "#404e5a"         # derived: mix(base #191724, foam #9ccfd8, 0.3)
+on_secondary_container = "#e0def4"      # text
+tertiary = "#ebbcba"                    # rose
+on_tertiary = "#191724"                 # base
+error = "#eb6f92"                       # love
+on_error = "#191724"                    # base
+error_container = "#583145"             # derived: mix(base #191724, love #eb6f92, 0.3)
+on_error_container = "#e0def4"          # text
+surface = "#191724"                     # base
+on_surface = "#e0def4"                  # text
+on_surface_variant = "#908caa"          # subtle
+surface_container = "#1f1d2e"           # surface
+surface_container_high = "#26233a"      # overlay
+surface_container_highest = "#403d52"   # highlight_med
+outline = "#6e6a86"                     # muted
+outline_variant = "#524f67"             # highlight_high
+derived = ["primary_container", "secondary_container", "error_container"]
+
+[variants.moon]
+mode = "dark"
+primary = "#c4a7e7"                     # iris
+on_primary = "#232136"                  # base
+primary_container = "#53496b"           # derived: mix(base #232136, iris #c4a7e7, 0.3)
+on_primary_container = "#e0def4"        # text
+secondary = "#9ccfd8"                   # foam
+on_secondary = "#232136"                # base
+secondary_container = "#475567"         # derived: mix(base #232136, foam #9ccfd8, 0.3)
+on_secondary_container = "#e0def4"      # text
+tertiary = "#ea9a97"                    # rose
+on_tertiary = "#232136"                 # base
+error = "#eb6f92"                       # love
+on_error = "#232136"                    # base
+error_container = "#5f3852"             # derived: mix(base #232136, love #eb6f92, 0.3)
+on_error_container = "#e0def4"          # text
+surface = "#232136"                     # base
+on_surface = "#e0def4"                  # text
+on_surface_variant = "#908caa"          # subtle
+surface_container = "#2a273f"           # surface
+surface_container_high = "#393552"      # overlay
+surface_container_highest = "#44415a"   # highlight_med
+outline = "#6e6a86"                     # muted
+outline_variant = "#56526e"             # highlight_high
+derived = ["primary_container", "secondary_container", "error_container"]
+
+[variants.dawn]
+mode = "light"
+primary = "#286983"                     # pine
+on_primary = "#faf4ed"                  # base
+primary_container = "#c6d1d2"           # derived: mix(base #faf4ed, pine #286983, 0.25)
+on_primary_container = "#464261"        # text
+secondary = "#907aa9"                   # iris
+on_secondary = "#1c1a27"                # derived: text #464261 moved 0.60 toward black for contrast >= 4.5
+secondary_container = "#e0d6dc"         # derived: mix(base #faf4ed, iris #907aa9, 0.25)
+on_secondary_container = "#464261"      # text
+tertiary = "#d7827e"                    # rose
+on_tertiary = "#312e44"                 # derived: text #464261 moved 0.30 toward black for contrast >= 4.5
+error = "#b4637a"                       # love
+on_error = "#0e0d13"                    # derived: text #464261 moved 0.80 toward black for contrast >= 4.5
+error_container = "#e8d0d0"             # derived: mix(base #faf4ed, love #b4637a, 0.25)
+on_error_container = "#464261"          # text
+surface = "#faf4ed"                     # base
+on_surface = "#464261"                  # text
+on_surface_variant = "#797593"          # subtle
+surface_container = "#f4ede8"           # highlight_low
+surface_container_high = "#f2e9e1"      # overlay
+surface_container_highest = "#dfdad9"   # highlight_med
+outline = "#9893a5"                     # muted
+outline_variant = "#cecacd"             # highlight_high
+derived = ["primary_container", "secondary_container", "error_container", "on_secondary", "on_tertiary", "on_error"]

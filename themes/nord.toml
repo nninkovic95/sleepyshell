@@ -1,0 +1,30 @@
+name = "Nord"
+source = "https://www.nordtheme.com/docs/colors-and-palettes"
+source_urls = ["https://www.nordtheme.com/docs/colors-and-palettes", "https://raw.githubusercontent.com/nordtheme/nord/develop/src/nord.css"]
+license = "MIT, Copyright (c) 2016-present Sven Greb"
+
+[variants.dark]
+mode = "dark"
+primary = "#88c0d0"                     # nord8
+on_primary = "#2e3440"                  # nord0
+primary_container = "#495e6b"           # derived: mix(nord0 #2e3440, nord8 #88c0d0, 0.3)
+on_primary_container = "#d8dee9"        # nord4
+secondary = "#81a1c1"                   # nord9
+on_secondary = "#2e3440"                # nord0
+secondary_container = "#475567"         # derived: mix(nord0 #2e3440, nord9 #81a1c1, 0.3)
+on_secondary_container = "#d8dee9"      # nord4
+tertiary = "#b48ead"                    # nord15
+on_tertiary = "#2c313d"                 # derived: nord0 #2e3440 moved 0.05 toward black for contrast >= 4.5
+error = "#bf616a"                       # nord11
+on_error = "#101216"                    # derived: nord0 #2e3440 moved 0.65 toward black for contrast >= 4.5
+error_container = "#5a424d"             # derived: mix(nord0 #2e3440, nord11 #bf616a, 0.3)
+on_error_container = "#d8dee9"          # nord4
+surface = "#2e3440"                     # nord0
+on_surface = "#d8dee9"                  # nord4
+on_surface_variant = "#99a1b0"          # derived: mix(nord4 #d8dee9, nord3 #4c566a, 0.45); nord3 alone is only 1.69:1
+surface_container = "#3b4252"           # nord1
+surface_container_high = "#434c5e"      # nord2
+surface_container_highest = "#4c566a"   # nord3
+outline = "#7d8696"                     # derived: mix(nord3 #4c566a, nord4 #d8dee9, 0.35)
+outline_variant = "#4c566a"             # nord3
+derived = ["primary_container", "secondary_container", "error_container", "on_tertiary", "on_error", "outline", "on_surface_variant"]

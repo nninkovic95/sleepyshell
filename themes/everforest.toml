@@ -1,0 +1,56 @@
+name = "Everforest"
+source = "https://github.com/sainnhe/everforest/blob/master/autoload/everforest.vim"
+source_urls = ["https://github.com/sainnhe/everforest/blob/master/autoload/everforest.vim", "https://raw.githubusercontent.com/sainnhe/everforest/master/autoload/everforest.vim"]
+license = "MIT, Copyright (c) 2019 sainnhe"
+
+[variants.dark]
+mode = "dark"
+primary = "#a7c080"                     # green
+on_primary = "#232a2e"                  # bg_dim
+primary_container = "#425047"           # bg_green
+on_primary_container = "#d3c6aa"        # fg
+secondary = "#7fbbb3"                   # blue
+on_secondary = "#232a2e"                # bg_dim
+secondary_container = "#3a515d"         # bg_blue
+on_secondary_container = "#d3c6aa"      # fg
+tertiary = "#dbbc7f"                    # yellow
+on_tertiary = "#232a2e"                 # bg_dim
+error = "#e67e80"                       # red
+on_error = "#232a2e"                    # bg_dim
+error_container = "#514045"             # bg_red
+on_error_container = "#d3c6aa"          # fg
+surface = "#2d353b"                     # bg0
+on_surface = "#d3c6aa"                  # fg
+on_surface_variant = "#9da9a0"          # grey2
+surface_container = "#343f44"           # bg1
+surface_container_high = "#3d484d"      # bg2
+surface_container_highest = "#475258"   # bg3
+outline = "#859289"                     # grey1
+outline_variant = "#56635f"             # bg5
+derived = []
+
+[variants.light]
+mode = "light"
+primary = "#8da101"                     # green
+on_primary = "#293033"                  # derived: fg #5c6a72 moved 0.55 toward black for contrast >= 4.5
+primary_container = "#dbdc9f"           # derived: mix(bg0 #fdf6e3, green #8da101, 0.3)
+on_primary_container = "#535f67"        # derived: fg #5c6a72 moved 0.10 toward black for contrast >= 4.5
+secondary = "#3a94c5"                   # blue
+on_secondary = "#202528"                # derived: fg #5c6a72 moved 0.65 toward black for contrast >= 4.5
+secondary_container = "#c2d9da"         # derived: mix(bg0 #fdf6e3, blue #3a94c5, 0.3)
+on_secondary_container = "#4e5a61"      # derived: fg #5c6a72 moved 0.15 toward black for contrast >= 4.5
+tertiary = "#dfa000"                    # yellow
+on_tertiary = "#374044"                 # derived: fg #5c6a72 moved 0.40 toward black for contrast >= 4.5
+error = "#f85552"                       # red
+on_error = "#202528"                    # derived: fg #5c6a72 moved 0.65 toward black for contrast >= 4.5
+error_container = "#fcc6b7"             # derived: mix(bg0 #fdf6e3, red #f85552, 0.3)
+on_error_container = "#4e5a61"          # derived: fg #5c6a72 moved 0.15 toward black for contrast >= 4.5
+surface = "#fdf6e3"                     # bg0
+on_surface = "#5c6a72"                  # fg
+on_surface_variant = "#829181"          # grey2
+surface_container = "#f4f0d9"           # bg1
+surface_container_high = "#efebd4"      # bg2
+surface_container_highest = "#e6e2cc"   # bg3
+outline = "#939f91"                     # grey1
+outline_variant = "#bdc3af"             # bg5
+derived = ["primary_container", "secondary_container", "error_container", "on_primary", "on_secondary", "on_tertiary", "on_error", "on_primary_container", "on_secondary_container", "on_error_container"]

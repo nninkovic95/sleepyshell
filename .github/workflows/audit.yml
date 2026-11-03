@@ -1,0 +1,62 @@
+# Weekly whole-codebase audit of main by Claude Fable 5.1 through the Message Batches API (half price; the
+# answer can take a few hours). Runs Mondays and on demand. Security findings go only to a private draft
+# security advisory; the public issue carries the rest and a count. ADVISORY_TOKEN is given only to the two
+# advisory steps (read last week's findings, file this week's), never to the step with the federation inputs.
+name: audit
+
+on:
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      simulate:
+        description: Without calling the API, exercise the credit-exhausted path, or the private filing on made-up findings
+        type: choice
+        options: [none, credit_exhausted, findings]
+        default: none
+
+permissions: {}
+
+concurrency:
+  group: audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install the Anthropic SDK (hash-pinned)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet --no-deps --require-hashes -r .github/scripts/requirements.txt
+      - name: Previous audit findings (private, read only)
+        env:
+          GH_TOKEN: ${{ secrets.ADVISORY_TOKEN }}
+        run: python3 .github/scripts/advisory.py previous-audit "$RUNNER_TEMP/previous-findings.json"
+      - name: Audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # a simulation only from a manual run's input; the schedule (no inputs) always runs the real audit
+          SIMULATE: ${{ github.event_name == 'workflow_dispatch' && inputs.simulate || 'none' }}
+          ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+        run: >-
+          "$RUNNER_TEMP/venv/bin/python" .github/scripts/audit.py --simulate "$SIMULATE"
+          --previous "$RUNNER_TEMP/previous-findings.json" --private-out "$RUNNER_TEMP/private-findings.json"
+      - name: File security findings privately
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.ADVISORY_TOKEN }}
+        run: python3 .github/scripts/advisory.py file "$RUNNER_TEMP/private-findings.json"

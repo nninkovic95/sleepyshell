@@ -1,0 +1,88 @@
+// The bar's settings window as its own Quickshell instance:
+//   qs -p ~/.config/quickshell/sleepyshell/sleepysettings.qml
+// It shares this folder's modules (qs, qs.services, qs.components, qs.sleepysettings) with the
+// bar, but the bar never loads the settings files, so a change to them reloads this instance
+// alone and the window cannot take the bar down. The bar launches it (`qs -c sleepyshell ipc call sleepybar
+// toggle settings`, the control centre's Settings entry) and so does the launcher's entry
+// (~/.local/share/applications/sleepyshell-settings.desktop); the two talk over a socket
+// (services/SettingsServer.qml in the bar, sleepysettings/BarLink.qml here). The process ends
+// once the window is closed and nothing is still running, so a draft lives as long as the window;
+// closing with unapplied changes asks first.
+// IPC: qs -p ~/.config/quickshell/sleepyshell/sleepysettings.qml ipc call sleepysettings close
+import QtQuick
+import Quickshell
+import qs.services
+import Quickshell.Io
+import qs.sleepysettings
+import qs.components
+
+ShellRoot {
+    id: root
+
+    Sleepysettings {
+        id: win
+        open: true
+    }
+
+    // The process ends once the window is hidden (Escape, the close button, the bar's toggle, the
+    // compositor) and no tab is still at work: a theme run or a commit waiting for the bar's
+    // answer (the Theme tab is busy), or the Display tab's keep-or-revert countdown, which puts a
+    // bad mode back on its own when the window went away under it. Shown again in time (the
+    // bar's toggle), it stays.
+    readonly property bool idle: win.pages.every(p => !p.busy && !p.pending)
+    readonly property bool done: !win.visible && idle
+    onDoneChanged: done ? quit.start() : quit.stop()
+
+    // a moment for the last socket message (the preview ending) to go out
+    Timer {
+        id: quit
+        interval: 150
+        onTriggered: Qt.exit(0)
+    }
+
+    // themed replacement for Quickshell's reload popups, as in the bar (a settings file edited
+    // while the window is up reloads this instance)
+    ReloadToast {}
+
+    // qs -p <this file> ipc call sleepysettings close | tab <key> | stage <key> <value> | discard
+    // tab, stage and discard are for scripts and recordings: a staged value shows on the bar at once
+    // (the live preview) and is written only by Apply; discard drops everything staged
+    IpcHandler {
+        target: "sleepysettings"
+
+        function close(): void {
+            win.leave(() => win.open = false);
+        }
+
+        function tab(name: string): void {
+            if (win.pages.some(p => p.key === name))
+                win.tab = name;
+        }
+
+        // only plain keys (a number within its range, a boolean, a string); list and object keys
+        // (customTools, keybindExtraFiles, toolOverrides) are refused, a raw string there would be
+        // written as-is and lose the list on the next read
+        function stage(key: string, value: string): void {
+            const entry = Settings.schema[key];
+            if (!entry || typeof entry.def === "object")
+                return;
+            let v = value;
+            if (typeof entry.def === "boolean") {
+                v = value === "true";
+            } else if (typeof entry.def === "number") {
+                v = Number(value);
+                if (!isFinite(v))
+                    return;
+                if (entry.min !== undefined)
+                    v = Math.max(entry.min, v);
+                if (entry.max !== undefined)
+                    v = Math.min(entry.max, v);
+            }
+            Settings.stage(key, v);
+        }
+
+        function discard(): void {
+            Settings.drop(Object.keys(Settings.pending));
+        }
+    }
+}

@@ -1,0 +1,76 @@
+# The Claude review of one push, called by dev.yml and main.yml. Comments only: it reads the code, posts a
+# check run (the report, with line annotations) and, for serious findings, an issue; it never pushes or edits.
+# Security findings never go into those: the review step hands them to the filing step, the only step that
+# gets ADVISORY_TOKEN, which files them as a private draft security advisory.
+name: review
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        type: string
+        required: true
+      mode:
+        type: string
+        default: review
+      p2:
+        type: string
+        default: ""
+    secrets:
+      ADVISORY_TOKEN:
+        required: true
+    outputs:
+      serious:
+        value: ${{ jobs.review.outputs.serious }}
+      credit:
+        value: ${{ jobs.review.outputs.credit }}
+
+permissions: {}
+
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      checks: write
+      issues: write
+      id-token: write
+    outputs:
+      serious: ${{ steps.review.outputs.serious }}
+      credit: ${{ steps.review.outputs.credit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fetch both branches
+        run: git fetch --quiet --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/dev:refs/remotes/origin/dev
+      - name: Install the Anthropic SDK (hash-pinned)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet --no-deps --require-hashes -r .github/scripts/requirements.txt
+      - name: Unit tests
+        run: '"$RUNNER_TEMP/venv/bin/python" .github/scripts/test_claude.py'
+      - name: Review
+        id: review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+          BRANCH: ${{ inputs.branch }}
+          MODE: ${{ inputs.mode }}
+          P2: ${{ inputs.p2 }}
+          BEFORE: ${{ github.event.before }}
+        run: >-
+          "$RUNNER_TEMP/venv/bin/python" .github/scripts/review.py
+          --branch "$BRANCH" --head "$GITHUB_SHA" --before "$BEFORE" --mode "$MODE" --p2 "$P2"
+          --private-out "$RUNNER_TEMP/private-findings.json"
+      - name: File security findings privately
+        # also after a red review (serious findings); the file exists only when there is something to file
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.ADVISORY_TOKEN }}
+        run: python3 .github/scripts/advisory.py file "$RUNNER_TEMP/private-findings.json"

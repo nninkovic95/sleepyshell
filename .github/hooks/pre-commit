@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# A conflicted merge is concluded with "git commit", which skips pre-merge-commit: check it here too.
+exec bash "$(dirname "$0")/no-branch-merge.sh"

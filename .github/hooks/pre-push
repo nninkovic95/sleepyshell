@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Refuses a push to main that carries dev-only content (.github/dev-only). Enable once per clone:
+#   git config core.hooksPath .github/hooks
+set -euo pipefail
+top=$(git rev-parse --show-toplevel)
+zero=0000000000000000000000000000000000000000
+status=0
+while read -r _local_ref local_sha remote_ref _remote_sha; do
+    [[ $remote_ref == refs/heads/main && $local_sha != "$zero" ]] || continue
+    extra=()
+    git rev-parse --verify --quiet refs/heads/dev >/dev/null && extra+=(refs/heads/dev)
+    if ! bash "$top/.github/scripts/guard.sh" "$local_sha" "${extra[@]}"; then
+        echo "pre-push: refusing to push dev-only content to main (use tools/merge-dev.sh)" >&2
+        status=1
+    fi
+done
+exit $status

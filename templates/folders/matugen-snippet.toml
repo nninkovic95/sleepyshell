@@ -1,0 +1,70 @@
+# Matugen config lines for the folder icons (sleepyshell, Theme tab > Appearance > "Match folder colours to the theme").
+#
+# These are the lines the Theme tab's "Set up..." button adds to ~/.config/matugen/config.toml (it asks first and keeps a backup,
+# config.toml.bak-<date-time>); this file is the same text for adding them by hand. matugen draws every file in this folder
+# (templates/folders/*.svg, flat folder icons made for this shell, with {{colors.primary...}} and {{colors.on_primary...}} in them)
+# into the overlay icon theme ~/.local/share/icons/Sleepytheme-Folders, which the Theme tab makes inherit the icon theme you chose.
+# scripts/theme.py --preset renders them the same way, so a community theme colours the folders too.
+# The first and last lines are markers: Set up replaces what is between them when the file list changes.
+#
+# 14 files: folder, folder-open, inode-directory, user-home, user-desktop, folder-documents, folder-download, folder-music,
+# folder-pictures, folder-videos, folder-publicshare, folder-templates, folder-remote, folder-recent.
+
+# >>> sleepyshell folder icons (Theme tab, Match folder colours to the theme)
+[templates.sleepy_folder_folder]
+input_path = "~/.config/quickshell/sleepyshell/templates/folders/folder.svg"
+output_path = "~/.local/share/icons/Sleepytheme-Folders/scalable/places/folder.svg"
+
+[templates.sleepy_folder_folder_documents]
+input_path = "~/.config/quickshell/sleepyshell/templates/folders/folder-documents.svg"
+output_path = "~/.local/share/icons/Sleepytheme-Folders/scalable/places/folder-documents.svg"
+
+[templates.sleepy_folder_folder_download]
+input_path = "~/.config/quickshell/sleepyshell/templates/folders/folder-download.svg"
+output_path = "~/.local/share/icons/Sleepytheme-Folders/scalable/places/folder-download.svg"
+
+[templates.sleepy_folder_folder_music]
+input_path = "~/.config/quickshell/sleepyshell/templates/folders/folder-music.svg"
+output_path = "~/.local/share/icons/Sleepytheme-Folders/scalable/places/folder-music.svg"
+
+[templates.sleepy_folder_folder_open]
+input_path = "~/.config/quickshell/sleepyshell/templates/folders/folder-open.svg"
+output_path = "~/.local/share/icons/Sleepytheme-Folders/scalable/places/folder-open.svg"
+
+[templates.sleepy_folder_folder_pictures]
+input_path = "~/.config/quickshell/sleepyshell/templates/folders/folder-pictures.svg"
+output_path = "~/.local/share/icons/Sleepytheme-Folders/scalable/places/folder-pictures.svg"
+
+[templates.sleepy_folder_folder_publicshare]
+input_path = "~/.config/quickshell/sleepyshell/templates/folders/folder-publicshare.svg"
+output_path = "~/.local/share/icons/Sleepytheme-Folders/scalable/places/folder-publicshare.svg"
+
+[templates.sleepy_folder_folder_recent]
+input_path = "~/.config/quickshell/sleepyshell/templates/folders/folder-recent.svg"
+output_path = "~/.local/share/icons/Sleepytheme-Folders/scalable/places/folder-recent.svg"
+
+[templates.sleepy_folder_folder_remote]
+input_path = "~/.config/quickshell/sleepyshell/templates/folders/folder-remote.svg"
+output_path = "~/.local/share/icons/Sleepytheme-Folders/scalable/places/folder-remote.svg"
+
+[templates.sleepy_folder_folder_templates]
+input_path = "~/.config/quickshell/sleepyshell/templates/folders/folder-templates.svg"
+output_path = "~/.local/share/icons/Sleepytheme-Folders/scalable/places/folder-templates.svg"
+
+[templates.sleepy_folder_folder_videos]
+input_path = "~/.config/quickshell/sleepyshell/templates/folders/folder-videos.svg"
+output_path = "~/.local/share/icons/Sleepytheme-Folders/scalable/places/folder-videos.svg"
+
+[templates.sleepy_folder_inode_directory]
+input_path = "~/.config/quickshell/sleepyshell/templates/folders/inode-directory.svg"
+output_path = "~/.local/share/icons/Sleepytheme-Folders/scalable/places/inode-directory.svg"
+
+[templates.sleepy_folder_user_desktop]
+input_path = "~/.config/quickshell/sleepyshell/templates/folders/user-desktop.svg"
+output_path = "~/.local/share/icons/Sleepytheme-Folders/scalable/places/user-desktop.svg"
+
+[templates.sleepy_folder_user_home]
+input_path = "~/.config/quickshell/sleepyshell/templates/folders/user-home.svg"
+output_path = "~/.local/share/icons/Sleepytheme-Folders/scalable/places/user-home.svg"
+
+# <<< sleepyshell folder icons
