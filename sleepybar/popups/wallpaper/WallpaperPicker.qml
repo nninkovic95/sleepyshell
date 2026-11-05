@@ -49,11 +49,15 @@ PanelWindow {
 
     function pick(path) {
         open = false;
+        if (!Settings.okToRun("The wallpaper wasn't changed"))
+            return;
         Quickshell.execDetached([Quickshell.shellPath("scripts/theme.py"), path]);
     }
 
     function shuffle() {
         open = false;
+        if (!Settings.okToRun("The wallpaper wasn't changed"))
+            return;
         Quickshell.execDetached([Quickshell.shellPath("scripts/theme.py")]);
     }
 

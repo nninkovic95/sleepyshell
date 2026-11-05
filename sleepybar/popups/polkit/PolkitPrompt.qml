@@ -22,6 +22,28 @@ Scope {
     readonly property var flow: agent.flow
     readonly property bool shown: agent.isActive && flow !== null
     property bool shake: false
+    // PAM waits for the password; otherwise the helper is checking (or starting, or waiting for a fingerprint)
+    readonly property bool asking: flow !== null && flow.isResponseRequired
+    // a password was submitted and PAM has not asked again or finished: the check is running
+    property bool checking: false
+    onFlowChanged: checking = false
+    onAskingChanged: if (asking) checking = false
+
+    // A check that never ends (a PAM module that hangs) would hold the prompt, and the app behind it, for good: 30 s
+    // after a submitted password the request is cancelled (the app is told it was not authorised) and a notification
+    // says why. Only after a submit: a fingerprint reader waits for a finger without asking, for as long as the user
+    // takes.
+    Timer {
+        interval: 30000
+        running: root.shown && root.checking && !root.asking && !(root.flow?.isCompleted ?? true)
+        onTriggered: {
+            if (!root.flow)
+                return;
+            console.warn("polkit: the password check took longer than 30 s and was cancelled");
+            root.flow.cancelAuthenticationRequest();
+            Quickshell.execDetached(["notify-send", "-a", "Sleepy Shell", "Password check cancelled", "Checking the password took too long, so the request was cancelled. Try again."]);
+        }
+    }
 
     Connections {
         target: root.flow
@@ -150,14 +172,10 @@ Scope {
                         anchors.rightMargin: 12
                         verticalAlignment: TextInput.AlignVCenter
                         clip: true
-                        enabled: root.flow !== null && root.flow.isResponseRequired
-                        // disabled until PAM asks and while it checks; a disabled item drops its
-                        // focus and does not get it back on its own, which left Enter and Escape
-                        // dead after a wrong password until the field was clicked (review 3, F3)
-                        onEnabledChanged: {
-                            if (enabled && root.shown)
-                                forceActiveFocus();
-                        }
+                        // read-only, not disabled, until PAM asks and while it checks: a disabled item drops its
+                        // focus, which left Enter and Escape dead (Escape could not cancel a running check, and
+                        // after a wrong password nothing worked until the field was clicked)
+                        readOnly: !root.asking
                         echoMode: root.flow && root.flow.responseVisible ? TextInput.Normal : TextInput.Password
                         passwordCharacter: String.fromCodePoint(0x2022)
                         inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
@@ -217,6 +235,7 @@ Scope {
                         fg: Theme.accentFg
                         onClicked: {
                             if (root.flow && root.flow.isResponseRequired) {
+                                root.checking = true;
                                 root.flow.submit(field.text);
                                 field.text = "";
                             }

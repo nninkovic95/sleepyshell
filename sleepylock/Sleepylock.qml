@@ -28,8 +28,13 @@ Scope {
     // the compositor holds the lock for this instance (sleepylock.qml ends when it never comes or goes)
     readonly property bool secure: sessionLock.secure
     property string currentText: ""
+    // the password as it was when the check started: PAM asks for it a moment later, and Escape (which empties the
+    // field) or more typing in between must not change what is checked, above all never answer with an empty one
+    property string checkingText: ""
     property bool unlockInProgress: false
     property bool showFailure: false
+    // what the face says on a failed check: a wrong password, or a check that hung (checkTimeout)
+    property string failureText: "Wrong password"
     // Caps Lock state, polled from the keyboard LEDs only while locked and shown by every screen
     property bool capsLock: false
     // Black over every screen while logind prepares to sleep (the before-sleep lock), so the lock face does not
@@ -78,11 +83,14 @@ Scope {
     function tryUnlock() {
         if (currentText === "" || unlockInProgress)
             return;
+        checkingText = currentText;
         unlockInProgress = true;
         if (!pam.start()) {
             // the typed text is not kept when the check could not even start
+            checkingText = "";
             currentText = "";
             unlockInProgress = false;
+            failureText = "Wrong password";
             showFailure = true;
         }
     }
@@ -123,17 +131,37 @@ Scope {
         config: "login"
         onPamMessage: {
             if (pam.responseRequired)
-                pam.respond(root.currentText);
+                pam.respond(root.checkingText);
         }
         onCompleted: result => {
+            root.checkingText = "";
             root.currentText = "";
             // unlockInProgress clears before showFailure is set: SleepylockSurface shakes its card when
             // showFailure turns true and skips the shake while a check is still running
             root.unlockInProgress = false;
-            if (result == PamResult.Success)
+            if (result == PamResult.Success) {
                 root.unlock();
-            else
+            } else {
+                root.failureText = "Wrong password";
                 root.showFailure = true;
+            }
+        }
+    }
+
+    // A check that never ends (a PAM module that hangs) would keep the field read-only for good, with no way to try
+    // again: after 30 s it is given up (abort() ends the conversation without a result) and the face says so.
+    Timer {
+        id: checkTimeout
+        interval: 30000
+        running: root.unlockInProgress
+        onTriggered: {
+            console.warn("lock: the password check took longer than 30 s and was stopped");
+            pam.abort();
+            root.checkingText = "";
+            root.currentText = "";
+            root.unlockInProgress = false;
+            root.failureText = "Took too long, try again";
+            root.showFailure = true;
         }
     }
 

@@ -5,7 +5,8 @@ import qs.services
 
 // The settings window's end of its socket to the bar (Settings.socketPath; the messages are
 // listed in services/SettingsServer.qml). Sends the staged values whenever they change and each
-// commit on Apply; the bar answers `committed` once the file is saved, and sends `close` when its
+// commit on Apply; the bar answers `committed` once the file is saved (the Apply stays unapplied
+// until then, and after a dropped link), and sends `close` when its
 // toggle is used while the window is up. While the bar is away (a bar restart) it tries again
 // every two seconds and resends the state once connected. Without the bar the window works on
 // its own: Settings then writes the file itself and the wallpaper picker goes through the bar's IPC.
@@ -43,11 +44,8 @@ QtObject {
         }
         switch (m.type) {
         case "committed":
-            // the bar wrote these keys: a draft of one of them (the bell's do-not-disturb switch
-            // while the Notifications tab stages it) is stale and goes, as the in-process commit
-            // once removed it; this window's own commits have no draft left to drop
-            Settings.drop(m.keys ?? []);
-            Settings.committed(m.keys ?? []);
+            // the bar wrote these keys: this window's Apply of them counts as saved only now
+            Settings.landed(Array.isArray(m.keys) ? m.keys : []);
             break;
         case "close":
             window.leave(() => window.open = false);
@@ -69,9 +67,11 @@ QtObject {
         }
     }
 
+    // the socket's path is known once Settings has resolved the shell folder, a moment after start
     Component.onCompleted: {
         Settings.link = root;
-        sock.connected = true;
+        if (Settings.socketPath !== "")
+            sock.connected = true;
     }
     Component.onDestruction: if (Settings.link === root) Settings.link = null
 
@@ -81,13 +81,14 @@ QtObject {
         parser: SplitParser {
             onRead: data => root.receive(data)
         }
-        onConnectionStateChanged: if (connected) root.sendPreview()
+        // a commit the bar had not confirmed when the link dropped is not saved (Settings.linkLost)
+        onConnectionStateChanged: connected ? root.sendPreview() : Settings.linkLost()
     }
 
     // the bar is not there (yet): try again
     readonly property Timer retry: Timer {
         interval: 2000
-        running: !sock.connected
+        running: !sock.connected && Settings.socketPath !== ""
         repeat: true
         onTriggered: sock.connected = true
     }
@@ -99,6 +100,10 @@ QtObject {
         }
         function onPreviewingChanged() {
             root.sendPreview();
+        }
+        function onSocketPathChanged() {
+            if (Settings.socketPath !== "")
+                sock.connected = true;
         }
     }
 }

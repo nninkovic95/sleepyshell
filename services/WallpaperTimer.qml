@@ -31,6 +31,8 @@ QtObject {
             r = "off";
         else if (root.dimmed)
             r = "dimmed";
+        else if (!Settings.okToRun("The wallpaper wasn't changed"))
+            r = "broken";
         else {
             root.ran++;
             Quickshell.execDetached(root.command);

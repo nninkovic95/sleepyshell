@@ -100,6 +100,9 @@ every setting uses) over many per-setting tests; no variations that can't fail i
 
 - Everything runs inside the bubblewrap sandbox; nothing touches the live session: no virtual monitors
   on the running Hyprland, never move or click the real cursor, no writes outside the run's folder.
+  One exception: `lock/hypridle-restart.sh` needs the user's systemd (a transient stand-in unit for
+  hypridle and the lock's scope), so it runs outside the sandbox, keeps its files in the run folder,
+  never touches the real hypridle or lock file, and shows its units gone at the end.
 - No new packages.
 - Never test the lock with a wrong password (`pam_faillock` can lock the account).
 - Deterministic: the same result every run.

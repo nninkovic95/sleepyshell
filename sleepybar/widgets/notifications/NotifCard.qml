@@ -18,9 +18,12 @@ Item {
     property int buttonHovers: 0
     readonly property bool hovered: mouse.containsMouse || closeButton.hovered || buttonHovers > 0
     // notif can turn null a moment before the card goes (a dismissed notification is deleted first)
-    // an app icon given as a file path (Hyprshot names the screenshot) is loaded as a file: the icon
-    // theme lookup warned "Could not load icon" for it on every card
-    readonly property string iconSource: Notifs.iconUrl(notif)
+    // the local icons this notification can show, best first (Notifs.iconUrls): an image that fails
+    // to load gives way to the app's icon, and with none left the bell shows
+    readonly property var iconSources: Notifs.iconUrls(notif)
+    property int iconTry: 0
+    onIconSourcesChanged: iconTry = 0
+    readonly property string iconSource: iconSources[iconTry] ?? ""
     // a screenshot the notification names (Notifs.screenshotPath), shown large under the text;
     // a click copies it, the buttons open it or its folder
     readonly property string shotPath: Notifs.screenshotPath(notif)
@@ -168,6 +171,7 @@ Item {
                     anchors.fill: parent
                     visible: root.iconSource !== ""
                     source: root.iconSource
+                    onStatusChanged: if (status === Image.Error) root.iconTry++
                 }
 
                 Glyph {

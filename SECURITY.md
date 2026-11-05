@@ -25,10 +25,10 @@ menus, device names, configuration files written by someone else.
 
 | Input | Where it comes from | How it is handled |
 |---|---|---|
-| Notifications: summary, app name, body, action labels, an image or icon path | Any D-Bus client, including a browser relaying a web page | Rendered as plain text (`Text.PlainText`), never as markup; `<b>`, `<i>`, `<u>` are stripped from the body; the server reports `bodyMarkupSupported: false`. The history keeps the newest 100. |
+| Notifications: summary, app name, body, action labels, an image or icon path | Any D-Bus client, including a browser relaying a web page | Rendered as plain text (`Text.PlainText`), never as markup; `<b>`, `<i>`, `<u>` are stripped from the body; the server reports `bodyMarkupSupported: false`. The history keeps the newest 100. An image or icon loads only from a local source: a file, the icon theme, or image data the app sent over D-Bus. A remote URL (`http`, `https` or any other scheme) is never fetched; the card falls back to the app's icon, else to the bell. |
 | A click on a notification | The notification's own data | Goes to the app's default action, else its window found by class (app id, never title), else the image file it names, and only if that is an absolute local path with an image extension (`file://` decoded first). |
 | Screenshot preview on a card | A sender named "hyprshot" or a path containing `/Screenshots/` | Decodes the local image for display only, nothing is sent anywhere. Any app can ask for a preview of an image the user can read; turn it off with the `shotPreview` setting. |
-| System tray items: labels, icons, menu structure | Tray clients | Plain text. |
+| System tray items: labels, icons, menu structure | Tray clients | Plain text. Icons load only from the icon theme, image data the app sent, or a file in an absolute icon folder; a remote URL is never fetched. |
 | Wi-Fi and Bluetooth names | Nearby access points and devices | Plain text. A Bluetooth device is marked trusted only after pairing has succeeded. |
 | PipeWire application names, EDID monitor names, polkit request text, package names, QML error text | PipeWire, the monitors, the polkit helper, pacman and paru, Quickshell | Plain text, everywhere. |
 | A keybind file imported in the Keybinds tab | Often written by someone else | Parsed as text, never evaluated: no `load`, `require`, variables, concatenation or function calls. Only `hl.bind("KEYS", hl.dsp.<action>(<literal>)[, { option = true }])` lines are accepted, with the action and the options from closed lists; the line written to `sleepybinds.lua` is rebuilt from the parsed values. Everything else is refused and listed with its line number. The file must be text and at most 256 KB. Nothing is written until Add and Apply, and the previous file is backed up first. |
@@ -71,7 +71,9 @@ Hyprland's normal model. These open a popup, start the lock screen, clear the no
 an LED or dim the bar; they return no data and change no setting.
 
 **The settings socket.** Sleepysettings and the bar talk over a Unix socket at
-`$XDG_RUNTIME_DIR/sleepyshell-settings.sock`. The code does not authenticate the peer; the protection is
+`$XDG_RUNTIME_DIR/sleepyshell-settings-<hash>.sock`, where the hash comes from the shell's folder (links
+resolved): each copy of the shell has its own socket, so a second copy (a test copy) never reaches the
+running bar. The code does not authenticate the peer; the protection is
 the per-user, mode 0700 runtime directory. The messages only stage, commit or toggle: `preview`, `commit`
 (the bar writes `sleepysettings.toml`) and `toggle` (open a popup). No message can run a command or
 write a Hyprland file; a commit may store a custom lid or battery command, which runs on that event,
@@ -79,13 +81,16 @@ never on receipt. Every `preview` and `commit` is checked against the settings s
 applied: an unknown key or a value of the wrong kind refuses the whole message, and numbers are clamped to
 their range. Any process that can open the socket can change the shell's settings, which is why it
 must stay in the private runtime directory: if `XDG_RUNTIME_DIR` is unset the fallback is
-`/tmp/sleepyshell-settings.sock`, which is shared, so do not run the shell that way. The lock's flock file
+`/tmp/sleepyshell-settings-<hash>.sock`, which is shared, so do not run the shell that way. The lock's flock file
 has no such fallback: it is used only inside a runtime directory the user owns, and without one the lock
 starts without it rather than not at all.
 
 **Passwords.** Sleepylock checks the password with PAM directly, using the `login` service, so
-`pam_faillock` counts wrong attempts like a TTY login. The polkit prompt answers through Quickshell's
-polkit agent flow. A Wi-Fi key goes to NetworkManager over D-Bus. No password is put on a command line, in
+`pam_faillock` counts wrong attempts like a TTY login. PAM is answered with the password as it was when the
+check started, so Escape or more typing during the check never changes it. A check that takes longer than
+30 seconds is stopped and the lock says so; the field then takes a new password. The polkit prompt answers
+through Quickshell's polkit agent flow; Escape cancels it at any time, also while PAM is checking, and a
+check that takes longer than 30 seconds is cancelled with a notification. A Wi-Fi key goes to NetworkManager over D-Bus. No password is put on a command line, in
 a log line or in a stored property.
 
 **The lock.** Sleepylock is its own process, so a crash or reload of the bar can never unlock a session.
@@ -94,7 +99,9 @@ object path and fails closed until it has it), so another session being unlocked
 flock allows one lock process at a time. If the compositor never confirms the lock, a watchdog gives up
 and the lock exits, so the session is then not locked. Killing the lock process by hand leaves the
 compositor's lock in place; a new lock process can take it over, and `loginctl unlock-session` from a TTY
-is the supported way out.
+is the supported way out. When hypridle runs as a systemd service, its `lock_cmd` starts the lock in a
+systemd scope of its own (`systemd-run --user --scope`), so a restart of `hypridle.service` (the bar does
+one on every charger change) does not stop the lock with it.
 
 ## What the shell writes
 
@@ -120,7 +127,9 @@ exception named under `hypridle.conf`.
   bar rewrites that file in the background at start and on every charger change (the plugged-in or the
   on-battery timers), and only that file. A file the shell did not write is replaced only by the Idle
   tab's Apply, after it asks, with a dated backup beside it (`hypridle.conf.bak-YYYYMMDD-HHMMSS`). The
-  shell never changes how hypridle is started.
+  shell never changes how hypridle is started. While `sleepysettings.toml` does not parse, nothing is
+  written from it: `idle.py`, `theme.py` and `appearance.py` refuse to run on the default values, and the bar
+  and Sleepysettings say why instead.
 - `mimeapps.list` through `xdg-mime` and `xdg-settings`, and the folder-icon overlay under
   `$XDG_DATA_HOME/icons`.
 - Over DDC/CI, only VCP codes on an allow-list (brightness, contrast, colour preset, input source) and
@@ -144,10 +153,7 @@ not load.
   write the shell's files. The shell is not a sandbox boundary.
 - Suspend does not lock the session by itself; lock explicitly (the keybind, the session menu, or
   `ipc call sleepybar sleepylock`).
-- Notification images and tray icons are passed to the image loaders without a scheme check. Whether a
-  remote URL would be fetched has not been settled; treat it as possible.
-- The PAM check and the update check have no timeout, and Escape cannot cancel the polkit prompt while
-  PAM is checking.
+- The update check has no timeout.
 - An IPC `toggle` with a name that is not a popup raises a caught error and does nothing.
 - The shell relies on trusted companions: Hyprland, matugen, ImageMagick, awww or swww, and the user's own
   launcher, terminal, file manager, editor and mixer. Their security is out of scope.

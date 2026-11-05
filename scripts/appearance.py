@@ -304,7 +304,12 @@ def write_overlay(base):
 def cmd_apply(a):
     keys = set(csv(a[0])) if a else set()
     mode = a[a.index("--color-scheme") + 1] if "--color-scheme" in a[:-1] else ""
-    s = theme.raw_settings()
+    try:
+        s = theme.raw_settings()
+    except theme.SettingsBroken as exc:
+        # the settings window checks the file first; a run that gets here anyway changes nothing (the defaults would be applied)
+        out({"ok": False, "did": [], "errors": [theme.broken_text(str(exc))]})
+        return theme.EXIT_BROKEN
     did, errors = [], []
     # Light or dark: GNOME's own preference, so GTK 4 / libadwaita apps and the portal follow the theme (only these two values are ever set)
     if "colorScheme" in keys:

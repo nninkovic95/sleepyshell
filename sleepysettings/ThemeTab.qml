@@ -96,6 +96,11 @@ TabPage {
     }
 
     function launch(args) {
+        tab.error = Settings.brokenNote("The theme wasn't changed");
+        if (tab.error !== "") {
+            tab.running = false;
+            return;
+        }
         running = true;
         runner.command = [Quickshell.shellPath("scripts/theme.py")].concat(args);
         runner.running = true;
@@ -118,7 +123,12 @@ TabPage {
             tab.appMode = tab.effMode;
         }
         tab.autoIcon = "";
+        tab.error = "";
         if (!tab.runsTheme && app.length === 0)
+            return;
+        // a settings file that does not parse: theme.py and appearance.py would apply the defaults
+        tab.error = Settings.brokenNote("The theme wasn't changed");
+        if (tab.error !== "")
             return;
         tab.appKeys = app;
         tab.themeAfterApp = tab.runsTheme;
@@ -132,6 +142,7 @@ TabPage {
     function afterCommit() {
         tab.awaitingCommit = false;
         ackWait.stop();
+        tab.error = "";
         if (tab.appKeys.length > 0) {
             tab.appRunning = true;
             Appearance.apply(tab.appKeys, tab.appMode);
@@ -165,22 +176,40 @@ TabPage {
         }
     }
 
+    // why the last Apply ran nothing, shown until the next one ("" for none)
+    property string error: ""
+
+    // the scripts read the saved file, so they run only once the bar said the keys are saved; if the bar went
+    // away first they are still unapplied and nothing runs on the old file
     Connections {
         target: Settings
         function onCommitted(keys) {
             if (tab.awaitingCommit && keys.some(k => tab.paletteKeys.includes(k) || tab.appKeys.includes(k)))
                 tab.afterCommit();
         }
+        function onUnsaved(keys) {
+            if (!tab.awaitingCommit || !keys.some(k => tab.paletteKeys.includes(k) || tab.appKeys.includes(k)))
+                return;
+            tab.awaitingCommit = false;
+            ackWait.stop();
+            tab.themeAfterApp = false;
+            tab.appKeys = [];
+            tab.running = false;
+            tab.error = "Your theme settings weren't saved: Sleepy Shell's bar stopped first. They're still unapplied; Apply again.";
+        }
     }
 
+    // no word from the bar in 15 s (it hangs): the tab stops being busy so the window can close, and still runs
+    // the theme if the answer comes later
     Timer {
         id: ackWait
-        interval: 3000
+        interval: 15000
         onTriggered: {
             if (!tab.awaitingCommit)
                 return;
-            console.warn("theme: no word from the bar that the palette settings were saved, running theme anyway");
-            tab.afterCommit();
+            console.warn("theme: no word from the bar that the palette settings were saved yet");
+            tab.running = false;
+            tab.error = "Still waiting for Sleepy Shell's bar to save your theme settings. The theme is applied once it has; keep this window open until then.";
         }
     }
 
@@ -404,6 +433,12 @@ TabPage {
     }
 
     // ---- sections --------------------------------------------------------------------------------------------------------
+
+    SmallText {
+        visible: tab.error !== ""
+        text: tab.error
+        color: Theme.urgentFg
+    }
 
     Section {
         title: "Colours"

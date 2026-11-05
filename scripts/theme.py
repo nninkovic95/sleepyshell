@@ -26,6 +26,8 @@ A preset skips matugen: the script reads matugen's config (templates, [config.cu
 {{custom.<key>}} in every template itself and writes each output_path atomically. The variant
 defaults to the first one of the Theme tab's dark/light mode. An unknown placeholder stops the run
 before anything is written. THEME_SETTINGS (a .toml, or a .json by its suffix) and THEME_MATUGEN_CONFIG point it at other files (tests).
+A settings file that exists but does not parse stops every run but --list-presets (exit 9, with a notification
+saying why): the wallpaper and the colours would otherwise come from the defaults.
 """
 import colorsys
 import json
@@ -44,13 +46,20 @@ PRESETS = Path(__file__).resolve().parent.parent / "themes"
 MATUGEN_CONFIG = Path(os.environ.get("THEME_MATUGEN_CONFIG") or "~/.config/matugen/config.toml").expanduser()
 LAST = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "theme-last-source"
 IMAGES = {".png", ".jpg", ".jpeg", ".webp"}
+# a settings file that does not parse: nothing is changed (the defaults would be applied)
+EXIT_BROKEN = 9
 # Hyprland's own wallpapers, used when the wallpaper folder has no images;
 # installed with Hyprland, so they are there without shipping any here
 FALLBACK = Path("/usr/share/hypr")
 
 
+class SettingsBroken(Exception):
+    """The settings file exists but does not parse: a run would use the defaults, so nothing is applied."""
+
+
 def read_settings():
-    """Every key of the settings file as one flat dict ({} when it is missing or does not parse: the defaults apply).
+    """Every key of the settings file as one flat dict ({} when it is missing: the defaults apply; SettingsBroken when
+    it exists but does not parse or cannot be read: nothing is themed from the defaults then).
     sleepysettings.toml has one [section] per settings tab, a key counts wherever it sits; a .json path (the shell's old file,
     read while sleepysettings.toml does not exist yet) is plain JSON."""
     paths = [SETTINGS]
@@ -68,9 +77,19 @@ def read_settings():
                 else:
                     flat[k] = v
             return flat
-        except (OSError, ValueError):
+        except FileNotFoundError:
             continue
+        except (OSError, ValueError) as exc:
+            raise SettingsBroken(str(exc)) from None
     return {}
+
+
+def broken_text(why):
+    """What a refused run tells the user, in plain words."""
+    m = re.search(r"line (\d+)", why)
+    at = f" on line {m.group(1)}" if m else ""
+    return (f"The wallpaper and theme weren't changed: your settings file has a mistake{at}, and the default settings "
+            "would have been used instead. Fix the file, then try again.")
 
 
 def raw_settings():
@@ -370,6 +389,19 @@ def main(argv):
     if "--list-presets" in argv:
         print(json.dumps(list_presets(), indent=2, ensure_ascii=False))
         return 0
+    try:
+        return run(argv)
+    except SettingsBroken as exc:
+        # the bar and the settings window check the file first, so this run was started some other way (a keybind):
+        # a notification says why nothing changed
+        print(f"theme: {SETTINGS} does not parse ({exc}); nothing changed", file=sys.stderr)
+        if shutil.which("notify-send"):
+            subprocess.run(["notify-send", "-a", "Sleepy Shell", "Your settings file has a mistake", broken_text(str(exc))],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10, check=False)
+        return EXIT_BROKEN
+
+
+def run(argv):
     dry = "--dry-run" in argv
     argv = [a for a in argv if a != "--dry-run"]
     preset = None

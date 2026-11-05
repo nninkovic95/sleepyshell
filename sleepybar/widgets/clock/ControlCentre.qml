@@ -145,6 +145,8 @@ RowLayout {
     // scripts/theme.py (wallpaper and palette), with its arguments
     function theme(args) {
         root.centre.open = false;
+        if (!Settings.okToRun("The wallpaper wasn't changed"))
+            return;
         Quickshell.execDetached([Quickshell.shellPath("scripts/theme.py")].concat(args));
     }
 

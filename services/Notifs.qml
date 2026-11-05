@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Services.Notifications
 import "Lua.js" as Lua
+import "LocalImage.js" as LocalImage
 import qs.services
 
 // The bar is the notification daemon; it replaced swaync. Notifications arrive here, stay in `list` until dismissed, and new ones pop
@@ -175,33 +176,50 @@ Singleton {
             DefaultApps.openUrl(path);
     }
 
-    // a file:// URL for a local path; '#' and '?' are encoded too, or QUrl would read them as a
-    // fragment or query and load the wrong file
+    // a file:// URL for an absolute local path, else ""
     function fileUrl(p) {
-        try {
-            return "file://" + encodeURI(p).replace(/#/g, "%23").replace(/\?/g, "%3F");
-        } catch (e) {
-            return "file://" + p;
-        }
+        return LocalImage.fileUrl(p);
     }
 
-    // The icon a card shows. A file path, whether Quickshell hands it over as `image`
-    // ("image://icon//home/…png") or the app sent it as `appIcon`, loads as a file: through the
-    // icon theme it warned "Could not load icon … at size QSize(2, 2)" for every Hyprshot toast.
-    function iconUrl(n) {
-        if (!n)
+    // One icon name, path or URL an app sent, as a local source, else "": a path or file: URL loads
+    // as a file, a name only when the icon theme has it (Quickshell draws a magenta checkerboard for
+    // one it lacks), anything else (a web address) never loads.
+    function localIcon(s) {
+        s = String(s ?? "");
+        if (s === "")
             return "";
-        const img = n.image ?? "";
-        if (img.startsWith("image://icon//"))
-            return fileUrl(img.slice("image://icon/".length));
-        if (img !== "")
-            return img;
-        const icon = n.appIcon ?? "";
-        if (icon.startsWith("/"))
-            return fileUrl(icon);
-        if (icon.startsWith("file://"))
-            return icon;
-        return icon !== "" ? Quickshell.iconPath(icon, true) : "";
+        if (s.startsWith("/"))
+            return LocalImage.fileUrl(s);
+        if (s.startsWith("file:"))
+            return LocalImage.fromFileUrl(s);
+        if (s.includes(":") || s.includes("?"))
+            return "";
+        return Quickshell.iconPath(s, true);
+    }
+
+    // The icons a card can show, best first, each a local source: the notification's image, then
+    // the app's icon. The card moves to the next when one fails to load, and shows the bell when
+    // none is left. Quickshell hands the image over as image data ("image://qsimage/…"), a file:
+    // URL, or "image://icon/" + whatever the app sent as its image path; a path there loads as a
+    // file (through the icon theme it warned "Could not load icon … at size QSize(2, 2)" for every
+    // Hyprshot toast).
+    function iconUrls(n) {
+        if (!n)
+            return [];
+        const img = String(n.image ?? "");
+        const out = [];
+        if (img.startsWith("image://icon/"))
+            out.push(localIcon(img.slice("image://icon/".length)));
+        else if (img.startsWith("file:"))
+            out.push(LocalImage.fromFileUrl(img));
+        else
+            out.push(LocalImage.only(img));
+        out.push(localIcon(n.appIcon));
+        return out.filter((s, i) => s !== "" && LocalImage.isLocal(s) && out.indexOf(s) === i);
+    }
+
+    function iconUrl(n) {
+        return iconUrls(n)[0] ?? "";
     }
 
     // the image file of a screenshot notification (Hyprshot, or a file in a Screenshots folder), or

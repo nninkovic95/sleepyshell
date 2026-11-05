@@ -31,8 +31,27 @@ Singleton {
     readonly property string path: Quickshell.shellDir + "/sleepysettings.toml"
     readonly property string legacyPath: Quickshell.shellDir + "/settings.json"   // the file before sleepysettings.toml (its name is not the new name with .json)
     // ---- END toml ----
-    // the socket the settings window and the bar talk over (SettingsServer.qml lists the messages)
-    readonly property string socketPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/sleepyshell-settings.sock"
+    // The socket the settings window and the bar talk over (SettingsServer.qml lists the messages), one per copy
+    // of the shell: its name holds a hash of the shell folder with links resolved, so a second copy (a test copy)
+    // never reaches this bar, while the bar and a window opened through another route to the same folder (the
+    // ~/.config/quickshell link or the clone itself; Quickshell.shellDir keeps the route) still meet.
+    // "" until the folder is resolved, a moment after start; both ends wait for it.
+    readonly property string socketPath: shellReal === "" ? "" : (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/sleepyshell-settings-" + Qt.md5(shellReal).slice(0, 12) + ".sock"
+    property string shellReal: ""
+
+    readonly property Process shellResolve: Process {
+        command: ["realpath", "-e", "--", Quickshell.shellDir]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: root.shellReal = text.trim() || Quickshell.shellDir
+        }
+        // realpath failed: the folder as given, so the bar and its own window still meet (a success is left to
+        // onStreamFinished, which may come after the exit)
+        onExited: code => {
+            if (code !== 0 && root.shellReal === "")
+                root.shellReal = Quickshell.shellDir;
+        }
+    }
 
     // in the settings window: its BarLink, which carries the staged values and the commits to the
     // bar; null in the bar itself, and the window works on its own while the bar is away
@@ -612,9 +631,10 @@ Singleton {
         return keys.some(k => pending.hasOwnProperty(k));
     }
 
-    // Linked, the bar writes the file and answers `committed`; the values go into this process's
-    // adapter at once, without a write, so the controls do not fall back to the old stored value
-    // while the file is on its way. Alone, this process writes the file.
+    // Linked, the bar writes the file and answers `committed` (landed()). Until then the values stay
+    // staged, so the tab shows them as unapplied: a bar that goes away before it saved them leaves
+    // them for the next Apply (linkLost), never shown as saved while they are not. Alone, this
+    // process writes the file.
     function commit(keys) {
         const p = Object.assign({}, pending);
         const values = {};
@@ -624,15 +644,101 @@ Singleton {
                 delete p[k];
             }
         }
+        if (linked) {
+            send(values, false);
+            return;
+        }
         // the commit first, the draft update after it, so the bar never shows the old stored
         // value of a committed key in between
-        if (linked) {
-            setStored(values, true);
-            link.commit(values);
-        } else {
-            commitValues(values);
-        }
+        commitValues(values);
         pending = p;
+    }
+
+    // sent to the bar and not yet confirmed saved, by key: { v: the last value sent, n: answers still to come,
+    // now: from setNow (no draft) }
+    property var inflight: ({})
+    // the bar went away before it saved these keys of an Apply; they are still unapplied
+    signal unsaved(var keys)
+
+    // Why something (hypridle.conf, the theme, the wallpaper) was left alone while the settings file is broken, in plain
+    // words, or "" when the file is fine; `notDone` says what did not happen ("The theme wasn't changed"). The scripts
+    // read the file and would run on default settings; they refuse a broken file themselves too.
+    function brokenNote(notDone) {
+        if (!broken)
+            return "";
+        return notDone + ": your settings file has a mistake" + (brokenLine > 0 ? " on line " + brokenLine : "") + ", and the default settings would have been used instead. Fix the file, then try again.";
+    }
+
+    // The bar runs theme.py and idle.py in the background (the wallpaper picker and timer, a change of power source). It
+    // asks here first: true means go ahead. While the file is broken a notification says why instead, once for each kind
+    // of action until the file is fixed, so the wallpaper timer does not repeat it.
+    property var brokenTold: []
+
+    function okToRun(notDone) {
+        if (!broken)
+            return true;
+        console.warn("settings: " + notDone + " (the settings file does not parse)");
+        if (!brokenTold.includes(notDone)) {
+            brokenTold = brokenTold.concat([notDone]);
+            Quickshell.execDetached(["notify-send", "-a", "Sleepy Shell", "Your settings file has a mistake", brokenNote(notDone)]);
+        }
+        return false;
+    }
+
+    function send(values, now) {
+        const f = Object.assign({}, inflight);
+        for (const k in values)
+            f[k] = { v: values[k], n: (f[k]?.n ?? 0) + 1, now: now };
+        inflight = f;
+        link.commit(values);
+    }
+
+    // the bar saved these keys: what this process sent for them is stored now, and a draft still equal
+    // to it is applied (one staged again meanwhile stays). A key sent again before this answer waits for
+    // its last answer. A key it did not send (the bell's do-not-disturb switch while the Notifications tab
+    // stages it) loses its draft, which is stale.
+    function landed(keys) {
+        const f = Object.assign({}, inflight);
+        const sent = {};
+        const waiting = [];
+        for (const k of keys) {
+            if (!f.hasOwnProperty(k))
+                continue;
+            if (f[k].n > 1) {
+                f[k] = { v: f[k].v, n: f[k].n - 1, now: f[k].now };
+                waiting.push(k);
+                continue;
+            }
+            sent[k] = f[k].v;
+            delete f[k];
+        }
+        // stored first, the draft update after it, so the controls never show the old stored value
+        setStored(sent, true);
+        const p = Object.assign({}, pending);
+        for (const k of keys) {
+            if (waiting.includes(k))
+                continue;
+            if (!sent.hasOwnProperty(k) || same(p[k], sent[k]))
+                delete p[k];
+        }
+        inflight = f;
+        pending = p;
+        committed(keys);
+    }
+
+    // the link dropped before the bar confirmed: an Apply's values stay unapplied (Apply again saves them,
+    // by this process while the bar is away); a value saved at once (setNow) is written by this process now
+    function linkLost() {
+        const f = inflight;
+        const keys = Object.keys(f);
+        if (keys.length === 0)
+            return;
+        inflight = {};
+        if (keys.some(k => f[k].now))
+            writeFile();
+        const drafts = keys.filter(k => !f[k].now);
+        if (drafts.length > 0)
+            unsaved(drafts);
     }
 
     // write these values to sleepysettings.toml: the bar does this for the window's commits and for
@@ -721,7 +827,7 @@ Singleton {
         values[k] = v;
         if (linked) {
             setStored(values, true);
-            link.commit(values);
+            send(values, true);
         } else {
             commitValues(values);
         }
@@ -892,6 +998,7 @@ Singleton {
     }
 
     function clearBroken() {
+        root.brokenTold = [];
         root.broken = false;
         root.brokenWhy = "";
         root.brokenLine = 0;

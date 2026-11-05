@@ -151,15 +151,17 @@ QtObject {
     // Opened a moment after start, not at once: on a hot reload the new server replaced the socket
     // file, then the old generation's server was destroyed and removed that same path, leaving the
     // new one listening on a deleted file, so the settings window could not connect after any reload
-    // By the time this fires the old server is gone.
+    // By the time this fires the old server is gone. The path itself is known once Settings has resolved the
+    // shell folder.
+    property bool waited: false
     readonly property Timer openLater: Timer {
         interval: 600
         running: true
-        onTriggered: root.server.active = true
+        onTriggered: root.waited = true
     }
 
     readonly property SocketServer server: SocketServer {
-        active: false
+        active: root.waited && Settings.socketPath !== ""
         path: Settings.socketPath
         handler: Socket {
             id: sock

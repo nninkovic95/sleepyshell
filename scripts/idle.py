@@ -29,6 +29,9 @@ exit 7; --create checks the place before it makes a folder. All checks and the w
 file while the lock is held. The backup and the temporary file are made beside the real file, never through a name
 that already exists. The lock is $XDG_RUNTIME_DIR/sleepyshell-hypridle.lock, else a per-user name in the temporary
 folder, opened without following links; a lock that cannot be opened or is not the user's stops the run (exit 8).
+A settings file that exists but does not parse stops every run that would write or print the file (exit 9; a
+notification says why, except for --print): it would be written from the defaults. --find, --owned and --path
+still answer, as if the file named no path.
 
 Which file: `pathHypridle` of sleepysettings.toml when it names one (the Config tab's Change location...); empty,
 or the old usual place ~/.config/hypr/hypridle.conf, means "the file hypridle reads". That is the -c / --config
@@ -48,7 +51,8 @@ idleSuspend and idleSuspendMin, lockBeforeSleep; the on-battery set is idleBatDi
 idleBatLock, idleBatLockMin, idleBatSuspend, idleBatSuspendMin (Idle tab, shorter by default).
 Python standard library only. For tests: SLEEPYSHELL_SETTINGS (settings file: .toml, or .json by its suffix),
 SLEEPYSHELL_POWER_SUPPLY (a stand-in for /sys/class/power_supply), SLEEPYSHELL_HYPRIDLE_PROC (for /proc) and
-SLEEPYSHELL_HYPRIDLE_SERVICE (the unit's argv as one line; "none" for no unit) in place of systemctl.
+SLEEPYSHELL_HYPRIDLE_SERVICE (the unit's argv as one line; "none" for no unit) in place of systemctl, and
+SLEEPYSHELL_HYPRIDLE_UNIT (the unit restarted after a write, hypridle.service by default).
 
 No dpms step: under Hyprland's Lua config `hl.dsp.dpms("on")` toggled the display instead of
 turning it on, and the table form did nothing, so nothing here touches dpms.
@@ -56,6 +60,7 @@ turning it on, and the table form did nothing, so nothing here touches dpms.
 import fcntl
 import json
 import os
+import re
 import shlex
 import shutil
 import stat
@@ -78,9 +83,12 @@ EXIT_EXISTS = 5
 EXIT_UNEXPECTED = 6
 EXIT_UNSAFE = 7
 EXIT_LOCK = 8
+EXIT_BROKEN = 9
 # the setting's default before it followed hypridle: a stored copy of it means "follow hypridle" too
 OLD_DEFAULT = "~/.config/hypr/hypridle.conf"
 PROC = Path(os.environ.get("SLEEPYSHELL_HYPRIDLE_PROC", "/proc"))
+# the unit restarted after a write (tests point it at a stand-in unit)
+UNIT = os.environ.get("SLEEPYSHELL_HYPRIDLE_UNIT", "hypridle.service")
 
 DEFAULTS = {
     "idleDim": True, "idleDimMin": 5,
@@ -132,8 +140,13 @@ def on_battery():
     return has_battery and status not in ("Charging", "Full", "Not charging")
 
 
+class SettingsBroken(Exception):
+    """The settings file exists but does not parse: a run would use the defaults, so nothing is written."""
+
+
 def read_settings():
-    """Every key of the settings file as one flat dict ({} when it is missing or does not parse, so the defaults apply).
+    """Every key of the settings file as one flat dict ({} when it is missing, so the defaults apply; SettingsBroken
+    when it exists but does not parse or cannot be read: hypridle.conf is never written from the defaults then).
     sleepysettings.toml has one [section] per settings tab; a key counts wherever it sits. A path ending in .json is read as JSON
     (the shell's old file, which it renames to settings.json.bak after migrating it)."""
     paths = [SETTINGS]
@@ -151,9 +164,29 @@ def read_settings():
                 else:
                     flat[k] = v
             return flat
-        except (OSError, ValueError):
+        except FileNotFoundError:
             continue
+        except (OSError, ValueError) as exc:
+            raise SettingsBroken(str(exc)) from None
     return {}
+
+
+def broken_line(why):
+    """ " on line N" from a parser message that names one, else "" """
+    m = re.search(r"line (\d+)", why)
+    return f" on line {m.group(1)}" if m else ""
+
+
+def refuse_broken(why, tell):
+    """Say why nothing was written; `tell`: also as a notification (a run from the bar or the window never gets here,
+    they check the file first, so this is a run started some other way)."""
+    text = (f"hypridle.conf wasn't changed: your settings file has a mistake{broken_line(why)}, and the default "
+            "settings would have been used instead. Fix the file, then try again.")
+    print(f"not written: {SETTINGS} does not parse ({why})", file=sys.stderr)
+    if tell and shutil.which("notify-send"):
+        subprocess.run(["notify-send", "-a", "Sleepy Shell", "Your settings file has a mistake", text],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10, check=False)
+    return EXIT_BROKEN
 
 
 def expand(p):
@@ -164,8 +197,12 @@ def expand(p):
 
 
 def setting():
-    """The explicit file of `pathHypridle`, or None when the setting follows hypridle."""
-    p = read_settings().get("pathHypridle")
+    """The explicit file of `pathHypridle`, or None when the setting follows hypridle (also while the settings file
+    does not parse: --find and --owned still answer, and every run that writes refuses before it gets here)."""
+    try:
+        p = read_settings().get("pathHypridle")
+    except SettingsBroken:
+        return None
     if not isinstance(p, str) or not p.strip() or expand(p) == expand(OLD_DEFAULT):
         return None
     return expand(p)
@@ -307,6 +344,14 @@ def config(s):
     if shutil.which("flock"):
         lock = ('if [ -O "${XDG_RUNTIME_DIR:-}" ] && [ -d "${XDG_RUNTIME_DIR}" ]; then '
                 f'flock -n -E 75 "${{XDG_RUNTIME_DIR}}/sleepylock.lock" {lock}; else {lock}; fi')
+    # hypridle run by systemd (hypridle.service) runs lock_cmd inside the unit's cgroup, and the restart after a change
+    # of power source (below, from the bar's PowerPolicy) stops everything in it: the lock screen died and left the
+    # session locked with nothing to unlock it. The lock gets a scope of its own first. INVOCATION_ID is set only inside
+    # a systemd unit; a scope that cannot be made (the trial run fails) leaves the lock to start as before, never not at all.
+    if shutil.which("systemd-run"):
+        scope = "systemd-run --user --scope --quiet --collect --"
+        lock = (f'if [ -n "${{INVOCATION_ID:-}}" ] && {scope} true >/dev/null 2>&1; then '
+                f'exec {scope} sh -c {shlex.quote(lock)}; fi; {lock}')
     out = [
         HEADER,
         "# overwritten. Edit them in the settings window (Idle tab) or sleepysettings.toml.",
@@ -485,7 +530,10 @@ def main(argv):
                               exists=conf.exists(), owned=state(conf) == "own")))
         return 0
     battery = True if "--battery" in argv else False if "--ac" in argv else on_battery()
-    text = config(settings(battery))
+    try:
+        text = config(settings(battery))
+    except SettingsBroken as exc:
+        return refuse_broken(str(exc), tell="--print" not in argv)
     if "--print" in argv:
         print(text)
         return 0
@@ -546,9 +594,9 @@ def main(argv):
         write_through(target, text)
         # restart only a running hypridle: enabling it is the user's choice
         if shutil.which("systemctl"):
-            active = subprocess.run(["systemctl", "--user", "is-active", "--quiet", "hypridle.service"]).returncode == 0
+            active = subprocess.run(["systemctl", "--user", "is-active", "--quiet", UNIT]).returncode == 0
             if active:
-                subprocess.run(["systemctl", "--user", "restart", "hypridle.service"])
+                subprocess.run(["systemctl", "--user", "restart", UNIT])
     print(f"wrote {target} ({'battery' if battery else 'plugged in'} set)" + (f"; the old file is {saved}" if saved else ""))
     return 0
 

@@ -232,7 +232,7 @@ Rectangle {
                 Text {
                     anchors.centerIn: parent
                     visible: input.text === ""
-                    text: root.context.unlockInProgress ? "Checking…" : pill.failed ? "Wrong password" : "Password"
+                    text: root.context.unlockInProgress ? "Checking…" : pill.failed ? root.context.failureText : "Password"
                     font.family: Theme.font
                     font.pixelSize: Theme.fontSize + 1
                     color: pill.failed ? Theme.urgentFg : Theme.fgMuted
