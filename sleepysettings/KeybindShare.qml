@@ -29,8 +29,14 @@ ColumnLayout {
         target: Keybinds
         function onExportAskChanged() {
             const path = Keybinds.exportAsk;
-            if (path === "" || !share.confirm)
+            if (path === "")
                 return;
+            // without the dialog the file is never replaced; say so instead of doing nothing visible
+            if (!share.confirm) {
+                Keybinds.exportFailed = true;
+                Keybinds.exportMessage = Settings.tilde(path) + " already exists and could not be replaced here; nothing was written.";
+                return;
+            }
             const name = path.split("/").pop();
             share.confirm.askLine("Replace " + name + "?", "This file already exists. Export replaces it with your keybinds; a backup is kept beside it (" + name + ".bak-<date-time>). Cancel leaves it as it is.", Settings.tilde(path), () => Keybinds.exportTo(path, true), "Replace");
         }

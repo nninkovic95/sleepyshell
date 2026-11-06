@@ -76,6 +76,20 @@ check(codes.get("m-right") == "0" and block and block in after and after.startsw
       "folders-setup with the shown hash adds exactly the shown block", f"exit {codes.get('m-right')}")
 check(len(mb) == 1 and mb[0].read_text() == "[config]\n", "the matugen config was backed up first", f"{[p.name for p in mb]}")
 
+# the window must hand its dialog to every tab that asks: a tab without it cannot ask, so its writer stays refused
+import re
+S = D / "s"
+win = (S / "sleepysettings/Sleepysettings.qml").read_text()
+missing = []
+for tab in sorted((S / "sleepysettings").glob("*Tab.qml")):
+    asks = "confirm" in tab.read_text() or any("confirm" in (S / "sleepysettings" / f"{n}.qml").read_text()
+                                               for n in re.findall(r"^\s*(\w+)\s*\{", tab.read_text(), re.M)
+                                               if (S / "sleepysettings" / f"{n}.qml").exists())
+    m = re.search(r"^\s*" + tab.stem + r"\s*\{(.*?)^\s*\}", win, re.M | re.S)
+    if asks and (m is None or not re.search(r"^\s*confirm\s*:\s*confirm\b", m.group(1), re.M)):
+        missing.append(tab.stem)
+check(not missing, "the window passes its dialog to every tab that asks", f"missing for {missing}")
+
 log = (D / "harness.log").read_text(errors="replace") if (D / "harness.log").exists() else ""
 line = next((l for l in log.splitlines() if "RESULT {" in l), None)
 h = json.loads(line[line.index("RESULT {") + 7:]) if line else None

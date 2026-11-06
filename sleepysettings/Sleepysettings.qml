@@ -809,6 +809,7 @@ FloatingWindow {
                 id: keybindsTab
                 tooltip: tooltip
                 folders: folders   // Share keybinds: the save and open browser
+                confirm: confirm   // and the question before an export replaces a file
                 query: root.query
             }
             FilesTab {
