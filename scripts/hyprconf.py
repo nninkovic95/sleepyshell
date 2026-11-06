@@ -20,6 +20,13 @@
                                         {"ok", "changed", "foreign", "path", "backup", "removed", "added", "sha", "message"}: write
                                         the keybinds file of the Keybinds tab from stdin (see below)
 
+  hyprconf.py keyreport-state [--root PATH]
+                                        {"ok", "format", "main", "line", "sha", "loaded", "message"}: the line that makes Hyprland
+                                        load the shell's key reporter (data/keyreport.lua) and whether the main file has it; read-only
+  hyprconf.py add-keyreport --expect SHA256 [--root PATH]
+                                        {"ok", "changed", "line", "main", "backup", "message"}: add that line to hyprland.lua, before
+                                        its first statement, only when SHA256 is the shown line's (see below)
+
   hyprconf.py export-binds PATH [--replace]
                                         {"ok", "changed", "exists", "path", "backup", "message"}: write the export text read from
                                         stdin to PATH (the Keybinds tab's Export, see below)
@@ -77,6 +84,13 @@ four keys terminal, browser, editor and fileManager only (any other key is refus
 is reported in `skipped`. An entry is changed only when it is one line `key = "string"` (or single quotes, simple escapes only) whose text agrees with
 what `programs` evaluates; anything else (a concatenation, a value on several lines, two lines for one key) is left alone and listed in `skipped`. The new
 string literal is built here from the value: backslash and the quote are escaped, control characters are refused, and the comment after the entry is kept.
+`add-keyreport` is another command that writes (Sleepysettings asks first, showing the exact line `keyreport-state` gives):
+the keybind overlay needs Hyprland to load data/keyreport.lua before any bind is made, so the line goes above the first
+statement of hyprland.lua (after its opening comments), never after the binds as a require would. It writes nothing
+when SHA256 is not the hash of that line (exit 6), when the main file is not Lua, when a string or comment in it does
+not close, or when the file is already named there (ok, not changed). A backup is kept beside the file, the write is
+atomic, and the old text is put back when the line is not found in the result.
+
 A file whose strings or comments do not close is refused. `--dry-run` writes nothing and only reports `changes` ([{key, old, new, line, before, after}])
 and `shown` (the lines as "- before" / "+ after"). A real run first copies the file to <file>.bak-YYYYMMDD-HHMMSS, writes atomically (a temporary
 file in the same folder, then a rename; a symlink is written through), then reads the values back with `programs`: when they are not exactly the old
@@ -1397,6 +1411,117 @@ def add_require(target_arg, root_arg=None):
     return out
 
 
+# ---- the key reporter's line (keyreport-state, add-keyreport) ----------------------------------------------------
+
+KEYREPORT = "data/keyreport.lua"
+
+
+def keyreport_line():
+    """The line that loads the shell's key reporter, built from this script's own folder as it was started (so a link to
+    the shell folder stays a link), with $HOME written as os.getenv("HOME"); (line, "") or (None, why)."""
+    shell = Path(os.path.abspath(__file__)).parent.parent
+    target = shell / KEYREPORT
+    if '"' in str(target) or "\\" in str(target):
+        return None, "the shell's folder name has a quote or a backslash"
+    home = Path.home()
+    try:
+        rel = target.relative_to(home)
+        return 'pcall(dofile, os.getenv("HOME") .. "/' + str(rel) + '")', ""
+    except ValueError:
+        return 'pcall(dofile, "' + str(target) + '")', ""
+
+
+def keyreport_named(text):
+    """Whether the Lua text names the key reporter outside comments (any line loading data/keyreport.lua)."""
+    return KEYREPORT in blank_comments(text)
+
+
+def first_statement(text):
+    """Offset of the first line of Lua text that is not blank once comments are blanked (len(text) when none)."""
+    probe = blank_comments(text)
+    starts = line_offsets(text)
+    for i, st in enumerate(starts):
+        en = starts[i + 1] if i + 1 < len(starts) else len(text)
+        if probe[st:en].strip():
+            return st
+    return len(text)
+
+
+def keyreport_state(root_arg=None):
+    out = {"ok": False, "format": "", "main": None, "line": "", "sha": "", "loaded": False, "message": ""}
+    root = Path(root_arg) if root_arg else Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "hypr"
+    folder, main, fmt = find_main(root)
+    out["format"] = fmt or ""
+    line, why = keyreport_line()
+    if line is None:
+        out["message"] = "Can't add it: " + why + "."
+        return out
+    out.update(line=line, sha=hashlib.sha256(line.encode()).hexdigest())
+    if main is None:
+        out["message"] = "There is no hyprland.lua or hyprland.conf in " + str(folder) + "."
+        return out
+    out["main"] = str(main)
+    if fmt != "lua":
+        out["message"] = "The keybind overlay needs hyprland.lua; hyprland.conf cannot load it."
+        return out
+    try:
+        text = Path(os.path.realpath(main)).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        out["message"] = "Can't read " + str(main) + " (" + str(getattr(e, "strerror", None) or e) + ")."
+        return out
+    out.update(ok=True, loaded=keyreport_named(text))
+    return out
+
+
+def add_keyreport(expect, root_arg=None):
+    """Add the key reporter's line above the first statement of hyprland.lua; (answer, exit code)."""
+    st = keyreport_state(root_arg)
+    out = {"ok": False, "changed": False, "line": st["line"], "main": st["main"], "backup": "", "message": ""}
+    if not st["ok"]:
+        out["message"] = st["message"]
+        return out, 1
+    if expect != st["sha"]:
+        out["message"] = "The line to add is not the one that was shown; nothing was written."
+        return out, 6
+    if st["loaded"]:
+        out.update(ok=True, message="hyprland.lua already loads the key reporter.")
+        return out, 0
+    main = Path(st["main"])
+    real = Path(os.path.realpath(main))
+    text = real.read_text(encoding="utf-8")
+    if not os.access(real, os.W_OK) or not os.access(real.parent, os.W_OK | os.X_OK):
+        out["message"] = "Can't change " + str(main) + ": it is read-only for you."
+        return out, 1
+    if not lua_closed(text):
+        out["message"] = "Can't read " + str(main) + " well enough to change it safely (a string or comment is not closed)."
+        return out, 1
+    at = first_statement(text)
+    new = text[:at] + ("" if at == 0 or text[:at].endswith("\n") else "\n") + st["line"] + "\n" + text[at:]
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    backup = Path(str(real) + ".bak-" + stamp)
+    n = 1
+    while backup.exists():
+        backup = Path(str(real) + ".bak-" + stamp + "-" + str(n))
+        n += 1
+    try:
+        shutil.copy2(real, backup)
+        out["backup"] = str(backup)
+        tmp = real.with_name(real.name + ".tmp-" + str(os.getpid()))
+        tmp.write_text(new, encoding="utf-8")
+        shutil.copymode(real, tmp)
+        os.replace(tmp, real)
+    except OSError as e:
+        out["message"] = "Could not write " + str(main) + " (" + str(e.strerror) + "). It was left as it was."
+        return out, 1
+    after = real.read_text(encoding="utf-8")
+    if not keyreport_named(after) or not lua_closed(after):
+        real.write_text(text, encoding="utf-8")
+        out["message"] = "The line was added but could not be found again, so " + str(main) + " was put back."
+        return out, 1
+    out.update(ok=True, changed=True, message="Added " + st["line"] + " to " + str(main) + ".")
+    return out, 0
+
+
 # the first line of the file of keybinds added in Sleepysettings, and the header a file gets when the user lets
 # Sleepysettings manage a file it did not create (Keybinds.qml writes the same two lines into a new file)
 BINDS_MARK = "-- Keybinds added in Sleepysettings"
@@ -2073,6 +2198,11 @@ def main():
     ap2 = sub.add_parser("add-require", help="add the line that makes the config load FILE (a backup of the main file is kept)")
     ap2.add_argument("file", help="the file the config should load")
     ap2.add_argument("--root", help="config folder or main file (default ~/.config/hypr)")
+    kp = sub.add_parser("keyreport-state", help="print the key reporter's line and whether hyprland.lua loads it (read-only)")
+    kp.add_argument("--root", help="config folder or main file (default ~/.config/hypr)")
+    ka = sub.add_parser("add-keyreport", help="add the key reporter's line above the first statement of hyprland.lua (a backup is kept)")
+    ka.add_argument("--expect", required=True, metavar="SHA256", help="the hash of the line the user saw and accepted")
+    ka.add_argument("--root", help="config folder or main file (default ~/.config/hypr)")
     pp = sub.add_parser("programs", help="print the program names modules/programs.lua returns as JSON")
     pp.add_argument("--root", help="config folder or main file (default ~/.config/hypr)")
     sp = sub.add_parser("set-programs", help="set terminal, browser, editor or fileManager in modules/programs.lua (existing entries only; a backup is kept)")
@@ -2109,6 +2239,16 @@ def main():
         json.dump(result, sys.stdout, indent=2, ensure_ascii=False)
         sys.stdout.write("\n")
         return 0 if result["ok"] else 1
+    if args.cmd == "keyreport-state":
+        result = keyreport_state(args.root)
+        json.dump(result, sys.stdout, ensure_ascii=False)
+        sys.stdout.write("\n")
+        return 0 if result["ok"] else 1
+    if args.cmd == "add-keyreport":
+        result, code = add_keyreport(args.expect, args.root)
+        json.dump(result, sys.stdout, ensure_ascii=False)
+        sys.stdout.write("\n")
+        return code
     if args.cmd == "set-programs":
         pairs = [tuple(x.split("=", 1)) if "=" in x else (x, "") for x in args.pairs]
         result = set_programs(pairs, args.root, args.dry_run)

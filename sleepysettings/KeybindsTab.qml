@@ -198,6 +198,9 @@ TabPage {
                             required property var modelData
                             // the bind that sends this action now (staged or in the file), or null
                             readonly property var bind: Keybinds.shellBindOf(modelData.event)
+                            // the binds load after the row: a suggestion goes once the action turns out to have a key
+                            onBindChanged: if (bind && shellCapture.combo === (modelData.suggested ?? ""))
+                                shellCapture.combo = ""
                             Layout.fillWidth: true
                             spacing: 6
 
@@ -217,6 +220,9 @@ TabPage {
                             }
                             KeyCapture {
                                 id: shellCapture
+                                // the suggested key, while the action has none
+                                Component.onCompleted: if (!shellRow.bind && shellRow.modelData.suggested)
+                                    combo = shellRow.modelData.suggested
                             }
                             BarButton {
                                 text: "Set key"
@@ -244,6 +250,14 @@ TabPage {
                         visible: tab.shellError !== ""
                         color: Theme.urgentFg
                         text: tab.shellError
+                    }
+
+                    // the keybind overlay needs its reporter in hyprland.lua: the full notice, with Set up (asks first)
+                    FileNotice {
+                        objectName: "keyreportNotice"
+                        ids: ["keyreport"]
+                        tooltip: tab.tooltip
+                        Layout.fillWidth: true
                     }
                 }
 

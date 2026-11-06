@@ -261,6 +261,8 @@ Singleton {
                 "sleepyshell:capslock": "Refresh the Caps Lock indicator",
                 // "Toggle the ..." files it under Media and system with the shell's other panels (groupOf)
                 "sleepyshell:keybinds": "Toggle the Keybinds window",
+                "sleepyshell:keys": "Toggle the keybind overlay",
+                "sleepyshell:clicks": "Toggle the click circles",
                 "sleepyshell:toggle:session": "Session menu"
             };
             text = names[ev] ?? (ev.startsWith("sleepyshell:toggle:") ? "Toggle the " + ev.slice(19) + " panel" : ev.startsWith("sleepyshell:") ? "Shell event " + ev.slice(12) : "Event " + ev);
@@ -521,7 +523,9 @@ Singleton {
         [/^Event sleepyshell:sleepylock$/, "Lock the screen"],
         [/^Event sleepyshell:toggle:session$/, "Session menu (lock, log out, power)"],
         [/^Event sleepyshell:toggle:(\w+)$/, "Open or close the $1 panel"],
-        [/^Toggle the Keybinds window$/, "Keybinds window"]
+        [/^Toggle the Keybinds window$/, "Keybinds window"],
+        [/^Toggle the keybind overlay$/, "Keybind overlay (names each keybind as it is used)"],
+        [/^Toggle the click circles$/, "Click circles (a ring at each click)"]
     ]
     readonly property var commandNames: [
         [/wpctl set-volume\b.*%\+/, "Volume up"],
@@ -585,11 +589,22 @@ Singleton {
     // a key, not by typing anything. They live in the custom file like the binds added in the tab (one line,
     // `hl.bind("<combo>", hl.dsp.event("<event>"))`), so the tab can change their key: setting a new one
     // drops the old line and appends the new one on Apply. `label` is what the tab shows; the action text the
-    // lists show comes from `describe` (the "sleepyshell:..." names there).
+    // lists show comes from `describe` (the "sleepyshell:..." names there). `suggested` fills the tab's key field while
+    // the action has no key; like any key there it is written only after Set key and Apply.
     readonly property var shellActions: [
         {
             event: "sleepyshell:keybinds",
             label: "Keybinds window"
+        },
+        {
+            event: "sleepyshell:keys",
+            label: "Keybind overlay",
+            suggested: "SUPER + SHIFT + K"
+        },
+        {
+            event: "sleepyshell:clicks",
+            label: "Click circles",
+            suggested: "SUPER + SHIFT + L"
         }
     ]
     function isShellBind(b, event) {

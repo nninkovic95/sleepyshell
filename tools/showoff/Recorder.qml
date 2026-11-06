@@ -28,8 +28,6 @@ QtObject {
     readonly property bool recording: recorder.running
     property string file: ""
     property bool stopping: false
-    property real startedAt: 0
-    property int elapsed: 0
 
     function toggle() {
         if (root.recording)
@@ -56,8 +54,6 @@ QtObject {
         // mkdir first; exec so that the process signalled on stop is the recorder itself
         recorder.command = ["sh", "-c", 'mkdir -p -- "$1" && shift && exec gpu-screen-recorder "$@"', "sh", root.dir].concat(args);
         root.stopping = false;
-        root.elapsed = 0;
-        root.startedAt = Date.now();
         recorder.running = true;
     }
 
@@ -84,12 +80,5 @@ QtObject {
                 Quickshell.execDetached(["notify-send", "-a", "Screen recorder", "-u", "critical", "-i", "media-record", "Screen recording failed", root.recorder.lastError !== "" ? root.recorder.lastError : "gpu-screen-recorder exited with code " + code + "."]);
             root.stopping = false;
         }
-    }
-
-    property Timer ticker: Timer {
-        interval: 1000
-        repeat: true
-        running: root.recording
-        onTriggered: root.elapsed = Math.floor((Date.now() - root.startedAt) / 1000)
     }
 }

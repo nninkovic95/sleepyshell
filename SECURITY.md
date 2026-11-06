@@ -54,6 +54,7 @@ device names, configuration files written by someone else.
 | The user's Hyprland files | `~/.config/hypr` | Read as text for keybind discovery and the Config tab checks; never evaluated. |
 | How hypridle is started | The user's own running `hypridle` process (`/proc`; processes of other users, and ones not readable as the user's, are ignored), a launch in the Hyprland files, `hypridle.service` | Read only to find the `-c` file hypridle reads. Before writing, `idle.py` resolves the file once and, while holding its lock, refuses it (nothing written) unless the folder holding its name and the folder holding the real file (a symlink's target) both lie inside the home or config folder (links resolved; an empty or relative `XDG_CONFIG_HOME` counts as unset), belong to the user and are writable by no one else (group write only for the user's own private group), and the file and the link belong to the user. Create checks the place before it makes any folder. The backup and the temporary file are made beside the real file, never through a name that already exists. The lock is in `$XDG_RUNTIME_DIR` (else a per-user name in the temporary folder), opened without following links and refused if it is not the user's. Create and Replace pass the path and the real file the user confirmed; anything else at write time writes nothing. |
 | `sleepysettings.toml` | The shell's own settings file | Parsed by the shell's own `Toml.js`. Numbers are clamped to their ranges on read. A file that does not parse names the line, keeps the last good values and makes every write a no-op until it parses again; the damaged text is copied to `sleepysettings.toml.broken` first. |
+| Keybind reports | Hyprland, from the shell's `data/keyreport.lua`, which `hyprland.lua` loads | Only while the keybind overlay is on: the modifier mask and key name of a keybind that fired, as a custom event; a key that is not a keybind (typing) is never reported. Shown as plain text in the overlay's pill, kept only until the next one. The click circles get only "left" or "right" from their own pass-through binds and ask Hyprland for the pointer's place. Any program running as the user can read Hyprland's event socket, as for every other event; while the overlay is on, that includes which keybind was used. |
 | Clipboard contents | Never read | The clipboard button only starts the optional walker launcher in its clipboard mode. |
 | Window titles and media players | Not used | The bar shows workspaces only and has no media widget. |
 
@@ -71,6 +72,10 @@ run with the same trust as a bind typed by hand:
 - the custom commands for "When lid closes" and "Action at critical level" (`cmd:<command>` in
   `sleepysettings.toml`, one line of at most 300 characters). They run through `sh -c` in one place, only when
   the lid closes or the 60 s critical countdown ends, never while typed, staged or received.
+
+The keybind overlay and the click circles switch Hyprland's side on and off through `hyprctl eval` with fixed Lua
+code (a flag, and two pass-through click binds kept in a table and removed through their own handles, so a bind of
+the user's is never touched); both are cleared when the bar starts and when it ends.
 
 Install hints for a missing program are shown with a copy button and never run. Whether a program exists is
 probed with `command -v` and the name as an argument; whether a package exists is asked of the local package
@@ -137,7 +142,10 @@ named under `hypridle.conf`.
 - The main `hyprland.lua`, only through the Config tab's "Set up", after a question that shows the exact line.
   `scripts/hyprconf.py add-require` adds one `require` or `source` line after the last existing one, keeps a
   dated backup, writes atomically, is idempotent, refuses a file it cannot read, write or parse, and puts the
-  file back if the config does not load afterwards.
+  file back if the config does not load afterwards. For the keybind overlay, `hyprconf.py add-keyreport` adds the
+  one line that loads `data/keyreport.lua` above the first statement (it must load before the binds), only when
+  the line is the one the question showed (its hash), with the same backup, atomic write and checks; a
+  `hyprland.conf` is refused.
 - `modules/programs.lua`, only after the Apps tab's question shows the exact changed lines; existing entries
   only, a dated backup, an atomic write, and the file is put back when the values do not read back as asked.
 - The matugen config, only through the Theme tab's folder-icon "Set up", after a question that shows every

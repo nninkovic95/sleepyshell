@@ -403,7 +403,7 @@ Singleton {
     // battery is shown only when a battery exists
     // the power button is in the control centre's tools; a stored order
     // that still names it is fine, orderFrom drops unknown names
-    readonly property var widgetNames: ["capslock", "updates", "network", "bluetooth", "battery", "privacy", "notifications", "clipboard", "tray"]
+    readonly property var widgetNames: ["capslock", "updates", "network", "bluetooth", "battery", "privacy", "notifications", "clipboard", "recording", "keys", "clicks", "tray"]
     readonly property var widgetLabels: ({
             capslock: "Caps Lock indicator",
             updates: "Package updates",
@@ -413,6 +413,9 @@ Singleton {
             privacy: "Privacy indicators",
             notifications: "Notification bell",
             clipboard: "Clipboard",
+            recording: "Recording indicator",
+            keys: "Keybind overlay indicator",
+            clicks: "Click circles indicator",
             tray: "System tray"
         })
 

@@ -313,6 +313,25 @@ class Shell:
         win = (mark or self.find(objectName="dialogLine"))[0]["win"]
         return {"lines": lines, "texts": self.texts(win)}
 
+    def bar_icons(self):
+        """The bar's visible icons (Glyph items in the islands' surface) by their widget: {name: vertical centre}. The
+        name is the nearest objectName up the tree, else the type of the widget the icon sits in."""
+        js = """(function () {
+          const out = {};
+          for (const e of sleepytestDriver.scan().items) {
+            const o = e.obj;
+            if (sleepytestDriver.typeName(o) !== "Glyph" || !o.visible || o.text === "" || e.win.info.type !== "Sleepybar") continue;
+            let h = o.parent;
+            while (h && !h.objectName && h.parent && !/^(Clipboard|PrivacyPill|Network|Notifications|Updates|Bluetooth)/.test(sleepytestDriver.typeName(h)))
+              h = h.parent;
+            const name = (h && (h.objectName || sleepytestDriver.typeName(h))) || "?";
+            const p = o.mapToItem(null, 0, 0);
+            out[name] = Math.round((p.y + o.height / 2) * 10) / 10;
+          }
+          return out;
+        })()"""
+        return self.js(js) or {}
+
     def stored(self, key):
         return self.js(f"Settings.stored({json.dumps(key)})")
 

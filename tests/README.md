@@ -159,8 +159,8 @@ every setting uses) over many per-setting tests; no variations that can't fail i
   folder. One exception: `lock/hypridle-restart.test.sh` needs the user's systemd (a transient stand-in
   unit for hypridle and the lock's scope), so it runs outside the sandbox, keeps its files in the run
   folder, never touches the real hypridle or lock file, and shows its units gone at the end.
-- No new packages for the shell. The kit itself needs `sway` (the private test desktop) and `grim`
-  (screenshots), and for watch mode only `wayvnc` and `tigervnc`.
+- No new packages for the shell. The kit itself needs `sway` (the private test desktop), `grim`
+  (screenshots) and `lua` (the key reporter's test), and for watch mode only `wayvnc` and `tigervnc`.
 - Never test the lock against the account's PAM; lock tests use the test stack (`ui.pam_stack`).
 - Deterministic: the same result every run (`run.sh --twice` checks it).
 - A whole-window test acts like a user: clicks and keys through the virtual devices, scrolling with the

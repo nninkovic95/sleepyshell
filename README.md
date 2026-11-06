@@ -108,6 +108,13 @@ Reorder and hide them in the Right island tab. Default order:
   has a Do not disturb switch, Clear all (the cards swipe out one by one) and the cards, newest or oldest
   first.
 - **Clipboard**: opens walker's clipboard mode; hidden unless walker is installed.
+- **Keybind overlay** and **click circles**: the overlay names each keybind as you use it ("Super + Enter") in a
+  pill at the bottom of the screen, the circles draw a ring at each left or right click; useful for screen
+  recordings and teaching. Each is switched by its own shortcut (Keybinds tab, Shell shortcuts; Super+Shift+K and
+  Super+Shift+L suggested), and a small indicator shows on the island only while it is on. Hyprland reports only
+  keybinds that fire, never typing, and only while the overlay is on; it needs one line at the top of
+  `hyprland.lua` (the Keybinds tab offers Set up).
+- **Recording**: a dot while a screen recorder says it is recording (over the shell's IPC, below).
 - **System tray**: StatusNotifier icons with a themed right-click menu (with submenus); middle click for the
   secondary action; the wheel scrolls the item. Hidden when empty.
 </details>
@@ -272,43 +279,41 @@ All in `scripts/`, standard-library Python unless noted.
 
 sleepyshell targets Arch Linux and its derivatives.
 
-**Required.** The bar does not run without these.
+**Required.** The shell does not run without these.
 
 | Program | Why |
 |---|---|
 | Hyprland with the Lua config (`hyprland.lua`, 0.55 or newer; tested on 0.56.2 and 0.57) | The compositor. The old `hyprland.conf` format is not supported: Sleepysettings reads and writes Lua |
 | Quickshell 0.3 | The runtime for all four programs |
-| Python 3 | The scripts; standard library only |
-| JetBrainsMono Nerd Font (with the Propo variant) | Text and icons |
+| JetBrainsMono Nerd Font (with the Propo variant) | Text and every icon; without it the icons show as empty boxes |
 
-**Per feature.** A missing one greys out its feature with the reason; everything else works.
+**Optional.** Each one enables a feature; without it that feature greys out with the reason (or is hidden), and
+everything else works.
 
-| Feature | Needs |
+| Program | What it enables |
 |---|---|
-| Theming from the wallpaper, wallpaper picker and shuffle | matugen, ImageMagick (`magick`), awww (or swww, its older name) |
-| Idle dim, lock and sleep timers | hypridle |
-| Audio pill, panels and privacy indicators | PipeWire with WirePlumber (`wpctl`) |
-| Network widget and Wi-Fi tile | NetworkManager |
-| Bluetooth tile and widget | BlueZ |
-| Updates widget | pacman, paru, fakeroot |
-| Copy a screenshot from its notification | wl-clipboard |
-| External monitor brightness, contrast, input and colour preset | DDC/CI: the `i2c-dev` module and access to the display buses (the Display tab shows the steps) |
-| Power profile tile and profiles per power source | power-profiles-daemon |
-| Backlight slider, lid actions, lock and session actions | systemd (`busctl`, `systemd-inhibit`, `loginctl`, `systemctl`), `flock` from util-linux, `gdbus` from glib2 |
-| Default apps and links | xdg-utils |
-| Icon theme, fonts and light or dark for GTK apps | glib2 (`gsettings`), fontconfig (`fc-list`) |
-| Test notifications and battery warnings | libnotify (`notify-send`) |
-| Log out | uwsm |
+| Python 3 (optional, but most of Sleepysettings needs it) | The scripts (standard library only): theming, the idle timers, the keybind lists and file checks, default apps, monitor HDR. Settings are saved and the bar and lock run without it |
+| matugen, ImageMagick (`magick`), awww or swww (optional) | Theming from the wallpaper, the wallpaper picker and Shuffle colours |
+| hypridle (optional) | Idle dim, lock and sleep timers |
+| PipeWire with WirePlumber (`wpctl`) (optional) | The audio pill and panels, and the microphone, camera and screen-share indicators |
+| NetworkManager (optional) | The network widget and the Wi-Fi tile |
+| BlueZ (optional) | The Bluetooth tile and widget |
+| pacman, paru, fakeroot (optional) | The updates widget and Update now |
+| wl-clipboard (optional) | Copying a screenshot from its notification |
+| DDC/CI access: the `i2c-dev` module and the display buses (optional) | External monitor brightness, contrast, input and colour preset (the Display tab shows the steps) |
+| power-profiles-daemon (optional) | The power profile tile and a profile per power source |
+| systemd (`busctl`, `systemd-inhibit`, `loginctl`, `systemctl`), `flock` from util-linux, `gdbus` from glib2 (optional) | The backlight slider, lid actions, and the lock and session actions |
+| xdg-utils (optional) | Default apps and opening links |
+| glib2 (`gsettings`), fontconfig (`fc-list`) (optional) | Icon theme, interface font and light or dark for GTK apps |
+| libnotify (`notify-send`) (optional) | Test notifications and battery warnings |
+| uwsm (optional) | Log out from the session menu |
+| walker with its elephant service (optional) | The clipboard button (walker's clipboard mode; hidden without walker) |
+| khal (optional) | The calendar popup and the Calendar tool (hidden without it) |
+| pciutils (optional) | GPU names in the System tab instead of PCI ids |
+| pwvucontrol, hyprpicker (optional) | The Audio mixer tool, and the Colour picker tool once switched on |
+| A terminal, file manager, editor and browser (optional) | Your own choice, set in the Apps tab; the file manager (a terminal one such as Yazi works) opens Show in folder for screenshots. A missing one is reported, never assumed |
 
-**Good to have.** Not needed, used when present.
-
-| Program | What it adds |
-|---|---|
-| walker with its elephant service | The clipboard button opens walker's clipboard mode (hidden without walker); a good launcher to bind next to it |
-| khal | The calendar popup and the Calendar tool; hidden without it |
-| pciutils | GPU names in the System tab instead of PCI ids |
-| pwvucontrol, hyprpicker | The Audio mixer tool, and the Colour picker tool once switched on |
-| A terminal, file manager, editor, browser | Your own choice, set in the Apps tab; a missing one is reported, never assumed |
+The test kit (`tests/`, for development) also needs sway, grim and lua, and its watch mode wayvnc and tigervnc.
 
 ## Install
 
@@ -353,7 +358,8 @@ hl.bind(mainMod .. " + slash", hl.dsp.event("sleepyshell:keybinds"))
 `sleepyshell:toggle:<name>` opens any popup: `clock`, `audio`, `network`, `privacy`, `wallpaper`, `sysinfo`,
 `updates`, `notifications`, `settings`, `session`, `calendar`. `sleepyshell:keybinds` opens and closes the
 Keybinds window. Lid switches send `sleepyshell:lid:closed` and `sleepyshell:lid:open`; hypridle sends
-`sleepyshell:dim` and `sleepyshell:undim`.
+`sleepyshell:dim` and `sleepyshell:undim`. `sleepyshell:keys` and `sleepyshell:clicks` switch the keybind overlay
+and the click circles.
 
 From scripts:
 
@@ -361,6 +367,7 @@ From scripts:
 qs -c sleepyshell ipc call sleepybar toggle <name>
 qs -c sleepyshell ipc call sleepybar sleepylock
 qs -c sleepyshell ipc call sleepybar clearNotifications
+qs -c sleepyshell ipc call sleepybar recording true   # a recorder started (false: it stopped); the island shows a dot
 # the settings window, while it is open: a tab by key, a value staged for the live preview, drop the staged values
 qs -p ~/.config/quickshell/sleepyshell/sleepysettings.qml ipc call sleepysettings tab theme
 qs -p ~/.config/quickshell/sleepyshell/sleepysettings.qml ipc call sleepysettings stage corners round
@@ -482,7 +489,8 @@ sleepyshell writes its own files freely. A file that belongs to you is changed o
 exactly what will change and you say yes, and a backup is kept beside it:
 
 - **`hyprland.lua`**: one `require` line, through the Config tab's Set up. The dialog shows the line; the file
-  is put back if Hyprland would not load it afterwards.
+  is put back if Hyprland would not load it afterwards. For the keybind overlay, one line at the top that loads
+  the shell's key reporter, through the Keybinds tab's Set up, the same way.
 - **`programs.lua`**: the Apps tab shows the exact lines it would change.
 - **The matugen config**: the Theme tab's folder-icon Set up shows every line it adds, and adds nothing else.
 - **The keybinds file**: if you point it at a file of your own in the Config tab, the Keybinds tab shows the lines

@@ -1,5 +1,5 @@
 #!/bin/sh
-# showoff.sh ACTION: send ACTION (record, ...) to the showoff Quickshell instance, starting it first when
+# showoff.sh ACTION: send ACTION (record) to the showoff Quickshell instance, starting it first when
 # it is not running. Used by the Hyprland binds; the instance stays up afterwards (cheap when idle).
 action="${1:?usage: showoff.sh ACTION}"
 qs -c showoff ipc call showoff "$action" 2>/dev/null && exit 0

@@ -16,9 +16,11 @@ Item {
     Glyph {
         id: glyph
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: Theme.iconNudge
+        // the inset buttons beside it centre their content on the inset highlight, half an inset lower
+        anchors.verticalCenterOffset: Theme.iconNudge + Theme.insetPad / 2
         cp: 0xF0A9B
         font.pixelSize: Theme.barIconSize
-        color: Theme.primary
+        // the current workspace's colour, like the bar's other state indicators (capturing ones use the alert colour)
+        color: Theme.accent
     }
 }

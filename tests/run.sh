@@ -7,6 +7,7 @@
 #   --twice        run each test twice and fail when the two runs print different results (determinism)
 #   --watch        share the private test screen live and view-only in a VNC viewer on the desktop (wayvnc on a Unix
 #                  socket in the run folder; the viewer gets no input in and the sandbox no network out)
+#   --tree PATH    test that tree (a candidate copy) instead of the live shell
 #   --update-refs  keep each screenshot check's image in tests/jobs/failed/ as a candidate reference instead of comparing;
 #                  copying a candidate to tests/refs/ is a separate step, done by hand
 #
@@ -16,15 +17,22 @@
 set -uo pipefail
 . "$(dirname "$(readlink -f "$0")")/common/env.sh"
 AREAS=(settings keys bar lock kit)
-TWICE=0 SELFTEST=1
+TWICE=0 SELFTEST=1 TREE=
 args=()
+next_is_tree=0
 for a in "$@"; do
+    if [ "$next_is_tree" = 1 ]; then
+        TREE=$(readlink -f "$a")
+        next_is_tree=0
+        continue
+    fi
     case "$a" in
+        --tree) next_is_tree=1 ;;
         --twice) TWICE=1 ;;
         --watch) export SLEEPYSHELL_WATCH=1 ;;
         --update-refs) export SLEEPYSHELL_UPDATE_REFS=1 ;;
         --no-selftest) SELFTEST=0 ;;
-        -h|--help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) args+=("$a") ;;
     esac
 done
@@ -56,8 +64,8 @@ one() {
     name=$(basename "$t")
     name=${name%.test.*}
     case "$t" in
-        *.test.py) bash "$KIT/common/ui/run-ui.sh" "$(dirname "$t")-$name" "$KIT/$t" ;;
-        *) bash "$KIT/$t" ;;
+        *.test.py) bash "$KIT/common/ui/run-ui.sh" "$(dirname "$t")-$name" "$KIT/$t" ${TREE:+"$TREE"} ;;
+        *) bash "$KIT/$t" ${TREE:+"$TREE"} ;;
     esac
 }
 

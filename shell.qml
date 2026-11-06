@@ -8,6 +8,7 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import qs.services
 import qs.sleepybar.popups.calendar
+import qs.sleepybar.popups.inputshow
 import qs.sleepybar.popups.osd
 import qs.sleepybar.popups.polkit
 import qs.sleepybar.popups.session
@@ -75,12 +76,16 @@ ShellRoot {
     // menu (one instance, no bar); opened by the control centre's Calendar tile or the toggle:calendar event
     CalendarPopup {}
 
+    // the keybind overlay and the click circles (services/InputShow.qml); drawn only while one is on
+    InputShowOverlay {}
+
     // themed replacement for Quickshell's reload popups (success: none, failure: a card)
     ReloadToast {}
 
     // Hyprland binds reach the shell as custom events on Hyprland's own socket, with no process
     // started per key press: `hl.dsp.event("sleepyshell:toggle:<name>")`, `"sleepyshell:sleepylock"`,
     // `"sleepyshell:capslock"`, `"sleepyshell:keybinds"` (open or close the Keybinds window, SleepykeysLauncher),
+    // `"sleepyshell:keys"` / `"sleepyshell:clicks"` (the keybind overlay and the click circles, InputShow),
     // `"sleepyshell:lid:closed"` / `"open"` (switch binds), and from hypridle `"sleepyshell:dim"` / `"undim"`. IPC only where it
     // is needed (the settings window, scripts): the IpcHandler below is for scripts and other instances.
     Connections {
@@ -97,6 +102,10 @@ ShellRoot {
                 CapsLock.refresh();
             else if (what === "keybinds")
                 SleepykeysLauncher.toggle();
+            else if (what === "keys")
+                InputShow.toggleKeys();
+            else if (what === "clicks")
+                InputShow.toggleClicks();
             else if (what === "lid" && arg)
                 power.lid(arg);
             else if (what === "dim" || what === "undim")
@@ -105,7 +114,8 @@ ShellRoot {
     }
 
     // qs -c sleepyshell ipc call sleepybar toggle <clock|audio|network|privacy|wallpaper|sysinfo|updates|settings|session>,
-    // sleepylock, clearNotifications (the dropdown's Clear all, for scripts and recordings)
+    // sleepylock, clearNotifications (the dropdown's Clear all, for scripts and recordings), recording <true|false> (a screen
+    // recorder says it started or stopped; the right island shows a dot while it runs)
     // (without `-c sleepyshell` qs looks for a "default" config and finds no instance). The volume
     // keys in binds.lua go through wpctl, not here, so there are no audio handlers.
     IpcHandler {
@@ -121,6 +131,11 @@ ShellRoot {
 
         function clearNotifications(): void {
             Notifs.startClear();
+        }
+
+        // a screen recorder says it started or stopped (the right island's recording indicator)
+        function recording(on: bool): void {
+            Recording.on = on;
         }
     }
 }
