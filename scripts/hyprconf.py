@@ -16,6 +16,10 @@
                                         {"format", "file", "binds", "errors", "ignored"}: the keybinds of an export or a .conf file
                                         that Sleepysettings may import (read-only, see below)
 
+  hyprconf.py export-binds PATH [--replace]
+                                        {"ok", "changed", "exists", "path", "backup", "message"}: write the export text read from
+                                        stdin to PATH (the Keybinds tab's Export, see below)
+
 PATH is the config folder (default $XDG_CONFIG_HOME/hypr, else ~/.config/hypr) or the main file
 itself. hyprland.lua is the main file when it exists, else hyprland.conf. Prints one JSON object:
 
@@ -40,7 +44,7 @@ unreadable with the reason. `local b = hl.bind` aliases are not followed.
 .conf: bind, binde, bindl, bindm, bindr, bindn (any flag letters, bindd with a description),
 workspace =, monitor =, source =, $variables, `submap =` (a bind inside a submap carries "submap").
 
-`add-require FILE` is the one command that writes (Sleepysettings asks first): when the
+`add-require FILE` is one of the three commands that write (Sleepysettings asks first): when the
 config does not load FILE yet it adds the line that does, `require("modules.x")` for Lua (the module name is FILE's place under the config
 folder) or `source = path` for .conf, after the last such line of the main file, else at the end. Prints one JSON object
 {ok, changed, line, main, backup, message}; exit 0 when the config loads FILE afterwards (also when it already did, nothing written),
@@ -49,8 +53,14 @@ or written, or a change that did not make FILE load (the main file is put back).
 <main>.bak-YYYYMMDD-HHMMSS; the write is atomic (a temporary file in the same folder, then a rename; a symlinked main file is written
 through to its target). Nothing else is touched.
 
+`export-binds PATH [--replace]` (Keybinds tab, Export) writes the text it reads from stdin to PATH, an absolute path the user
+picked. A PATH that does not exist yet is created. One that exists is never replaced without --replace: the run writes nothing,
+prints exists: true and exits 3, and Sleepysettings asks (showing the path) before it runs again with --replace. Then the file is
+first copied to <file>.bak-YYYYMMDD-HHMMSS and replaced atomically (a temporary file in the same folder, then a rename; a symlink
+is written through to its target). Anything but a regular file at PATH is refused (exit 1).
+
 `set-programs KEY=VALUE...` (Apps tab: the keybinds follow the default apps; Sleepysettings shows the exact changed lines and
-asks first) is the second command that writes. It changes the value of an entry that already exists in the table `modules/programs.lua` returns, for the
+asks first) is another command that writes. It changes the value of an entry that already exists in the table `modules/programs.lua` returns, for the
 four keys terminal, browser, editor and fileManager only (any other key is refused); it never adds or removes an entry, so a key the file does not have
 is reported in `skipped`. An entry is changed only when it is one line `key = "string"` (or single quotes, simple escapes only) whose text agrees with
 what `programs` evaluates; anything else (a concatenation, a value on several lines, two lines for one key) is left alone and listed in `skipped`. The new
@@ -1373,6 +1383,55 @@ def add_require(target_arg, root_arg=None):
     return out
 
 
+def export_binds(path_arg, replace, text):
+    """The Keybinds tab's export: PATH created, or replaced only with replace (backup first, atomic)."""
+    out = {"ok": False, "changed": False, "exists": False, "path": path_arg, "backup": "", "message": ""}
+
+    def fail(msg):
+        out["message"] = msg
+        return out, 1
+
+    path = Path(os.path.expanduser(path_arg))
+    if not path.is_absolute():
+        return fail("The export needs a full path, not " + path_arg + ".")
+    real = Path(os.path.realpath(path))
+    exists = os.path.lexists(path)
+    out["exists"] = exists
+    if exists and not real.is_file():
+        return fail(str(path) + " is not a regular file, so it was left alone.")
+    if exists and not replace:
+        out["message"] = str(path) + " already exists; nothing was written."
+        return out, 3
+    folder = real.parent
+    if not folder.is_dir() or not os.access(folder, os.W_OK | os.X_OK):
+        return fail("Can't write in " + str(folder) + ".")
+    try:
+        if exists:
+            stamp = time.strftime("%Y%m%d-%H%M%S")
+            backup = Path(str(real) + ".bak-" + stamp)
+            n = 1
+            while os.path.lexists(backup):
+                backup = Path(str(real) + ".bak-" + stamp + "-" + str(n))
+                n += 1
+            shutil.copy2(real, backup)
+            out["backup"] = str(backup)
+        tmp = real.with_name(real.name + ".tmp-" + str(os.getpid()))
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        if exists:
+            shutil.copymode(real, tmp)
+        os.replace(tmp, real)
+    except OSError as e:
+        try:
+            tmp.unlink()
+        except (OSError, UnboundLocalError):
+            pass
+        return fail("Could not write " + str(path) + " (" + str(e.strerror or e) + "). It was left as it was.")
+    out.update(ok=True, changed=True, message="Saved to " + str(path) + ".")
+    return out, 0
+
+
 def is_test_rule(r):
     """A rule of the test kit's virtual monitor ("sleepytest…"), left out of what the Apps tab shows."""
     vals = [str(r.get("workspace", "")), str(r.get("name", ""))] + [str(v) for v in (r.get("rules") or {}).values()]
@@ -1927,7 +1986,15 @@ def main():
     bp = sub.add_parser("parse-binds", help="print the importable keybinds of an export or .conf file as JSON (read-only)")
     bp.add_argument("file", help="the file to read")
     bp.add_argument("--resolve", metavar="ROOT", help="fill @terminal@, @fileManager@ and @menu@ in commands from the programs.lua under ROOT (the Hyprland defaults file)")
+    ep = sub.add_parser("export-binds", help="write the export text read from stdin to PATH (an existing file only with --replace, after a backup)")
+    ep.add_argument("path", help="the file to write (absolute)")
+    ep.add_argument("--replace", action="store_true", help="replace PATH when it exists (a backup is kept)")
     args = ap.parse_args()
+    if args.cmd == "export-binds":
+        result, code = export_binds(args.path, args.replace, sys.stdin.read())
+        json.dump(result, sys.stdout, ensure_ascii=False)
+        sys.stdout.write("\n")
+        return code
     if args.cmd == "parse-binds":
         result = parse_binds(args.file, args.resolve)
         json.dump(result, sys.stdout, indent=2, ensure_ascii=False)

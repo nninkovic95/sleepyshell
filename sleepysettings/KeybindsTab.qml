@@ -237,6 +237,7 @@ TabPage {
                         objectName: "share"
                         folders: tab.folders
                         tooltip: tab.tooltip
+                        confirm: tab.confirm
                     }
                 }
 

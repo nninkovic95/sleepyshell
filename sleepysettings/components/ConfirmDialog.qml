@@ -129,24 +129,39 @@ Item {
                 objectName: "dialogLine"
                 visible: dlg.line !== ""
                 Layout.fillWidth: true
-                // several lines (the Apps tab's programs.lua change) grow the box; one line stays 30 px
-                implicitHeight: Math.max(30, lineText.contentHeight + 14)
+                // several lines (the Apps tab's programs.lua change) grow the box; one line stays 30 px. A long text (the
+                // matugen entries, a whole hypridle.conf) stops growing at lineMax and scrolls, so every line can be read
+                readonly property int lineMax: 280
+                implicitHeight: Math.min(lineMax, Math.max(30, lineText.contentHeight + 14))
                 radius: Theme.radiusSm
                 color: Theme.tileBg
 
-                Text {
-                    id: lineText
+                Flickable {
+                    id: lineFlick
                     anchors.fill: parent
                     anchors.leftMargin: 10
                     anchors.rightMargin: 10
-                    verticalAlignment: Text.AlignVCenter
-                    wrapMode: dlg.line.indexOf("\n") >= 0 ? Text.WrapAnywhere : Text.NoWrap
-                    elide: dlg.line.indexOf("\n") >= 0 ? Text.ElideNone : Text.ElideMiddle
-                    text: dlg.line
-                    textFormat: Text.PlainText
-                    font.family: Theme.font
-                    font.pixelSize: Theme.fontSize
-                    color: Theme.fg
+                    anchors.topMargin: 7
+                    anchors.bottomMargin: 7
+                    clip: true
+                    contentWidth: width
+                    contentHeight: lineText.contentHeight
+                    boundsBehavior: Flickable.StopAtBounds
+                    interactive: contentHeight > height
+
+                    Text {
+                        id: lineText
+                        width: lineFlick.width
+                        height: Math.max(lineFlick.height, contentHeight)
+                        verticalAlignment: Text.AlignVCenter
+                        wrapMode: dlg.line.indexOf("\n") >= 0 ? Text.WrapAnywhere : Text.NoWrap
+                        elide: dlg.line.indexOf("\n") >= 0 ? Text.ElideNone : Text.ElideMiddle
+                        text: dlg.line
+                        textFormat: Text.PlainText
+                        font.family: Theme.font
+                        font.pixelSize: Theme.fontSize
+                        color: Theme.fg
+                    }
                 }
             }
 

@@ -1,14 +1,26 @@
 # Gallery
 
-The clips are coming: one feature per clip, as animated WebP, recorded by hand. Each clip goes into
-[`../assets/clips/`](../assets/clips/) under the file name below, and each feature will get its own page
-here with its clip and a longer explanation. Until then this page is the shot list.
+Recordings of the shell as animated WebP, in [`../assets/clips/`](../assets/clips/); still screenshots are in
+[`../assets/screenshots/`](../assets/screenshots/). Four clips are recorded so far; the rest of this page is the
+shot list for the ones still to come, one feature per clip, each later with a page of its own.
+
+## Recorded
+
+| Clip | What it shows |
+|---|---|
+| [`overview.webp`](../assets/clips/overview.webp) | The control centre opening from the clock, the Wi-Fi list, the updates dropdown. |
+| [`settings.webp`](../assets/clips/settings.webp) | The control centre, a tour of the settings app's tabs, test notifications. |
+| [`notification-list.webp`](../assets/clips/notification-list.webp) | The bell opens the notification list, which scrolls. |
+| [`updates.webp`](../assets/clips/updates.webp) | The updates dropdown, then the update running in the terminal. |
+| [`hero.webp`](../assets/clips/hero.webp) | A short cut of `overview.webp`, the top of the README. |
+
+## Shot list
 
 Some clips come from an automated run: an empty workspace with Hyprland's own fallback wallpapers
 (`/usr/share/hypr/wall*.png`) and the cursor driven through a virtual pointer. The settings clip is an
 automated tour that drives the window through its IPC.
 
-## The centre island
+### The centre island
 
 | File | What it shows |
 |---|---|
@@ -28,7 +40,7 @@ automated tour that drives the window through its IPC.
 | `shuffle-wallpaper.webp` | **Shuffle wallpaper:** another wallpaper, every colour of the shell follows through matugen. |
 | `shuffle-colours.webp` | **Shuffle colours:** a new palette for the same wallpaper. |
 
-## The side islands
+### The side islands
 
 | File | What it shows |
 |---|---|
@@ -41,12 +53,12 @@ automated tour that drives the window through its IPC.
 | `card-tilt.webp` | **Lift and tilt** on the notification cards. |
 | `clear-all.webp` | **Clear all** sweeps the cards out one by one. |
 
-## Sleepysettings
+### Sleepysettings
 
 | File | What it shows |
 |---|---|
 | `settings.webp` | **Sleepysettings.** Opened from the tools, then an automated tour through the window's IPC: corners, opacity, bar height, motion, dot shapes, the clock, the readouts, a hidden widget, test notifications, a palette shuffle, a look at every tab. Every change shows on the bar at once and is put back; nothing is written. |
 | `wallpaper-settings.webp` | **Choose wallpaper.** The picker opened from the Theme tab. |
 
-Not recorded yet: the terminal updater, drag and drop in the settings editors, the lock screen, a
-community theme preset, the Caps Lock peek, the polkit prompt, the Wi-Fi and Bluetooth lists.
+Not recorded yet: drag and drop in the settings editors, the lock screen (a screenshot exists), a community
+theme preset, the Caps Lock peek, the polkit prompt, the Bluetooth list.

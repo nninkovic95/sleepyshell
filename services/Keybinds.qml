@@ -663,6 +663,8 @@ Singleton {
     property string exportMessage: ""
     property bool exportFailed: false
     property string exportPath: ""
+    // the file an export would replace, while the tab asks about it ("" otherwise)
+    property string exportAsk: ""
     // the import: the file asked for, the plan built from it (null: no preview), a failure line, the line after "Add"
     property string importPath: ""
     // "defaults": the Hyprland example's binds shipped in data/hyprland-default-binds.lua, their @terminal@-style variables filled from programs.lua
@@ -739,21 +741,25 @@ Singleton {
         return exportHeader(everything, count).concat(lines).join("\n").replace(/\s*$/, "\n");
     }
 
-    // write an export to `path` (the browser's choice); the result is a line for the tab
-    function exportTo(path) {
+    // write an export to `path` (the browser's choice) through hyprconf.py export-binds; the result is a line for the tab.
+    // A file that exists is not replaced: the script refuses, `exportAsk` names it and the tab asks; its yes runs this
+    // again with `replace` (the script keeps a backup).
+    function exportTo(path, replace) {
         exportPath = path;
         exportMessage = "";
         exportFailed = false;
-        const text = exportText(exportAll);
-        exportFile.path = path;
-        exportFile.setText(text);
+        exportAsk = "";
+        exportProc.text = exportText(exportAll);
+        exportProc.command = ["python3", HyprConfig.script, "export-binds", path].concat(replace ? ["--replace"] : []);
+        exportProc.stdinEnabled = true;
+        exportProc.running = true;
     }
 
     // ask the window's browser (save mode: a file name, existing or new) and export there
     function chooseExport(folders) {
         if (!folders)
             return;
-        folders.openFile(Quickshell.env("HOME"), p => root.exportTo(p), { title: "Save keybinds as", filters: ["*.lua"], newFile: true, fileName: exportAll ? "all-keybinds.lua" : "my-keybinds.lua" });
+        folders.openFile(Quickshell.env("HOME"), p => root.exportTo(p, false), { title: "Save keybinds as", filters: ["*.lua"], newFile: true, fileName: exportAll ? "all-keybinds.lua" : "my-keybinds.lua" });
     }
 
     function chooseImport(folders) {
@@ -931,17 +937,34 @@ Singleton {
         }
     }
 
-    FileView {
-        id: exportFile
-        atomicWrites: false
-        printErrors: false
-        onSaved: {
-            root.exportFailed = false;
-            root.exportMessage = "Saved to " + Settings.tilde(root.exportPath) + ".";
+    Process {
+        id: exportProc
+        property string text: ""
+        // the text goes in on stdin and stdin is closed at once, so the script reads all of it
+        onStarted: {
+            write(text);
+            stdinEnabled = false;
         }
-        onSaveFailed: error => {
-            root.exportFailed = true;
-            root.exportMessage = "The file could not be written: " + Settings.tilde(root.exportPath) + ".";
+        stdout: StdioCollector {
+            id: exportOut
+        }
+        onExited: code => {
+            let r = null;
+            try {
+                r = JSON.parse(exportOut.text);
+            } catch (e) {}
+            if (code === 3 && r && r.exists) {
+                // the file first: whatever reacts to the message finds it named
+                root.exportAsk = root.exportPath;
+                root.exportFailed = false;
+                root.exportMessage = Settings.tilde(root.exportPath) + " already exists; nothing was written yet.";
+            } else if (code === 0 && r && r.ok) {
+                root.exportFailed = false;
+                root.exportMessage = "Saved to " + Settings.tilde(root.exportPath) + "." + (r.backup ? " The old file is kept as " + r.backup.split("/").pop() + "." : "");
+            } else {
+                root.exportFailed = true;
+                root.exportMessage = "The file could not be written: " + Settings.tilde(root.exportPath) + ".";
+            }
         }
     }
 

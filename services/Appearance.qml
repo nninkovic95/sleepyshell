@@ -109,11 +109,12 @@ Singleton {
     }
 
     // add the folder icons' [templates.*] lines to the matugen config (the window asked first)
-    function setUpFolders() {
+    // `sha` is the hash of the entries the dialog showed: the script writes nothing when they changed since
+    function setUpFolders(sha) {
         if (root.settingUp)
             return;
         root.settingUp = true;
-        setupP.command = [root.script, "folders-setup"];
+        setupP.command = [root.script, "folders-setup"].concat(sha ? ["--expect", sha] : []);
         setupP.running = true;
     }
 

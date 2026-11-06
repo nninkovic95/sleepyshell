@@ -657,7 +657,11 @@ TabPage {
                     glued: false
                     bg: Theme.tileBg
                     enabled: !Appearance.settingUp
-                    onClicked: tab.confirm?.askLine("Add the folder icons to the matugen config?", "Adds " + (Appearance.folders.count ?? 0) + " entries for the folder icons. A backup is kept (" + Appearance.folders.config?.split("/").pop() + ".bak-<date-time>).", Appearance.folders.sample ?? "", () => Appearance.setUpFolders(), "Add")
+                    onClicked: {
+                        // the whole block, exactly as it is added; the hash makes sure nothing else is written
+                        const f = Appearance.folders;
+                        tab.confirm?.askLine("Add the folder icons to the matugen config?", "Adds these " + (f.count ?? 0) + " entries for the folder icons to " + Settings.tilde(f.config ?? "") + ". A backup is kept (" + (f.config ?? "").split("/").pop() + ".bak-<date-time>).", f.block ?? f.sample ?? "", () => Appearance.setUpFolders(f.blockSha ?? ""), "Add");
+                    }
                 }
             }
         }

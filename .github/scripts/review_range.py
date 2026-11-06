@@ -57,20 +57,22 @@ def last_reviewed(head: str) -> str | None:
     return None
 
 
-def review_base(head: str, branch: str, before: str | None) -> tuple[str | None, str]:
-    """(base tree-ish to diff against, how it was chosen). None means there is nothing to diff from."""
+def review_base(head: str, branch: str, before: str | None) -> tuple[str | None, str, bool]:
+    """(base tree-ish to diff against, how it was chosen, whether no review has completed yet). A None base
+    means there is nothing to diff from. The first review reads the whole codebase; later ones the diff and
+    what it needs (context.py)."""
     base = last_reviewed(head)
     if base is None:
         if branch == "dev" and git_ok("rev-parse", "--verify", "--quiet", "origin/main"):
             # main is covered by the weekly audit; review what dev has on top of it
             tip = git("rev-parse", "origin/main").strip()
-            return tip, f"no earlier review on dev; reviewing what dev adds to main ({tip[:12]})"
+            return tip, f"no earlier review on dev; reviewing what dev adds to main ({tip[:12]})", True
         if before and git_ok("cat-file", "-e", f"{before}^{{commit}}") and is_ancestor(before, head):
-            return before, f"no earlier review; starting from the push's previous tip ({before[:12]})"
+            return before, f"no earlier review; starting from the push's previous tip ({before[:12]})", True
         parent = git("rev-parse", f"{head}^", check=False).strip()
         if parent:
-            return parent, "no earlier review; starting from the parent commit"
-        return None, "no earlier review and no parent"
+            return parent, "no earlier review; starting from the parent commit", True
+        return None, "no earlier review and no parent", True
     if branch == "dev" and git_ok("rev-parse", "--verify", "--quiet", "origin/main"):
         # main commits brought in by a back-sync were reviewed on main already: subtract them
         main_rev = last_reviewed("origin/main")
@@ -82,8 +84,8 @@ def review_base(head: str, branch: str, before: str | None) -> tuple[str | None,
                 tree = keep_devonly(merged, base, pats)
                 return tree, (
                     f"since the last dev review ({base[:12]}), minus main's reviewed commits up to {main_rev[:12]}"
-                )
-    return base, f"since the last completed review ({base[:12]})"
+                ), False
+    return base, f"since the last completed review ({base[:12]})", False
 
 
 def dev_run_active(sha: str) -> bool:
