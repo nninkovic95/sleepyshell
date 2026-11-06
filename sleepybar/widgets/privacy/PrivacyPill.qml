@@ -6,7 +6,7 @@ import qs.services
 import qs.sleepybar.components
 
 // Privacy indicator for the right island: the glyphs of what is being captured (microphone, camera,
-// screen share) in the alert colour (Theme.urgentFg, like the recording dot), and nothing at all, no width and no gap, when
+// screen share) in the warning colour, like the state indicators beside it, and nothing at all, no width and no gap, when
 // nothing is.
 // Click opens a dropdown with one row per app and what it uses; hover only highlights.
 // What counts as "in use" is decided in Privacy.qml.
@@ -18,8 +18,10 @@ BarButton {
     readonly property bool shown: Privacy.anyActive
     visible: shown
     glyphText: Privacy.barGlyphs
-    // the alert colour, like the recording dot: something is capturing
-    fg: Theme.urgentFg
+    // the indicators' warning colour (BarIndicator); clickable, so the hover highlight and lift show on hover, as on
+    // every button of the bar, and while its list is open
+    fg: Theme.alertIcon
+    hoverFg: Theme.alertIcon
     inset: true
     bg: pop.open ? Theme.hoverBg : "transparent"
     onClicked: pop.toggle()

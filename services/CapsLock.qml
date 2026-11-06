@@ -1,72 +1,92 @@
 pragma Singleton
+
 import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Caps Lock state, read from the keyboard LEDs (/sys/class/leds/*::capslock, any keyboard lit
-// counts): once at start, and on every Caps Lock press. Hyprland sends no event for lock keys, and
-// inotify does not fire on sysfs files, so a non-consuming Caps_Lock bind in binds.lua is the
-// trigger: `hl.dsp.event("sleepyshell:capslock")`, a custom event on Hyprland's socket that
-// shell.qml passes to refresh with no process started (an IPC call per press
-// was used before).
-// `keyRead` after every read a key press asked for, which OsdState flashes on: also when two quick
-// presses end where they began.
+// Caps Lock state, read from the keyboard LEDs (<leds>/*::capslock/brightness; any keyboard lit counts). The shell reads
+// the files itself, in its own process, every 150 ms: Hyprland sends no event for lock keys and inotify does not fire on
+// sysfs files, and a read timed after a key press missed LEDs that switch late, so the indicator caught up only on a
+// later press. The LED files are listed at start and every 30 s (a keyboard plugged in later); that listing is the only
+// process started.
+// `keyRead` when the state changes, and after a read a key press asked for (`refresh()`, from shell.qml's
+// sleepyshell:capslock event when the user's config still has a Caps_Lock bind; optional): OsdState flashes on it, so
+// two quick presses that end where they began still flash. The first read sets the state without a flash.
+// SLEEPYSHELL_TEST_LEDS points the tests at a folder of their own instead of /sys/class/leds.
 Singleton {
     id: root
 
     property bool on: false
     signal keyRead
 
-    // a key press came in while a read was running: that read may predate the LED change, so one
-    // more runs after it
-    property bool again: false
+    readonly property string ledsDir: Quickshell.env("SLEEPYSHELL_TEST_LEDS") || "/sys/class/leds"
+    property var files: []
+    property bool primed: false
     property bool keyed: false
 
     function refresh() {
         root.keyed = true;
-        // throttled, not debounced: a burst of presses still reads every 40 ms (restarting the
-        // timer on each press held the widget back until the burst ended)
-        if (!soon.running)
-            soon.start();
-        // and once more after the burst, for an LED that changed after the last read
-        settle.restart();
+        root.read();
     }
 
     function read() {
-        if (reader.running)
-            root.again = true;
-        else
-            reader.running = true;
+        let lit = false;
+        for (let i = 0; i < views.count; i++) {
+            const v = views.objectAt(i);
+            if (!v)
+                continue;
+            v.reload();
+            const t = v.text().trim();
+            if (t !== "" && t !== "0")
+                lit = true;
+        }
+        const changed = lit !== root.on;
+        root.on = lit;
+        if (!root.primed) {
+            root.primed = true;
+            root.keyed = false;
+            return;
+        }
+        if (changed || root.keyed) {
+            root.keyed = false;
+            root.keyRead();
+        }
     }
 
-    // the LED follows the key a moment after the bind fires
-    Timer {
-        id: soon
-        interval: 40
-        onTriggered: root.read()
+    Instantiator {
+        id: views
+        model: root.files
+        delegate: FileView {
+            required property string modelData
+            path: modelData
+            blockLoading: true
+        }
     }
 
     Timer {
-        id: settle
         interval: 150
+        running: root.files.length > 0
+        repeat: true
         onTriggered: root.read()
     }
 
     Process {
-        id: reader
+        id: finder
         running: true
-        command: ["sh", "-c", "cat /sys/class/leds/*::capslock/brightness 2>/dev/null"]
+        command: ["sh", "-c", 'for f in "$1"/*::capslock/brightness; do [ -e "$f" ] && echo "$f"; done', "sh", root.ledsDir]
         stdout: StdioCollector {
-            onStreamFinished: root.on = text.split("\n").some(l => l.trim() !== "" && l.trim() !== "0")
-        }
-        onExited: {
-            if (root.again) {
-                root.again = false;
-                running = true;
-            } else if (root.keyed) {
-                root.keyed = false;
-                root.keyRead();
+            onStreamFinished: {
+                const list = text.split("\n").filter(x => x !== "");
+                if (JSON.stringify(list) !== JSON.stringify(root.files))
+                    root.files = list;
             }
         }
+    }
+
+    Timer {
+        interval: 30000
+        running: true
+        repeat: true
+        onTriggered: finder.running = true
     }
 }

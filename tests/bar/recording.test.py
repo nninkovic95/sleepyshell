@@ -19,6 +19,13 @@ Input.click(*s.centre(s.one(objectName="recordingIndicator")))
 time.sleep(0.4)
 check(shows() and s.js("Recording.on") is True, "a click on it changes nothing")
 check(not s.find(type="QQuickText", inside={"objectName": "recordingIndicator"}), "no timer, only the dot")
+parts = s.js("""(function () {
+  const o = sleepytestDriver.scan().items.find(e => e.obj.objectName === 'recordingIndicator').obj;
+  const glyph = o.children.find(k => sleepytestDriver.typeName(k) === 'Glyph');
+  return { behind: o.children.filter(k => k !== glyph).length, icon: String(glyph.color) };
+})()""")
+check(parts["behind"] == 0 and parts["icon"] == s.js("String(Theme.alertIcon)"),
+      "it is the icon alone in the warning colour, like the microphone indicator", f"{parts}")
 icons = s.bar_icons()
 check(icons.get("recordingIndicator") == icons.get("Clipboard") is not None, "the dot sits on the same line as the buttons beside it", f"{icons}")
 s.call("sleepybar", "recording", "false")
