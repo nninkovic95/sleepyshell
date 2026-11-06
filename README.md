@@ -199,7 +199,8 @@ clamped to their ranges; several rows take a custom value.
   Advanced: input source, colour preset, rotation, adaptive sync, 10-bit colour, HDR with SDR brightness and
   saturation (when the EDID advertises it). With several monitors: the main monitor and what the others show
   (full bar without tray and bell, workspaces and clock, or nothing). Night light warmth and strength.
-- **Keybinds**: your own binds (press the keys, type the command), written to `sleepybinds.lua`; a description
+- **Keybinds**: your own binds (press the keys, type the command), written to `sleepybinds.lua` with a backup (a file of
+  your own chosen in Config instead is changed only after you see the lines and say yes); a description
   for any bind (the pencil on its row); the key of the shell's own actions (the Keybinds window) under Shell
   shortcuts; export (yours or all; a file that already exists is replaced only after you say yes, with a
   backup) and import from a Lua or conf file or from Hyprland's defaults, with a preview that marks new,
@@ -256,7 +257,8 @@ All in `scripts/`, standard-library Python unless noted.
   `--battery`, `--ac`, `--owned`, `--find`; a missing file only with `--create`, a file it did not write only with
   `--replace`, after a backup, and neither with `--background`).
 - `hyprconf.py`: reads your Hyprland Lua config as text (`discover`, `programs`, `parse-binds`), adds a
-  `require` line with a backup (`add-require`), updates `programs.lua` (`set-programs`), writes a keybind
+  `require` line with a backup (`add-require`), updates `programs.lua` (`set-programs`), writes the Keybinds tab's
+  file (`write-binds`; a file it did not create only with the hash of the change the user accepted) and a keybind
   export (`export-binds`; an existing file only with `--replace`, after a backup).
 - `ddc.py`: DDC/CI over `/dev/i2c-*` without ddcutil (`list`, `get`, `set`, `caps`, `probe`).
 - `defaultapps.py`: default apps (`scan`, `apply`, `webmail`). `edid.py`: HDR capability from the EDID.
@@ -483,6 +485,8 @@ exactly what will change and you say yes, and a backup is kept beside it:
   is put back if Hyprland would not load it afterwards.
 - **`programs.lua`**: the Apps tab shows the exact lines it would change.
 - **The matugen config**: the Theme tab's folder-icon Set up shows every line it adds, and adds nothing else.
+- **The keybinds file**: if you point it at a file of your own in the Config tab, the Keybinds tab shows the lines
+  it would add and remove before its first write there.
 - **A keybind export**: a file that already exists is replaced only after you confirm it.
 - **`hypridle.conf`**: a missing file is created only after you see its path and content; a file you wrote
   yourself is replaced only after you say yes.

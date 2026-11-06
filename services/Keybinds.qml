@@ -387,7 +387,9 @@ Singleton {
     // binds without a source line (added in the tab) are appended, and the rest of the file is
     // left as it is. Regenerating the file turned hand-written non-exec binds into exec_cmd("")
     // and dropped their flags and comments (review 3, F6).
-    function writeCustom(list) {
+    // `apply`: the write is the tab's Apply (its draft is dropped once the file is written); `sha`: the change the user
+    // saw and accepted for a file Sleepysettings did not create (hyprconf.py write-binds refuses that file without it)
+    function writeCustom(list, apply, sha) {
         const keep = list.map(b => b.src).filter(s => s);
         let text = customText;
         for (const b of fileCustom.slice().reverse()) {
@@ -413,9 +415,23 @@ Singleton {
         if (added.length > 0)
             text = text.replace(/\s*$/, "\n") + (fresh ? "\n" : "") + added.join("\n");
         text = text.replace(/\s*$/, "\n");
-        customText = text;
-        // the folder first when it is not there (the first write of the file)
-        FileChecks.withDir(customPath, () => customFile.setText(text));
+        // hyprconf.py write-binds: in place, a backup first, the folder made when missing; a file Sleepysettings did not create
+        // is written only after the question (customAsk)
+        writeError = "";
+        bindsProc.list = list;
+        bindsProc.apply = apply === true;
+        bindsProc.text = text;
+        bindsProc.command = ["python3", HyprConfig.script, "write-binds", customPath].concat(sha ? ["--confirmed", sha] : []);
+        bindsProc.stdinEnabled = true;
+        bindsProc.running = true;
+    }
+
+    // the user's yes to customAsk: the same change, with its hash
+    function confirmWrite() {
+        const a = customAsk;
+        customAsk = null;
+        if (a)
+            writeCustom(a.list, a.apply, a.sha);
     }
 
     // a new custom keybinds file with nothing in it but its header (FileChecks "Create"; the file is missing, so the list is empty)
@@ -627,23 +643,12 @@ Singleton {
                 }));
     }
 
-    // Apply: an import copies sleepybinds.lua to sleepybinds.lua.bak-YYYYMMDD-HHMMSS first (when the file has content), then writes
+    // Apply: the writer keeps a dated backup of a file with content (sleepybinds.lua.bak-YYYYMMDD-HHMMSS); the draft stays until
+    // the file is written, so a refused or failed write loses nothing
     function apply() {
         if (staged === null)
             return;
-        const list = staged;
-        if (importStaged && customText.trim() !== "") {
-            // the draft stays until the copy is made: a failed backup writes nothing and loses nothing
-            backup.run(() => {
-                writeCustom(list);
-                staged = null;
-                importStaged = false;
-            });
-        } else {
-            staged = null;
-            importStaged = false;
-            writeCustom(list);
-        }
+        writeCustom(staged, true, "");
     }
 
     function discard() {
@@ -674,12 +679,12 @@ Singleton {
     property string importMessage: ""
     property bool importStaged: false
     readonly property bool importBusy: parseProc.running
-    // the backup copy of an import's Apply is running (the tab reports it as busy)
-    readonly property bool busy: backup.proc.running
-
-    function stamp() {
-        return Qt.formatDateTime(new Date(), "yyyyMMdd-HHmmss");
-    }
+    // the keybinds file is being written (the tab reports it as busy)
+    readonly property bool busy: bindsProc.running
+    // a write that needs the user's yes: {path, list, apply, sha, removed, added} (null otherwise); the tab asks
+    property var customAsk: null
+    // the last write that failed, in plain words ("" when fine)
+    property string writeError: ""
 
     function flagsOf(b) {
         return (b.flags ?? []).filter(f => ["locked", "repeating", "release"].includes(f));
@@ -759,7 +764,7 @@ Singleton {
     function chooseExport(folders) {
         if (!folders)
             return;
-        folders.openFile(Quickshell.env("HOME"), p => root.exportTo(p, false), { title: "Save keybinds as", filters: ["*.lua"], newFile: true, fileName: exportAll ? "all-keybinds.lua" : "my-keybinds.lua" });
+        folders.openFile(Quickshell.env("HOME"), p => root.exportTo(p, false), { title: "Save keybinds as", filters: ["*.lua"], newFile: true, create: false, fileName: exportAll ? "all-keybinds.lua" : "my-keybinds.lua" });
     }
 
     function chooseImport(folders) {
@@ -968,26 +973,38 @@ Singleton {
         }
     }
 
-    // sleepybinds.lua.bak-<stamp> before an import is applied; fn runs when the copy is done (or could not be made: then it does not run)
-    QtObject {
-        id: backup
-        property var then: null
-        property string target: ""
-        function run(fn) {
-            then = fn;
-            target = root.customPath + ".bak-" + root.stamp();
-            proc.command = ["cp", "--", root.customPath, backup.target];
-            proc.running = true;
+    Process {
+        id: bindsProc
+        property var list: []
+        property bool apply: false
+        property string text: ""
+        // the text goes in on stdin and stdin is closed at once, so the script reads all of it
+        onStarted: {
+            write(text);
+            stdinEnabled = false;
         }
-        property Process proc: Process {
-            onExited: code => {
-                const fn = backup.then;
-                backup.then = null;
-                if (code === 0 && fn)
-                    fn();
-                else
-                    root.importMessage = "The backup of " + Settings.tilde(root.customPath) + " could not be made, so nothing was written.";
+        stdout: StdioCollector {
+            id: bindsOut
+        }
+        onExited: code => {
+            let r = null;
+            try {
+                r = JSON.parse(bindsOut.text);
+            } catch (e) {}
+            if (code === 3 && r && r.foreign) {
+                root.customAsk = { path: r.path, list: bindsProc.list, apply: bindsProc.apply, sha: r.sha, removed: r.removed, added: r.added };
+                return;
             }
+            if (code === 0 && r && r.ok) {
+                if (bindsProc.apply) {
+                    root.staged = null;
+                    root.importStaged = false;
+                }
+                root.customText = bindsProc.text;
+                customFile.reload();
+                return;
+            }
+            root.writeError = (r && r.message ? r.message : "The keybinds file could not be written.") + " Your changes are still there to apply.";
         }
     }
     // ====================================================================================================================================

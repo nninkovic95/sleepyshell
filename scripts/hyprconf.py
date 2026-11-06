@@ -16,6 +16,10 @@
                                         {"format", "file", "binds", "errors", "ignored"}: the keybinds of an export or a .conf file
                                         that Sleepysettings may import (read-only, see below)
 
+  hyprconf.py write-binds PATH [--confirmed SHA256]
+                                        {"ok", "changed", "foreign", "path", "backup", "removed", "added", "sha", "message"}: write
+                                        the keybinds file of the Keybinds tab from stdin (see below)
+
   hyprconf.py export-binds PATH [--replace]
                                         {"ok", "changed", "exists", "path", "backup", "message"}: write the export text read from
                                         stdin to PATH (the Keybinds tab's Export, see below)
@@ -44,7 +48,7 @@ unreadable with the reason. `local b = hl.bind` aliases are not followed.
 .conf: bind, binde, bindl, bindm, bindr, bindn (any flag letters, bindd with a description),
 workspace =, monitor =, source =, $variables, `submap =` (a bind inside a submap carries "submap").
 
-`add-require FILE` is one of the three commands that write (Sleepysettings asks first): when the
+`add-require FILE` is one of the commands that write (Sleepysettings asks first): when the
 config does not load FILE yet it adds the line that does, `require("modules.x")` for Lua (the module name is FILE's place under the config
 folder) or `source = path` for .conf, after the last such line of the main file, else at the end. Prints one JSON object
 {ok, changed, line, main, backup, message}; exit 0 when the config loads FILE afterwards (also when it already did, nothing written),
@@ -52,6 +56,14 @@ folder) or `source = path` for .conf, after the last such line of the main file,
 or written, or a change that did not make FILE load (the main file is put back). Before writing, the main file is copied to
 <main>.bak-YYYYMMDD-HHMMSS; the write is atomic (a temporary file in the same folder, then a rename; a symlinked main file is written
 through to its target). Nothing else is touched.
+
+`write-binds PATH [--confirmed SHA256]` (Keybinds tab, Apply) writes the text it reads from stdin to the file of keybinds
+added in Sleepysettings, in place (Hyprland's watch on a file it loads needs a plain modification). A missing or empty file is
+written as it is; one that starts with the line "-- Keybinds added in Sleepysettings" (the file Sleepysettings made) after a dated
+backup. Any other file is the user's own: without --confirmed it writes nothing, prints foreign: true, the lines it would remove
+and add (the header that marks the file as managed included) and the hash of that change, and exits 3; Sleepysettings shows the
+lines and asks, and runs it again with the hash. A hash that is not the change's writes nothing. Then the file gets the header,
+a dated backup and the write; later writes see the header.
 
 `export-binds PATH [--replace]` (Keybinds tab, Export) writes the text it reads from stdin to PATH, an absolute path the user
 picked. A PATH that does not exist yet is created. One that exists is never replaced without --replace: the run writes nothing,
@@ -88,7 +100,9 @@ Python standard library only. `discover` reads files, writes nothing, starts not
 """
 import argparse
 import bisect
+import difflib
 import glob
+import hashlib
 import json
 import math
 import os
@@ -1383,51 +1397,133 @@ def add_require(target_arg, root_arg=None):
     return out
 
 
-def export_binds(path_arg, replace, text):
-    """The Keybinds tab's export: PATH created, or replaced only with replace (backup first, atomic)."""
-    out = {"ok": False, "changed": False, "exists": False, "path": path_arg, "backup": "", "message": ""}
+# the first line of the file of keybinds added in Sleepysettings, and the header a file gets when the user lets
+# Sleepysettings manage a file it did not create (Keybinds.qml writes the same two lines into a new file)
+BINDS_MARK = "-- Keybinds added in Sleepysettings"
+BINDS_HEADER = ('-- Keybinds added in Sleepysettings: managed by Sleepysettings (Keybinds tab), loaded by require("modules.sleepybinds")\n'
+                "-- in hyprland.lua. The tab deletes the line of a removed bind and appends added ones; the rest is left alone.\n\n")
 
-    def fail(msg):
-        out["message"] = msg
-        return out, 1
 
-    path = Path(os.path.expanduser(path_arg))
-    if not path.is_absolute():
-        return fail("The export needs a full path, not " + path_arg + ".")
-    real = Path(os.path.realpath(path))
-    exists = os.path.lexists(path)
-    out["exists"] = exists
-    if exists and not real.is_file():
-        return fail(str(path) + " is not a regular file, so it was left alone.")
-    if exists and not replace:
-        out["message"] = str(path) + " already exists; nothing was written."
-        return out, 3
-    folder = real.parent
-    if not folder.is_dir() or not os.access(folder, os.W_OK | os.X_OK):
-        return fail("Can't write in " + str(folder) + ".")
+def backup_copy(real):
+    """A dated copy beside real, never through a name that exists; returns its path."""
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    backup = Path(str(real) + ".bak-" + stamp)
+    n = 1
+    while os.path.lexists(backup):
+        backup = Path(str(real) + ".bak-" + stamp + "-" + str(n))
+        n += 1
+    shutil.copy2(real, backup)
+    return backup
+
+
+def write_user_text(real, text, exists, in_place):
+    """Writes text to real. Atomic (a temporary file beside it, then a rename) unless in_place: Hyprland's watch on a
+    file it loads needs a plain modification. The mode of an existing file is kept."""
+    if in_place:
+        if not exists:
+            fd = os.open(real, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(text)
+        else:
+            with open(real, "w", encoding="utf-8") as f:
+                f.write(text)
+        return
+    tmp = real.with_name(real.name + ".tmp-" + str(os.getpid()))
     try:
-        if exists:
-            stamp = time.strftime("%Y%m%d-%H%M%S")
-            backup = Path(str(real) + ".bak-" + stamp)
-            n = 1
-            while os.path.lexists(backup):
-                backup = Path(str(real) + ".bak-" + stamp + "-" + str(n))
-                n += 1
-            shutil.copy2(real, backup)
-            out["backup"] = str(backup)
-        tmp = real.with_name(real.name + ".tmp-" + str(os.getpid()))
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(text)
         if exists:
             shutil.copymode(real, tmp)
         os.replace(tmp, real)
-    except OSError as e:
+    except OSError:
         try:
             tmp.unlink()
-        except (OSError, UnboundLocalError):
+        except OSError:
             pass
-        return fail("Could not write " + str(path) + " (" + str(e.strerror or e) + "). It was left as it was.")
+        raise
+
+
+def user_target(path_arg, out):
+    """(path, real, exists) for an absolute path that is a regular file or missing; a message in out otherwise."""
+    path = Path(os.path.expanduser(path_arg))
+    if not path.is_absolute():
+        out["message"] = "The keybinds file needs a full path, not " + path_arg + "."
+        return None
+    real = Path(os.path.realpath(path))
+    exists = os.path.lexists(path)
+    if exists and not real.is_file():
+        out["message"] = str(path) + " is not a regular file, so it was left alone."
+        return None
+    return path, real, exists
+
+
+def write_binds(path_arg, expect, text):
+    """The Keybinds tab's Apply: the file of keybinds added in Sleepysettings, edited in place. A missing or empty file,
+    or one that starts with BINDS_MARK, is written (a non-empty one after a dated backup). Any other file is the user's:
+    it is written only with expect, the hash of the exact text the window showed (header included); without it the
+    run writes nothing, prints the lines it would remove and add, and exits 3."""
+    out = {"ok": False, "changed": False, "foreign": False, "path": path_arg, "backup": "", "removed": [], "added": [],
+           "sha": "", "message": ""}
+    t = user_target(path_arg, out)
+    if t is None:
+        return out, 1
+    path, real, exists = t
+    try:
+        old = real.read_text(encoding="utf-8") if exists else ""
+    except (OSError, UnicodeDecodeError) as e:
+        out["message"] = "Can't read " + str(path) + " (" + str(getattr(e, "strerror", None) or e) + ")."
+        return out, 1
+    if old.strip() and not old.startswith(BINDS_MARK):
+        out["foreign"] = True
+        final = text if text.startswith(BINDS_MARK) else BINDS_HEADER + text
+        out["sha"] = hashlib.sha256(final.encode("utf-8")).hexdigest()
+        if expect != out["sha"]:
+            for line in difflib.ndiff(old.splitlines(), final.splitlines()):
+                if line.startswith("- "):
+                    out["removed"].append(line[2:])
+                elif line.startswith("+ "):
+                    out["added"].append(line[2:])
+            out["message"] = str(path) + " was not written by Sleepysettings; nothing was written."
+            return out, 3
+        text = final
+    if exists and text == old:
+        out.update(ok=True, message="Nothing to change in " + str(path) + ".")
+        return out, 0
+    try:
+        if not exists:
+            real.parent.mkdir(parents=True, exist_ok=True)
+        if old.strip():
+            out["backup"] = str(backup_copy(real))
+        write_user_text(real, text, exists, in_place=True)
+    except OSError as e:
+        return dict(out, message="Could not write " + str(path) + " (" + str(e.strerror or e) + "). It was left as it was."), 1
+    out.update(ok=True, changed=True, message="Saved to " + str(path) + ".")
+    return out, 0
+
+
+def export_binds(path_arg, replace, text):
+    """The Keybinds tab's export: PATH created, or replaced only with replace (backup first, atomic)."""
+    out = {"ok": False, "changed": False, "exists": False, "path": path_arg, "backup": "", "message": ""}
+    t = user_target(path_arg, out)
+    if t is None:
+        return out, 1
+    path, real, exists = t
+    out["exists"] = exists
+    if exists and not replace:
+        out["message"] = str(path) + " already exists; nothing was written."
+        return out, 3
+    folder = real.parent
+    if not folder.is_dir() or not os.access(folder, os.W_OK | os.X_OK):
+        out["message"] = "Can't write in " + str(folder) + "."
+        return out, 1
+    try:
+        if exists:
+            out["backup"] = str(backup_copy(real))
+        write_user_text(real, text, exists, in_place=False)
+    except OSError as e:
+        out["message"] = "Could not write " + str(path) + " (" + str(e.strerror or e) + "). It was left as it was."
+        return out, 1
     out.update(ok=True, changed=True, message="Saved to " + str(path) + ".")
     return out, 0
 
@@ -1989,7 +2085,15 @@ def main():
     ep = sub.add_parser("export-binds", help="write the export text read from stdin to PATH (an existing file only with --replace, after a backup)")
     ep.add_argument("path", help="the file to write (absolute)")
     ep.add_argument("--replace", action="store_true", help="replace PATH when it exists (a backup is kept)")
+    wp = sub.add_parser("write-binds", help="write the keybinds file of the Keybinds tab from stdin (a file it did not create only with --confirmed SHA256)")
+    wp.add_argument("path", help="the keybinds file (absolute)")
+    wp.add_argument("--confirmed", default="", metavar="SHA256", help="the hash of the change the user saw and accepted")
     args = ap.parse_args()
+    if args.cmd == "write-binds":
+        result, code = write_binds(args.path, args.confirmed, sys.stdin.read())
+        json.dump(result, sys.stdout, ensure_ascii=False)
+        sys.stdout.write("\n")
+        return code
     if args.cmd == "export-binds":
         result, code = export_binds(args.path, args.replace, sys.stdin.read())
         json.dump(result, sys.stdout, ensure_ascii=False)

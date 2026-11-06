@@ -41,8 +41,31 @@ SHA=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["blockS
 run m-right python3 -I "$AP" folders-setup --expect "$SHA"
 ls "$D" >"$D/ls-after.txt"
 
+# the keybinds file of the Keybinds tab: missing, empty, Sleepysettings' own, and the user's own file (asked first)
+K=$D/k
+mkdir -p "$K"
+printf 'new\n' | run w-missing python3 -I "$HC" write-binds "$K/sub/new.lua"
+: >"$K/empty.lua"
+printf 'into empty\n' | run w-empty python3 -I "$HC" write-binds "$K/empty.lua"
+printf -- '-- Keybinds added in Sleepysettings: managed\nold line\n' >"$K/own.lua"
+printf -- '-- Keybinds added in Sleepysettings: managed\nnew line\n' | run w-own python3 -I "$HC" write-binds "$K/own.lua"
+printf 'my own bind\n' >"$K/foreign.lua"
+printf 'my own bind\nadded bind\n' | run w-foreign python3 -I "$HC" write-binds "$K/foreign.lua"
+printf 'my own bind\nadded bind\n' | run w-wrongsha python3 -I "$HC" write-binds "$K/foreign.lua" --confirmed 0000
+SHA=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha"])' "$D/w-foreign.out" 2>/dev/null)
+cp "$K/foreign.lua" "$D/foreign-before.lua"
+printf 'my own bind\nadded bind\n' | run w-confirmed python3 -I "$HC" write-binds "$K/foreign.lua" --confirmed "$SHA"
+
 # the window's side: Keybinds.exportTo through the real process, offscreen
 mkdir -p "$D/ex"
 printf 'mine\n' >"$D/ex/existing.lua"
 EXPORT_DIR=$D/ex QT_QPA_PLATFORM=offscreen timeout 40 qs -p "$S/export-harness.qml" >"$D/harness.log" 2>&1
 ls -a "$D/ex" >"$D/ex-ls.txt"
+
+# the window's side of Apply: the copy's keybinds file is a file the user wrote
+mkdir -p "$D/kb"
+printf 'hl.bind("SUPER + F8", hl.dsp.exec_cmd("mine"))\n' >"$D/kb/foreign.lua"
+cp "$D/kb/foreign.lua" "$D/kb-before.lua"
+printf '[files]\npathCustombinds = "%s"\n' "$D/kb/foreign.lua" >"$S/sleepysettings.toml"
+QT_QPA_PLATFORM=offscreen timeout 40 qs -p "$S/binds-harness.qml" >"$D/binds.log" 2>&1
+rm -f "$S/sleepysettings.toml"

@@ -39,6 +39,8 @@ Item {
     property string selected: ""
     // file mode for a file that may not exist yet: the name field, filled with `fileName` to start with
     property bool newFile: false
+    // make a new name's file at once when it is picked (the default); off for a writer that makes it itself (Export)
+    property bool createOnPick: true
     // the name field at the top of the list is open ("folder", "file", or "" for closed), and why the last name or mkdir was refused
     property string createKind: ""
     readonly property bool creating: fb.createKind !== ""
@@ -78,6 +80,8 @@ Item {
         fb.filters = opts.filters ?? [];
         fb.selected = "";
         fb.newFile = mode === "file" && opts.newFile === true;
+        // `create: false`: a new name is handed back as it is, for a writer that makes the file itself and asks before replacing one
+        fb.createOnPick = opts.create !== false;
         nameBox.text = fb.newFile ? (opts.fileName ?? "") : "";
         fb.cancelCreate();
         fb.path = start !== "" ? start : Quickshell.env("HOME");
@@ -211,7 +215,7 @@ Item {
         if (!fb.canPick)
             return false;
         // a new name: the file is made now, and chosen once it is there (a failure stays in the browser and says why)
-        if (fb.mode === "file" && fb.newFile && fb.kindOfName(fb.pickName) <= 0)
+        if (fb.mode === "file" && fb.newFile && fb.kindOfName(fb.pickName) <= 0 && (fb.createOnPick || fb.kindOfName(fb.pickName) < 0))
             return fb.kindOfName(fb.pickName) < 0 ? false : fb.createFile(fb.pickName, "pick");
         fb.finish(fb.mode === "file" ? (fb.newFile ? (fb.path === "/" ? "" : fb.path) + "/" + fb.pickName : fb.selected) : fb.path);
         return true;

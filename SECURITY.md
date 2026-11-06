@@ -129,8 +129,8 @@ named under `hypridle.conf`.
 - Its own files: `sleepysettings.toml` beside the shell; the colours under `$XDG_STATE_HOME/quickshell/`; the
   folder-icon overlay under `$XDG_DATA_HOME/icons`; hidden desktop entries for the web mail services chosen in
   the Apps tab; previews in the cache folder.
-- The Hyprland files it owns: `monitors.lua`, `nightlight.lua` with `nightlight.frag`, and `sleepybinds.lua`
-  (backed up before an import is applied). They are written in place (Hyprland's file watcher needs a plain
+- The Hyprland files it owns: `monitors.lua`, `nightlight.lua` with `nightlight.frag`, and `sleepybinds.lua` (a
+  dated backup before every write that changes it). They are written in place (Hyprland's file watcher needs a plain
   modification), from values the shell formatted or escaped itself (`\`, `"`, newline, carriage return and
   every other control character in Lua strings, one escaper for every Lua writer and Hyprland dispatch; numbers
   through `toFixed`, clamped).
@@ -142,6 +142,10 @@ named under `hypridle.conf`.
   only, a dated backup, an atomic write, and the file is put back when the values do not read back as asked.
 - The matugen config, only through the Theme tab's folder-icon "Set up", after a question that shows every
   line it adds; a dated backup is kept, and the script writes nothing if the lines differ from the ones shown.
+- The keybinds file, when the Config tab points it at a file Sleepysettings did not create: the Keybinds tab's
+  Apply shows every line it would remove and add and asks first; after the yes the file is marked as managed by
+  Sleepysettings (a header line), backed up and written, and later Applies write it with a backup. The script
+  writes nothing unless the change is the one that was shown.
 - A keybind export, to the file the user picks. A file that already exists is replaced only after a question
   that names it, with a dated backup beside it, written atomically.
 - `hypridle.conf` from the idle settings (`scripts/idle.py`): the file hypridle reads, found from how it is

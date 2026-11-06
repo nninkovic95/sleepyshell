@@ -1,7 +1,8 @@
 #!/bin/bash
 # settings/ask-first-writers.sh [TREE]: the two writers of files the user owns that must ask first.
 #
-# Tier 2 (a user's file changed without a yes): the Keybinds tab's Export replaced a file that already existed, with no
+# Tier 2 (a user's file changed without a yes): the Keybinds tab's Export replaced a file that already existed, and its
+# Apply edited a keybinds file the user pointed it at, with no
 # question and no backup; the matugen folder-icon confirmation showed three sample lines, not what was added. In one
 # sandbox: hyprconf.py export-binds creates a new file, refuses an existing one without --replace (exit 3, untouched),
 # replaces it with --replace after a backup, writes through a link, refuses a folder and a relative path; the window's
@@ -20,7 +21,7 @@ trap 'bash "$KIT/common/cleanup.sh" "$D" >/dev/null' EXIT
 python3 -I "$KIT/common/guard.py" snapshot "$NAME" >/dev/null
 copy_tree "$TREE" "$D/s"
 rm -f "$D"/s/sleepysettings.toml* "$D"/s/settings.json*
-cp "$KIT/settings/export-harness.qml" "$D/s/"
+cp "$KIT/settings/export-harness.qml" "$KIT/settings/binds-harness.qml" "$D/s/"
 
 timeout 150 bash "$KIT/common/sandbox.sh" "$D" bash "$KIT/settings/ask-first-writers-inner.sh" "$D"
 
@@ -75,6 +76,46 @@ mb = baks(D, "matugen.toml")
 check(codes.get("m-right") == "0" and block and block in after and after.startswith("[config]\n"),
       "folders-setup with the shown hash adds exactly the shown block", f"exit {codes.get('m-right')}")
 check(len(mb) == 1 and mb[0].read_text() == "[config]\n", "the matugen config was backed up first", f"{[p.name for p in mb]}")
+
+K = D / "k"
+HEAD = "-- Keybinds added in Sleepysettings"
+check(codes.get("w-missing") == "0" and read(K / "sub/new.lua") == "new\n", "write-binds creates a missing file and its folder", f"exit {codes.get('w-missing')}")
+check(codes.get("w-empty") == "0" and read(K / "empty.lua") == "into empty\n" and not baks(K, "empty.lua"),
+      "an empty file is written without a question", f"exit {codes.get('w-empty')}")
+ob = baks(K, "own.lua")
+check(codes.get("w-own") == "0" and "new line" in (read(K / "own.lua") or "") and len(ob) == 1 and "old line" in ob[0].read_text(),
+      "Sleepysettings' own file is written after a backup", f"exit {codes.get('w-own')}, backups {[p.name for p in ob]}")
+wf = out("w-foreign") or {}
+check(codes.get("w-foreign") == "3" and wf.get("foreign") and "added bind" in wf.get("added", []) and wf.get("sha"),
+      "the user's own file is refused without the yes, with the lines it would add", f"exit {codes.get('w-foreign')}, {wf}")
+check(codes.get("w-wrongsha") == "3" and read(D / "foreign-before.lua") == "my own bind\n",
+      "a yes for another change writes nothing", f"exit {codes.get('w-wrongsha')}")
+fb = baks(K, "foreign.lua")
+after = read(K / "foreign.lua") or ""
+check(codes.get("w-confirmed") == "0" and after.startswith(HEAD) and after.endswith("my own bind\nadded bind\n")
+      and len(fb) == 1 and fb[0].read_text() == "my own bind\n",
+      "with the yes it gets the header and the change, after a backup", f"exit {codes.get('w-confirmed')}, {after[:80]!r}")
+
+blog = (D / "binds.log").read_text(errors="replace") if (D / "binds.log").exists() else ""
+bline = next((l for l in blog.splitlines() if "RESULT {" in l), None)
+b = json.loads(bline[bline.index("RESULT {") + 7:]) if bline else None
+kb = D / "kb"
+check(b is not None and b["addError"] == "" and b["ask"] is not None and b["stagedAfterAsk"],
+      "the tab's Apply onto the user's file stops at the question, the draft kept", "\n".join(blog.splitlines()[-12:]) if not b else f"{b}")
+if b and b["ask"]:
+    check(any("SUPER + F9" in l for l in b["ask"]["added"]), "the question lists the added bind", f"{b['ask']}")
+    kafter = read(kb / "foreign.lua") or ""
+    kb_b = baks(kb, "foreign.lua")
+    check(kafter.startswith(HEAD) and "SUPER + F8" in kafter and "SUPER + F9" in kafter and not b["stagedAfterYes"] and b["writeError"] == ""
+          and len(kb_b) == 1 and kb_b[0].read_text() == read(D / "kb-before.lua"),
+          "after the yes the file keeps its own bind, gains the new one and the header, the old text is backed up",
+          f"{kafter[:200]!r}, backups {[p.name for p in kb_b]}, {b}")
+
+# Export hands a new name back without making the file: the writer creates it, so a new name is never asked about
+kq = (D / "s/services/Keybinds.qml").read_text()
+fbq = (D / "s/sleepysettings/components/FolderBrowser.qml").read_text()
+check("create: false" in kq and "createOnPick" in fbq and "fb.createOnPick ||" in fbq,
+      "the export browser does not pre-create a new file")
 
 # the window must hand its dialog to every tab that asks: a tab without it cannot ask, so its writer stays refused
 import re
