@@ -1,5 +1,5 @@
 #!/bin/bash
-# settings/broken-file.sh [TREE]: while sleepysettings.toml does not parse, nothing is applied from the defaults.
+# settings/broken-file.test.sh [TREE]: while sleepysettings.toml does not parse, nothing is applied from the defaults.
 #
 # Tier 2 (a broken desktop): with a syntax error in the settings file, Apply on the Idle or Theme tab (and the bar's
 # rewrite on a change of power source, the wallpaper picker and timer) ran the scripts, which read the file as empty

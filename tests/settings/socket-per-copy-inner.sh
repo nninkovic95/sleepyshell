@@ -1,5 +1,5 @@
 #!/bin/bash
-# The sandboxed half of settings/socket-per-copy.sh: runs inside common/sandbox.sh, never on its own.
+# The sandboxed half of settings/socket-per-copy.test.sh: runs inside common/sandbox.sh, never on its own.
 # socket-per-copy-inner.sh RUN_FOLDER
 # Copy A is reached two ways, as on a real install: the bar through the config link ($XDG_CONFIG_HOME/quickshell/
 # sleepyshell -> a), the window through the folder itself. Copy B is a second copy (a test copy). Leaves the logs and

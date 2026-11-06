@@ -1,5 +1,5 @@
 #!/bin/bash
-# lock/pam-timeout.sh [TREE]: the lock screen's password check gives up on a hang, and Escape never changes what is
+# lock/pam-timeout.test.sh [TREE]: the lock screen's password check gives up on a hang, and Escape never changes what is
 # checked.
 #
 # Tier 1 (the lock): a PAM module that never answered left the lock's field read-only for good, with no way to try

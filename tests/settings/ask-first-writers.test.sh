@@ -1,5 +1,5 @@
 #!/bin/bash
-# settings/ask-first-writers.sh [TREE]: the two writers of files the user owns that must ask first.
+# settings/ask-first-writers.test.sh [TREE]: the two writers of files the user owns that must ask first.
 #
 # Tier 2 (a user's file changed without a yes): the Keybinds tab's Export replaced a file that already existed, and its
 # Apply edited a keybinds file the user pointed it at, with no
@@ -9,6 +9,7 @@
 # export (Keybinds.exportTo, offscreen) goes through that script, names the existing file for the question and writes
 # it only with the yes. appearance.py folders-state returns the whole block with its hash; folders-setup writes
 # nothing when the hash is not the shown block's (exit 6) and writes exactly that block when it is, after a backup.
+# The questions themselves are checked in the real window: export-asks, ask-first-prompts and ask-first-config.
 # Prints PASS or FAIL per check; exits 1 on any FAIL.
 set -uo pipefail
 . "$(dirname "$(readlink -f "$0")")/../common/env.sh"
@@ -116,20 +117,6 @@ kq = (D / "s/services/Keybinds.qml").read_text()
 fbq = (D / "s/sleepysettings/components/FolderBrowser.qml").read_text()
 check("create: false" in kq and "createOnPick" in fbq and "fb.createOnPick ||" in fbq,
       "the export browser does not pre-create a new file")
-
-# the window must hand its dialog to every tab that asks: a tab without it cannot ask, so its writer stays refused
-import re
-S = D / "s"
-win = (S / "sleepysettings/Sleepysettings.qml").read_text()
-missing = []
-for tab in sorted((S / "sleepysettings").glob("*Tab.qml")):
-    asks = "confirm" in tab.read_text() or any("confirm" in (S / "sleepysettings" / f"{n}.qml").read_text()
-                                               for n in re.findall(r"^\s*(\w+)\s*\{", tab.read_text(), re.M)
-                                               if (S / "sleepysettings" / f"{n}.qml").exists())
-    m = re.search(r"^\s*" + tab.stem + r"\s*\{(.*?)^\s*\}", win, re.M | re.S)
-    if asks and (m is None or not re.search(r"^\s*confirm\s*:\s*confirm\b", m.group(1), re.M)):
-        missing.append(tab.stem)
-check(not missing, "the window passes its dialog to every tab that asks", f"missing for {missing}")
 
 log = (D / "harness.log").read_text(errors="replace") if (D / "harness.log").exists() else ""
 line = next((l for l in log.splitlines() if "RESULT {" in l), None)

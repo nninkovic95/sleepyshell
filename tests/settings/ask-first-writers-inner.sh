@@ -1,5 +1,5 @@
 #!/bin/bash
-# The sandboxed half of settings/ask-first-writers.sh: runs inside common/sandbox.sh, never on its own.
+# The sandboxed half of settings/ask-first-writers.test.sh: runs inside common/sandbox.sh, never on its own.
 # ask-first-writers-inner.sh RUN_FOLDER
 # Writes one line per case to cases.txt: "<case> <exit code>"; outputs to <case>.out.
 set -uo pipefail

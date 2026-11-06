@@ -1,5 +1,5 @@
 #!/bin/bash
-# The sandboxed half of settings/linked-apply.sh: runs inside common/sandbox.sh, never on its own.
+# The sandboxed half of settings/linked-apply.test.sh: runs inside common/sandbox.sh, never on its own.
 # linked-apply-inner.sh RUN_FOLDER BAR_HELPERS
 # Case "dies" (copy c): the window's end links to a fake bar that closes on the first commit without answering.
 # Case "saves" (copy d): the window's end links to the tree's real bar end, which writes the file and answers.

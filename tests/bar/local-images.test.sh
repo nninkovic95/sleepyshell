@@ -1,5 +1,5 @@
 #!/bin/bash
-# bar/local-images.sh [TREE]: notification and tray images load only from local sources, never from the network.
+# bar/local-images.test.sh [TREE]: notification and tray images load only from local sources, never from the network.
 #
 # Tier 1 (security): an app could otherwise make the shell fetch an address of its choosing (a read receipt, the
 # user's IP address). The tree (default: the live shell) is copied into a run folder without the user's settings;

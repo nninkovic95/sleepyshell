@@ -1,5 +1,5 @@
 #!/bin/bash
-# The sandboxed half of settings/broken-file.sh: runs inside common/sandbox.sh, never on its own.
+# The sandboxed half of settings/broken-file.test.sh: runs inside common/sandbox.sh, never on its own.
 # broken-file-inner.sh RUN_FOLDER
 # Every outside program the scripts would run (notify-send, matugen, awww, swww, magick, gsettings) is a stub on
 # PATH that logs its call to calls-<case>.log. Writes one line per case to cases.txt: "<case> <exit code>".

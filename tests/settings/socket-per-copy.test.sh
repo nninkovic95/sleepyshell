@@ -1,5 +1,5 @@
 #!/bin/bash
-# settings/socket-per-copy.sh [TREE]: each copy of the shell has its own settings socket.
+# settings/socket-per-copy.test.sh [TREE]: each copy of the shell has its own settings socket.
 #
 # Tier 1 (security): with one fixed socket path, a second copy of the shell (a test copy, a candidate) reached the
 # live bar and could change its settings file. Two copies of the tree (default: the live shell) run in one sandbox,
@@ -12,7 +12,7 @@ set -uo pipefail
 TREE=$(readlink -f "${1:-$LIVE}")
 NAME=socket-per-copy-$$
 D=$RUN/$NAME
-mkdir -p "$D/config/quickshell"
+mkdir -p "$D/home/.config/quickshell"
 trap 'bash "$KIT/common/cleanup.sh" "$D" >/dev/null' EXIT
 
 python3 -I "$KIT/common/guard.py" snapshot "$NAME" >/dev/null
@@ -21,7 +21,7 @@ for c in a b; do
     rm -f "$D/$c"/sleepysettings.toml* "$D/$c"/settings.json*
     cp "$KIT/settings/bar-harness.qml" "$KIT/settings/link-harness.qml" "$D/$c/"
 done
-ln -s "$D/a" "$D/config/quickshell/sleepyshell"
+ln -s "$D/a" "$D/home/.config/quickshell/sleepyshell"
 
 timeout 90 bash "$KIT/common/sandbox.sh" "$D" bash "$KIT/settings/socket-per-copy-inner.sh" "$D"
 

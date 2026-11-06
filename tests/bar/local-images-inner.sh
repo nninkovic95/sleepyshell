@@ -1,20 +1,21 @@
 #!/bin/bash
-# The sandboxed half of bar/local-images.sh: runs inside common/sandbox.sh, never on its own.
+# The sandboxed half of bar/local-images.test.sh: runs inside common/sandbox.sh, never on its own.
 # local-images-inner.sh RUN_FOLDER BAR_FOLDER ICON_NAME
-# A private session bus in the run folder, the request counter, the harness (offscreen), three stand-in tray
+# The private test desktop and its session bus, the request counter, the harness (offscreen), three stand-in tray
 # items and ten notifications sent the way an app sends them. Leaves qs.log, hits and the helpers' logs in the
 # run folder; the outer script checks them.
 set -uo pipefail
 D=$1
 B=$2
 ICON=$3
-# offscreen: nothing is drawn on a real screen; the gtk3 platform theme gives Qt its icon search paths (the offscreen
-# platform alone has none, so no theme icon would be found)
-export QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=gtk3
-export DBUS_SESSION_BUS_ADDRESS="unix:path=$D/bus"
-trap 'kill $(jobs -p) 2>/dev/null' EXIT
+# the private test desktop (common/ui/session.sh: a headless compositor and a private session bus at $D/bus): the gtk3
+# platform theme gives Qt its icon search paths and needs a display (the offscreen platform has no icon paths, so no
+# theme icon would be found); nothing is drawn on the user's screen
+. "$KIT/common/ui/session.sh"
+ui_start "$D" || { echo "inner: the private test desktop did not start"; exit 1; }
+export QT_QPA_PLATFORMTHEME=gtk3
+trap 'kill $(jobs -p) 2>/dev/null; ui_stop' EXIT
 
-dbus-daemon --session --address="$DBUS_SESSION_BUS_ADDRESS" --nofork --nopidfile >"$D/dbus.log" 2>&1 &
 python3 -I "$B/hits_server.py" "$D/hits" "$D/port" &
 for _ in $(seq 50); do [ -s "$D/port" ] && [ -S "$D/bus" ] && break; sleep 0.1; done
 [ -s "$D/port" ] && [ -S "$D/bus" ] || { echo "inner: the bus or the counter did not start"; exit 1; }

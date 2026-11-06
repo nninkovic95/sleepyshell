@@ -1,5 +1,5 @@
 #!/bin/bash
-# lock/hypridle-restart.sh [TREE]: a lock screen started by hypridle survives a restart of hypridle.
+# lock/hypridle-restart.test.sh [TREE]: a lock screen started by hypridle survives a restart of hypridle.
 #
 # Tier 2 (lock failing): on a laptop the bar rewrites hypridle.conf when the charger is plugged in or out
 # (PowerPolicy -> idle.py --background --battery|--ac), and idle.py then restarts hypridle.service. systemd stops
@@ -90,7 +90,7 @@ finish
 units=$(systemctl --user list-units --all --no-legend 2>/dev/null)
 left=$(printf '%s\n' "$units" | grep -F -e "sleepyshell-test-hypridle-$$" -e "${SCOPE:-sleepyshell-test-hypridle-$$}")
 what="the stand-in unit is gone"
-[ -n "$SCOPE" ] && what="the stand-in unit and the lock's scope $SCOPE are gone"
+[ -n "$SCOPE" ] && what="the stand-in unit and the lock's scope are gone"  # the scope's name changes every run
 check "$([ -z "$left" ] && echo 0 || echo 1)" "$what" "$left"
 
 if python3 -I "$KIT/common/guard.py" verify "$NAME" >/dev/null; then

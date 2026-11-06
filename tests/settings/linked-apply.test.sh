@@ -1,5 +1,5 @@
 #!/bin/bash
-# settings/linked-apply.sh [TREE]: an Apply through the bar counts as applied only once the bar saved it.
+# settings/linked-apply.test.sh [TREE]: an Apply through the bar counts as applied only once the bar saved it.
 #
 # Tier 2 (data loss): a bar that died while it handled an Apply from the settings window left the change shown as
 # applied though it was never written; it was lost on the next start. Two copies of the tree (default: the live
