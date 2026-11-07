@@ -6,7 +6,7 @@
 # A module the root does not import is not built at all, so every folder is imported, or the settings
 # window's and the lock's files would fail for that reason alone. The real shell.qml is compiled under
 # another name. Components are compiled, never instantiated (the lock does not lock), and the whole
-# check runs in the kit's sandbox, so even a mistake here cannot write anything real.
+# check runs in the kit's sandbox, on its private test desktop, so even a mistake here cannot write anything real.
 # Prints one line per failing file and "compile: N files, K failed"; exits 1 when K > 0.
 set -euo pipefail
 . "$(dirname "$(readlink -f "$0")")/env.sh"
@@ -50,7 +50,15 @@ ShellRoot {{
 ''')
 PY
 
-out=$(timeout 40 bash "$KIT/common/sandbox.sh" "$D" qs -p "$D/tree" 2>&1 | grep -aE "COMPILE (FAIL|DONE)|ERROR" || true)
+# on the private test desktop (common/ui/session.sh): layer-shell windows need a Wayland compositor to compile, and the
+# sandbox has none of the user's
+out=$(timeout 60 bash "$KIT/common/sandbox.sh" "$D" bash -c '
+    . "$KIT/common/ui/session.sh"
+    ui_start "$SLEEPYSHELL_SANDBOX" >/dev/null 2>&1 || { echo "ERROR the private test desktop did not start"; exit 1; }
+    qs -p "$1"
+    rc=$?
+    ui_stop
+    exit $rc' sh "$D/tree" 2>&1 | grep -aE "COMPILE (FAIL|DONE)|ERROR" || true)
 echo "$out" | grep -E "COMPILE FAIL|ERROR" | sed 's/.*COMPILE FAIL /fail: /; s/.*ERROR[^:]*: /error: /' || true
 done=$(echo "$out" | grep -oE "COMPILE DONE [0-9]+ [0-9]+" | tail -1)
 if [ -z "$done" ]; then

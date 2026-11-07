@@ -5,6 +5,7 @@ import Quickshell.Widgets
 import qs
 import qs.components
 import qs.sleepybar.components
+import "../../../services/LocalImage.js" as LocalImage
 
 // Themed tray menu: the entries of a tray item's DBus menu drawn in an IslandDropdown instead of the
 // unthemed platform menu. Submenus open in place with a Back row.
@@ -26,12 +27,13 @@ IslandDropdown {
         menu: root.current
     }
 
-    // only icons the theme actually has; a missing one would draw Quickshell's placeholder
+    // only icons the theme actually has (a missing one would draw Quickshell's placeholder), and only
+    // local sources (LocalImage.js): an entry's image data comes through Quickshell's pixmap provider
     function iconSource(ic) {
         const s = String(ic ?? "");
         if (s.startsWith("image://icon/"))
             return Quickshell.iconPath(s.slice(13), true) ? s : "";
-        return s;
+        return LocalImage.only(s);
     }
 
     function clean(s) {

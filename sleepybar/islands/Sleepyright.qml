@@ -4,11 +4,13 @@ import qs.components
 import qs.services
 import qs.sleepybar.widgets.bluetooth
 import qs.sleepybar.widgets.clipboard
+import qs.sleepybar.widgets.inputshow
 import qs.sleepybar.widgets.keyboard
 import qs.sleepybar.widgets.network
 import qs.sleepybar.widgets.notifications
 import qs.sleepybar.widgets.power
 import qs.sleepybar.widgets.privacy
+import qs.sleepybar.widgets.recording
 import qs.sleepybar.widgets.tray
 import qs.sleepybar.widgets.updates
 import qs.sleepybar.components
@@ -40,6 +42,9 @@ SideIsland {
             privacy: privacyC,
             notifications: notificationsC,
             clipboard: clipboardC,
+            recording: recordingC,
+            keys: keysC,
+            clicks: clicksC,
             tray: trayC,
         })
 
@@ -82,6 +87,18 @@ SideIsland {
     Component {
         id: clipboardC
         Clipboard {}
+    }
+    Component {
+        id: recordingC
+        RecordingIndicator {}
+    }
+    Component {
+        id: keysC
+        KeysIndicator {}
+    }
+    Component {
+        id: clicksC
+        ClicksIndicator {}
     }
     Component {
         id: trayC

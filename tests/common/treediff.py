@@ -5,7 +5,7 @@
 
 new: in SOURCE only. changed: in both, different bytes. removed: in TARGET only (a file that moved or
 went away in SOURCE). Never listed: the user's state files (sleepysettings.toml, settings.json and
-their copies) and the repository's own files (.git, .github/, tests/, docs/, gallery/, assets/, tools/,
+their copies) and the repository's own files (.git, .github/, .claude/, tests/, docs/, gallery/, assets/, tools/,
 __pycache__ and the root documents;
 the same lists as REPO_DIRS/REPO_FILES in env.sh). Reads only."""
 import fnmatch
@@ -14,8 +14,8 @@ import sys
 from pathlib import Path
 
 STATE = ["sleepysettings.toml", "sleepysettings.toml.*", "settings.json", "settings.json.*"]
-SKIP_DIRS = {".git", ".github", "tests", "docs", "gallery", "assets", "tools", "__pycache__"}
-REPO_FILES = {"README.md", "TASKS.md", "LICENSE", "SECURITY.md", "CLAUDE.md", "CLAUDE.local.md", ".gitignore"}
+SKIP_DIRS = {".git", ".github", ".claude", "tests", "docs", "gallery", "assets", "tools", "__pycache__"}
+REPO_FILES = {"README.md", "TASKS.md", "LICENSE", "SECURITY.md", "CLAUDE.md", "CLAUDE.local.md", ".gitignore", "install.sh"}
 
 
 def files(root):

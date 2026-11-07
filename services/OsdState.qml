@@ -18,7 +18,7 @@ Singleton {
     readonly property bool suppressed: !armed || (Popouts.current !== null && Popouts.current.name === "audio")
     readonly property real level: Math.max(0, Math.min(1, micLast ? Audio.micVolume : Audio.volume))
     readonly property bool muted: capsLast ? !CapsLock.on : micLast ? Audio.micMuted : Audio.muted
-    readonly property int glyph: capsLast ? 0xF0A9B : micLast ? Audio.micGlyph() : Audio.sinkGlyph()
+    readonly property int glyph: capsLast ? 0xF0632 : micLast ? Audio.micGlyph() : Audio.sinkGlyph()
 
     function flash(mic) {
         micLast = mic;

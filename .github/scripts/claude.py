@@ -32,8 +32,12 @@ PRICES = {
     "claude-opus-5-5": (4.0, 20.0),
     "claude-fable-5-1": (10.0, 50.0),
 }
+# a request whose input is above the threshold is priced at the second pair
+LONG_PRICES = {"claude-haiku-5-5": (100_000, (0.50, 2.50))}
 OIDC_AUDIENCE = "https://api.anthropic.com"
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
+# the models that accept the server-side refusal fallback; Haiku has none
+FALLBACK_MODELS = frozenset({"claude-fable-5-1", "claude-opus-5-5", "claude-sonnet-5-5"})
 CHECK_NAME = "Claude review"
 DEVONLY_FILE = ".github/dev-only"
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -49,6 +53,8 @@ REVIEW_SKIP_FILES = frozenset({".github/scripts/requirements.txt", "TASKS.md", "
 PRIVATE_CATEGORIES = frozenset({"security", "ask-first", "personal-path"})
 WITHHELD_SUMMARY = "The reviewer's summary is not shown here: it covers findings that were filed privately."
 CONTEXT_WINDOW = 1_000_000
+# each model's context window as the API reports it (check_models fills it); CONTEXT_WINDOW where unknown
+WINDOWS: dict[str, int] = {}
 POLL_SECONDS = 60
 
 
@@ -132,7 +138,12 @@ def auth_hint(exc: BaseException) -> str | None:
 
 def check_models(cl, wanted) -> list[str]:
     """Fail early when a model this run needs is not offered to this organization."""
-    have = {m.id for m in cl.models.list()}
+    listed = list(cl.models.list())
+    have = {m.id for m in listed}
+    for m in listed:
+        window = getattr(m, "max_input_tokens", None)
+        if isinstance(window, int) and window > 0:
+            WINDOWS[m.id] = window
     missing = [m for m in wanted if m not in have]
     if missing:
         raise ReviewError(f"model(s) not available to this organization: {', '.join(missing)}")
@@ -149,6 +160,9 @@ class Result:
 
     def cost(self) -> float:
         pin, pout = PRICES.get(self.model, (0.0, 0.0))
+        long = LONG_PRICES.get(self.model)
+        if long and self.input_tokens > long[0]:
+            pin, pout = long[1]
         full = (self.input_tokens * pin + self.output_tokens * pout) / 1e6
         return full / 2 if self.batch else full
 
@@ -232,10 +246,19 @@ def count_input(cl, model: str, system: str, user: str, schema: dict) -> int:
     return res.input_tokens
 
 
+def window_of(model: str) -> int:
+    return WINDOWS.get(model, CONTEXT_WINDOW)
+
+
 def fits(cl, model: str, system: str, user: str, schema: dict, max_tokens: int) -> tuple[bool, int]:
-    """Whether input plus the output allowance fits the context window, with the exact count."""
+    """Whether input plus the output allowance fits this model's context window, with the exact count."""
     n = count_input(cl, model, system, user, schema)
-    return n + max_tokens + 4000 <= CONTEXT_WINDOW, n
+    return n + max_tokens + 4000 <= window_of(model), n
+
+
+def fallback_kwargs(model: str) -> dict:
+    """The refusal fallback for models that accept it; nothing for the others."""
+    return {"fallbacks": "default", "betas": [FALLBACK_BETA]} if model in FALLBACK_MODELS else {}
 
 
 def call_json(cl, model: str, effort: str, system: str, user: str, schema: dict, max_tokens: int) -> Result:
@@ -245,8 +268,7 @@ def call_json(cl, model: str, effort: str, system: str, user: str, schema: dict,
     def go():
         with cl.beta.messages.stream(
             **_params(model, effort, system, user, schema, max_tokens),
-            fallbacks="default",
-            betas=[FALLBACK_BETA],
+            **fallback_kwargs(model),
         ) as stream:
             return stream.get_final_message()
 

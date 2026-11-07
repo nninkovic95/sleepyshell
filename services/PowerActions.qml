@@ -38,6 +38,8 @@ Singleton {
     // rewrite hypridle.conf for a power source: "battery" | "ac". In the background, so only the shell's own file
     // (idle.py --background): nothing until it is set up, and a file the user wrote is left for the Idle tab's Apply
     function runIdle(source) {
+        if (!Settings.okToRun("The idle timers weren't switched to the new power source"))
+            return;
         Quickshell.execDetached([Quickshell.shellPath("scripts/idle.py"), "--background", source === "battery" ? "--battery" : "--ac"]);
     }
 }

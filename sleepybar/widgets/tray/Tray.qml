@@ -5,6 +5,7 @@ import Quickshell.Widgets
 import Quickshell.Services.SystemTray
 import qs
 import qs.components
+import "../../../services/LocalImage.js" as LocalImage
 
 // StatusNotifier tray. Quickshell registers org.kde.StatusNotifierWatcher itself,
 // so the gdbus wait in autostart.lua keeps working. Left: activate, middle: secondary,
@@ -78,15 +79,7 @@ RowLayout {
                 anchors.verticalCenterOffset: Theme.insetPad / 2
                 implicitSize: Theme.barIconSize
                 asynchronous: true
-                source: {
-                    // some apps send "name?path=/dir": prefer the theme icon, else the file
-                    const icon = item.modelData.icon;
-                    if (!icon.includes("?path="))
-                        return icon;
-                    const [name, path] = icon.split("?path=");
-                    const file = name.slice(name.lastIndexOf("/") + 1);
-                    return Quickshell.iconPath(file, true) || `file://${path}/${file}`;
-                }
+                source: root.iconSource(item.modelData.icon)
             }
 
             TrayMenu {
@@ -96,5 +89,17 @@ RowLayout {
                 bar: root.bar
             }
         }
+    }
+
+    // A tray icon as a local source only (LocalImage.js). Quickshell gives "image://icon/<name>",
+    // "image://icon/<name>?path=<dir>" (the app's own icon folder) or its pixmap provider; for a
+    // folder the theme icon wins, else the file in that folder when the folder is an absolute path.
+    function iconSource(icon) {
+        const s = String(icon ?? "");
+        if (!s.includes("?path="))
+            return LocalImage.only(s);
+        const [name, path] = s.split("?path=");
+        const file = name.slice(name.lastIndexOf("/") + 1);
+        return Quickshell.iconPath(file, true) || LocalImage.fileUrl(path.replace(/\/+$/, "") + "/" + file);
     }
 }

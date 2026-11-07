@@ -11,7 +11,9 @@ Python standard library only; every answer is one JSON object on stdout.
                                        from settings.json
   appearance.py folders-state          the folder icons' matugen templates: are they in the matugen config, is the overlay there
   appearance.py folders-snippet        the [templates.*] lines the matugen config needs for the folder icons, printed
-  appearance.py folders-setup          add those lines to the matugen config (backup kept, atomic, idempotent)
+  appearance.py folders-setup [--expect SHA256]
+                                       add those lines to the matugen config (backup kept, atomic, idempotent); with
+                                       --expect, only when they are still the lines folders-state showed (else exit 6)
   appearance.py folders-preview --primary #RRGGBB --on #RRGGBB
                                        five of the folder icons drawn in those colours into the cache folder (the Theme tab's
                                        "with matched folder colours" preview, before anything is applied)
@@ -30,6 +32,7 @@ elsewhere (the test kit's fakes); HOME can point at a test folder, APPEARANCE_IC
 the three icon folders and APPEARANCE_CACHE the cache folder.
 """
 import datetime
+import hashlib
 import json
 import os
 import re
@@ -304,7 +307,12 @@ def write_overlay(base):
 def cmd_apply(a):
     keys = set(csv(a[0])) if a else set()
     mode = a[a.index("--color-scheme") + 1] if "--color-scheme" in a[:-1] else ""
-    s = theme.raw_settings()
+    try:
+        s = theme.raw_settings()
+    except theme.SettingsBroken as exc:
+        # the settings window checks the file first; a run that gets here anyway changes nothing (the defaults would be applied)
+        out({"ok": False, "did": [], "errors": [theme.broken_text(str(exc))]})
+        return theme.EXIT_BROKEN
     did, errors = [], []
     # Light or dark: GNOME's own preference, so GTK 4 / libadwaita apps and the portal follow the theme (only these two values are ever set)
     if "colorScheme" in keys:
@@ -397,7 +405,10 @@ def cmd_folders_state(_a):
     have_in = configured_templates()
     missing = [n for n in names if have_in is None or os.path.normpath(str(FOLDER_TEMPLATES / (n + ".svg"))) not in have_in]
     idx = theme_index(OVERLAY)
-    return out({"sample": "\n".join(snippet().splitlines()[1:4]), "count": len(names), "templates": names, "configReadable": have_in is not None, "config": str(theme.MATUGEN_CONFIG),
+    block = snippet()
+    # the whole block, exactly as folders-setup writes it, and its hash: the window shows the block and passes the hash back
+    return out({"sample": "\n".join(block.splitlines()[1:4]), "block": block.rstrip("\n"), "blockSha": block_sha(block),
+                "count": len(names), "templates": names, "configReadable": have_in is not None, "config": str(theme.MATUGEN_CONFIG),
                 "missing": missing, "configured": bool(names) and not missing,
                 "overlay": bool(idx), "overlayBase": (idx.get("Inherits") or "").split(",")[0]})
 
@@ -407,11 +418,19 @@ def cmd_folders_snippet(_a):
     return 0
 
 
-def cmd_folders_setup(_a):
+def block_sha(block):
+    return hashlib.sha256(block.encode("utf-8")).hexdigest()
+
+
+def cmd_folders_setup(a):
     path = theme.MATUGEN_CONFIG
     names = template_names()
     if not names:
         return out({"ok": False, "error": "the folder icon templates are missing from the shell's templates folder"}, 1)
+    opts = dict(zip(a[0::2], a[1::2]))
+    expect = opts.get("--expect", "")
+    if expect and expect != block_sha(snippet()):
+        return out({"ok": False, "error": "the entries changed since they were shown, so nothing was written; open the dialog again"}, 6)
     try:
         old = path.read_text()
         theme.tomllib.loads(old)

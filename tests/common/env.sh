@@ -28,8 +28,8 @@ STATE_GLOBS=("sleepysettings.toml" "sleepysettings.toml.*" "settings.json" "sett
 # The shell folder is also the repository root. These belong to the repository, not to the shell: git
 # manages them, the kit never copies, compiles, deploys, removes or backs them up. The same lists live
 # in common/treediff.py and common/guard.py; change all three together.
-REPO_DIRS=(".git" ".github" "tests" "docs" "gallery" "assets" "tools" "__pycache__")
-REPO_FILES=("README.md" "TASKS.md" "LICENSE" "SECURITY.md" "CLAUDE.md" "CLAUDE.local.md" ".gitignore")
+REPO_DIRS=(".git" ".github" ".claude" "tests" "docs" "gallery" "assets" "tools" "__pycache__")
+REPO_FILES=("README.md" "TASKS.md" "LICENSE" "SECURITY.md" "CLAUDE.md" "CLAUDE.local.md" ".gitignore" "install.sh")
 # tar_excludes: the --exclude arguments for a tar of a shell tree
 tar_excludes() {
     local x

@@ -16,6 +16,21 @@
                                         {"format", "file", "binds", "errors", "ignored"}: the keybinds of an export or a .conf file
                                         that Sleepysettings may import (read-only, see below)
 
+  hyprconf.py write-binds PATH [--confirmed SHA256]
+                                        {"ok", "changed", "foreign", "path", "backup", "removed", "added", "sha", "message"}: write
+                                        the keybinds file of the Keybinds tab from stdin (see below)
+
+  hyprconf.py keyreport-state [--root PATH]
+                                        {"ok", "format", "main", "line", "sha", "loaded", "message"}: the line that makes Hyprland
+                                        load the shell's key reporter (data/keyreport.lua) and whether the main file has it; read-only
+  hyprconf.py add-keyreport --expect SHA256 [--root PATH]
+                                        {"ok", "changed", "line", "main", "backup", "message"}: add that line to hyprland.lua, before
+                                        its first statement, only when SHA256 is the shown line's (see below)
+
+  hyprconf.py export-binds PATH [--replace]
+                                        {"ok", "changed", "exists", "path", "backup", "message"}: write the export text read from
+                                        stdin to PATH (the Keybinds tab's Export, see below)
+
 PATH is the config folder (default $XDG_CONFIG_HOME/hypr, else ~/.config/hypr) or the main file
 itself. hyprland.lua is the main file when it exists, else hyprland.conf. Prints one JSON object:
 
@@ -40,7 +55,7 @@ unreadable with the reason. `local b = hl.bind` aliases are not followed.
 .conf: bind, binde, bindl, bindm, bindr, bindn (any flag letters, bindd with a description),
 workspace =, monitor =, source =, $variables, `submap =` (a bind inside a submap carries "submap").
 
-`add-require FILE` is the one command that writes (Sleepysettings asks first): when the
+`add-require FILE` is one of the commands that write (Sleepysettings asks first): when the
 config does not load FILE yet it adds the line that does, `require("modules.x")` for Lua (the module name is FILE's place under the config
 folder) or `source = path` for .conf, after the last such line of the main file, else at the end. Prints one JSON object
 {ok, changed, line, main, backup, message}; exit 0 when the config loads FILE afterwards (also when it already did, nothing written),
@@ -49,12 +64,33 @@ or written, or a change that did not make FILE load (the main file is put back).
 <main>.bak-YYYYMMDD-HHMMSS; the write is atomic (a temporary file in the same folder, then a rename; a symlinked main file is written
 through to its target). Nothing else is touched.
 
+`write-binds PATH [--confirmed SHA256]` (Keybinds tab, Apply) writes the text it reads from stdin to the file of keybinds
+added in Sleepysettings, in place (Hyprland's watch on a file it loads needs a plain modification). A missing or empty file is
+written as it is; one that starts with the line "-- Keybinds added in Sleepysettings" (the file Sleepysettings made) after a dated
+backup. Any other file is the user's own: without --confirmed it writes nothing, prints foreign: true, the lines it would remove
+and add (the header that marks the file as managed included) and the hash of that change, and exits 3; Sleepysettings shows the
+lines and asks, and runs it again with the hash. A hash that is not the change's writes nothing. Then the file gets the header,
+a dated backup and the write; later writes see the header.
+
+`export-binds PATH [--replace]` (Keybinds tab, Export) writes the text it reads from stdin to PATH, an absolute path the user
+picked. A PATH that does not exist yet is created. One that exists is never replaced without --replace: the run writes nothing,
+prints exists: true and exits 3, and Sleepysettings asks (showing the path) before it runs again with --replace. Then the file is
+first copied to <file>.bak-YYYYMMDD-HHMMSS and replaced atomically (a temporary file in the same folder, then a rename; a symlink
+is written through to its target). Anything but a regular file at PATH is refused (exit 1).
+
 `set-programs KEY=VALUE...` (Apps tab: the keybinds follow the default apps; Sleepysettings shows the exact changed lines and
-asks first) is the second command that writes. It changes the value of an entry that already exists in the table `modules/programs.lua` returns, for the
+asks first) is another command that writes. It changes the value of an entry that already exists in the table `modules/programs.lua` returns, for the
 four keys terminal, browser, editor and fileManager only (any other key is refused); it never adds or removes an entry, so a key the file does not have
 is reported in `skipped`. An entry is changed only when it is one line `key = "string"` (or single quotes, simple escapes only) whose text agrees with
 what `programs` evaluates; anything else (a concatenation, a value on several lines, two lines for one key) is left alone and listed in `skipped`. The new
 string literal is built here from the value: backslash and the quote are escaped, control characters are refused, and the comment after the entry is kept.
+`add-keyreport` is another command that writes (Sleepysettings asks first, showing the exact line `keyreport-state` gives):
+the keybind overlay needs Hyprland to load data/keyreport.lua before any bind is made, so the line goes above the first
+statement of hyprland.lua (after its opening comments), never after the binds as a require would. It writes nothing
+when SHA256 is not the hash of that line (exit 6), when the main file is not Lua, when a string or comment in it does
+not close, or when the file is already named there (ok, not changed). A backup is kept beside the file, the write is
+atomic, and the old text is put back when the line is not found in the result.
+
 A file whose strings or comments do not close is refused. `--dry-run` writes nothing and only reports `changes` ([{key, old, new, line, before, after}])
 and `shown` (the lines as "- before" / "+ after"). A real run first copies the file to <file>.bak-YYYYMMDD-HHMMSS, writes atomically (a temporary
 file in the same folder, then a rename; a symlink is written through), then reads the values back with `programs`: when they are not exactly the old
@@ -78,7 +114,9 @@ Python standard library only. `discover` reads files, writes nothing, starts not
 """
 import argparse
 import bisect
+import difflib
 import glob
+import hashlib
 import json
 import math
 import os
@@ -1373,6 +1411,248 @@ def add_require(target_arg, root_arg=None):
     return out
 
 
+# ---- the key reporter's line (keyreport-state, add-keyreport) ----------------------------------------------------
+
+KEYREPORT = "data/keyreport.lua"
+
+
+def keyreport_line():
+    """The line that loads the shell's key reporter, built from this script's own folder as it was started (so a link to
+    the shell folder stays a link), with $HOME written as os.getenv("HOME"); (line, "") or (None, why)."""
+    shell = Path(os.path.abspath(__file__)).parent.parent
+    target = shell / KEYREPORT
+    if '"' in str(target) or "\\" in str(target):
+        return None, "the shell's folder name has a quote or a backslash"
+    home = Path.home()
+    try:
+        rel = target.relative_to(home)
+        return 'pcall(dofile, os.getenv("HOME") .. "/' + str(rel) + '")', ""
+    except ValueError:
+        return 'pcall(dofile, "' + str(target) + '")', ""
+
+
+def keyreport_named(text):
+    """Whether the Lua text names the key reporter outside comments (any line loading data/keyreport.lua)."""
+    return KEYREPORT in blank_comments(text)
+
+
+def first_statement(text):
+    """Offset of the first line of Lua text that is not blank once comments are blanked (len(text) when none)."""
+    probe = blank_comments(text)
+    starts = line_offsets(text)
+    for i, st in enumerate(starts):
+        en = starts[i + 1] if i + 1 < len(starts) else len(text)
+        if probe[st:en].strip():
+            return st
+    return len(text)
+
+
+def keyreport_state(root_arg=None):
+    out = {"ok": False, "format": "", "main": None, "line": "", "sha": "", "loaded": False, "message": ""}
+    root = Path(root_arg) if root_arg else Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "hypr"
+    folder, main, fmt = find_main(root)
+    out["format"] = fmt or ""
+    line, why = keyreport_line()
+    if line is None:
+        out["message"] = "Can't add it: " + why + "."
+        return out
+    out.update(line=line, sha=hashlib.sha256(line.encode()).hexdigest())
+    if main is None:
+        out["message"] = "There is no hyprland.lua or hyprland.conf in " + str(folder) + "."
+        return out
+    out["main"] = str(main)
+    if fmt != "lua":
+        out["message"] = "The keybind overlay needs hyprland.lua; hyprland.conf cannot load it."
+        return out
+    try:
+        text = Path(os.path.realpath(main)).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        out["message"] = "Can't read " + str(main) + " (" + str(getattr(e, "strerror", None) or e) + ")."
+        return out
+    out.update(ok=True, loaded=keyreport_named(text))
+    return out
+
+
+def add_keyreport(expect, root_arg=None):
+    """Add the key reporter's line above the first statement of hyprland.lua; (answer, exit code)."""
+    st = keyreport_state(root_arg)
+    out = {"ok": False, "changed": False, "line": st["line"], "main": st["main"], "backup": "", "message": ""}
+    if not st["ok"]:
+        out["message"] = st["message"]
+        return out, 1
+    if expect != st["sha"]:
+        out["message"] = "The line to add is not the one that was shown; nothing was written."
+        return out, 6
+    if st["loaded"]:
+        out.update(ok=True, message="hyprland.lua already loads the key reporter.")
+        return out, 0
+    main = Path(st["main"])
+    real = Path(os.path.realpath(main))
+    text = real.read_text(encoding="utf-8")
+    if not os.access(real, os.W_OK) or not os.access(real.parent, os.W_OK | os.X_OK):
+        out["message"] = "Can't change " + str(main) + ": it is read-only for you."
+        return out, 1
+    if not lua_closed(text):
+        out["message"] = "Can't read " + str(main) + " well enough to change it safely (a string or comment is not closed)."
+        return out, 1
+    at = first_statement(text)
+    new = text[:at] + ("" if at == 0 or text[:at].endswith("\n") else "\n") + st["line"] + "\n" + text[at:]
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    backup = Path(str(real) + ".bak-" + stamp)
+    n = 1
+    while backup.exists():
+        backup = Path(str(real) + ".bak-" + stamp + "-" + str(n))
+        n += 1
+    try:
+        shutil.copy2(real, backup)
+        out["backup"] = str(backup)
+        tmp = real.with_name(real.name + ".tmp-" + str(os.getpid()))
+        tmp.write_text(new, encoding="utf-8")
+        shutil.copymode(real, tmp)
+        os.replace(tmp, real)
+    except OSError as e:
+        out["message"] = "Could not write " + str(main) + " (" + str(e.strerror) + "). It was left as it was."
+        return out, 1
+    after = real.read_text(encoding="utf-8")
+    if not keyreport_named(after) or not lua_closed(after):
+        real.write_text(text, encoding="utf-8")
+        out["message"] = "The line was added but could not be found again, so " + str(main) + " was put back."
+        return out, 1
+    out.update(ok=True, changed=True, message="Added " + st["line"] + " to " + str(main) + ".")
+    return out, 0
+
+
+# the first line of the file of keybinds added in Sleepysettings, and the header a file gets when the user lets
+# Sleepysettings manage a file it did not create (Keybinds.qml writes the same two lines into a new file)
+BINDS_MARK = "-- Keybinds added in Sleepysettings"
+BINDS_HEADER = ('-- Keybinds added in Sleepysettings: managed by Sleepysettings (Keybinds tab), loaded by require("modules.sleepybinds")\n'
+                "-- in hyprland.lua. The tab deletes the line of a removed bind and appends added ones; the rest is left alone.\n\n")
+
+
+def backup_copy(real):
+    """A dated copy beside real, never through a name that exists; returns its path."""
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    backup = Path(str(real) + ".bak-" + stamp)
+    n = 1
+    while os.path.lexists(backup):
+        backup = Path(str(real) + ".bak-" + stamp + "-" + str(n))
+        n += 1
+    shutil.copy2(real, backup)
+    return backup
+
+
+def write_user_text(real, text, exists, in_place):
+    """Writes text to real. Atomic (a temporary file beside it, then a rename) unless in_place: Hyprland's watch on a
+    file it loads needs a plain modification. The mode of an existing file is kept."""
+    if in_place:
+        if not exists:
+            fd = os.open(real, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(text)
+        else:
+            with open(real, "w", encoding="utf-8") as f:
+                f.write(text)
+        return
+    tmp = real.with_name(real.name + ".tmp-" + str(os.getpid()))
+    try:
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        if exists:
+            shutil.copymode(real, tmp)
+        os.replace(tmp, real)
+    except OSError:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
+
+
+def user_target(path_arg, out):
+    """(path, real, exists) for an absolute path that is a regular file or missing; a message in out otherwise."""
+    path = Path(os.path.expanduser(path_arg))
+    if not path.is_absolute():
+        out["message"] = "The keybinds file needs a full path, not " + path_arg + "."
+        return None
+    real = Path(os.path.realpath(path))
+    exists = os.path.lexists(path)
+    if exists and not real.is_file():
+        out["message"] = str(path) + " is not a regular file, so it was left alone."
+        return None
+    return path, real, exists
+
+
+def write_binds(path_arg, expect, text):
+    """The Keybinds tab's Apply: the file of keybinds added in Sleepysettings, edited in place. A missing or empty file,
+    or one that starts with BINDS_MARK, is written (a non-empty one after a dated backup). Any other file is the user's:
+    it is written only with expect, the hash of the exact text the window showed (header included); without it the
+    run writes nothing, prints the lines it would remove and add, and exits 3."""
+    out = {"ok": False, "changed": False, "foreign": False, "path": path_arg, "backup": "", "removed": [], "added": [],
+           "sha": "", "message": ""}
+    t = user_target(path_arg, out)
+    if t is None:
+        return out, 1
+    path, real, exists = t
+    try:
+        old = real.read_text(encoding="utf-8") if exists else ""
+    except (OSError, UnicodeDecodeError) as e:
+        out["message"] = "Can't read " + str(path) + " (" + str(getattr(e, "strerror", None) or e) + ")."
+        return out, 1
+    if old.strip() and not old.startswith(BINDS_MARK):
+        out["foreign"] = True
+        final = text if text.startswith(BINDS_MARK) else BINDS_HEADER + text
+        out["sha"] = hashlib.sha256(final.encode("utf-8")).hexdigest()
+        if expect != out["sha"]:
+            for line in difflib.ndiff(old.splitlines(), final.splitlines()):
+                if line.startswith("- "):
+                    out["removed"].append(line[2:])
+                elif line.startswith("+ "):
+                    out["added"].append(line[2:])
+            out["message"] = str(path) + " was not written by Sleepysettings; nothing was written."
+            return out, 3
+        text = final
+    if exists and text == old:
+        out.update(ok=True, message="Nothing to change in " + str(path) + ".")
+        return out, 0
+    try:
+        if not exists:
+            real.parent.mkdir(parents=True, exist_ok=True)
+        if old.strip():
+            out["backup"] = str(backup_copy(real))
+        write_user_text(real, text, exists, in_place=True)
+    except OSError as e:
+        return dict(out, message="Could not write " + str(path) + " (" + str(e.strerror or e) + "). It was left as it was."), 1
+    out.update(ok=True, changed=True, message="Saved to " + str(path) + ".")
+    return out, 0
+
+
+def export_binds(path_arg, replace, text):
+    """The Keybinds tab's export: PATH created, or replaced only with replace (backup first, atomic)."""
+    out = {"ok": False, "changed": False, "exists": False, "path": path_arg, "backup": "", "message": ""}
+    t = user_target(path_arg, out)
+    if t is None:
+        return out, 1
+    path, real, exists = t
+    out["exists"] = exists
+    if exists and not replace:
+        out["message"] = str(path) + " already exists; nothing was written."
+        return out, 3
+    folder = real.parent
+    if not folder.is_dir() or not os.access(folder, os.W_OK | os.X_OK):
+        out["message"] = "Can't write in " + str(folder) + "."
+        return out, 1
+    try:
+        if exists:
+            out["backup"] = str(backup_copy(real))
+        write_user_text(real, text, exists, in_place=False)
+    except OSError as e:
+        out["message"] = "Could not write " + str(path) + " (" + str(e.strerror or e) + "). It was left as it was."
+        return out, 1
+    out.update(ok=True, changed=True, message="Saved to " + str(path) + ".")
+    return out, 0
+
+
 def is_test_rule(r):
     """A rule of the test kit's virtual monitor ("sleepytest…"), left out of what the Apps tab shows."""
     vals = [str(r.get("workspace", "")), str(r.get("name", ""))] + [str(v) for v in (r.get("rules") or {}).values()]
@@ -1918,6 +2198,11 @@ def main():
     ap2 = sub.add_parser("add-require", help="add the line that makes the config load FILE (a backup of the main file is kept)")
     ap2.add_argument("file", help="the file the config should load")
     ap2.add_argument("--root", help="config folder or main file (default ~/.config/hypr)")
+    kp = sub.add_parser("keyreport-state", help="print the key reporter's line and whether hyprland.lua loads it (read-only)")
+    kp.add_argument("--root", help="config folder or main file (default ~/.config/hypr)")
+    ka = sub.add_parser("add-keyreport", help="add the key reporter's line above the first statement of hyprland.lua (a backup is kept)")
+    ka.add_argument("--expect", required=True, metavar="SHA256", help="the hash of the line the user saw and accepted")
+    ka.add_argument("--root", help="config folder or main file (default ~/.config/hypr)")
     pp = sub.add_parser("programs", help="print the program names modules/programs.lua returns as JSON")
     pp.add_argument("--root", help="config folder or main file (default ~/.config/hypr)")
     sp = sub.add_parser("set-programs", help="set terminal, browser, editor or fileManager in modules/programs.lua (existing entries only; a backup is kept)")
@@ -1927,7 +2212,23 @@ def main():
     bp = sub.add_parser("parse-binds", help="print the importable keybinds of an export or .conf file as JSON (read-only)")
     bp.add_argument("file", help="the file to read")
     bp.add_argument("--resolve", metavar="ROOT", help="fill @terminal@, @fileManager@ and @menu@ in commands from the programs.lua under ROOT (the Hyprland defaults file)")
+    ep = sub.add_parser("export-binds", help="write the export text read from stdin to PATH (an existing file only with --replace, after a backup)")
+    ep.add_argument("path", help="the file to write (absolute)")
+    ep.add_argument("--replace", action="store_true", help="replace PATH when it exists (a backup is kept)")
+    wp = sub.add_parser("write-binds", help="write the keybinds file of the Keybinds tab from stdin (a file it did not create only with --confirmed SHA256)")
+    wp.add_argument("path", help="the keybinds file (absolute)")
+    wp.add_argument("--confirmed", default="", metavar="SHA256", help="the hash of the change the user saw and accepted")
     args = ap.parse_args()
+    if args.cmd == "write-binds":
+        result, code = write_binds(args.path, args.confirmed, sys.stdin.read())
+        json.dump(result, sys.stdout, ensure_ascii=False)
+        sys.stdout.write("\n")
+        return code
+    if args.cmd == "export-binds":
+        result, code = export_binds(args.path, args.replace, sys.stdin.read())
+        json.dump(result, sys.stdout, ensure_ascii=False)
+        sys.stdout.write("\n")
+        return code
     if args.cmd == "parse-binds":
         result = parse_binds(args.file, args.resolve)
         json.dump(result, sys.stdout, indent=2, ensure_ascii=False)
@@ -1938,6 +2239,16 @@ def main():
         json.dump(result, sys.stdout, indent=2, ensure_ascii=False)
         sys.stdout.write("\n")
         return 0 if result["ok"] else 1
+    if args.cmd == "keyreport-state":
+        result = keyreport_state(args.root)
+        json.dump(result, sys.stdout, ensure_ascii=False)
+        sys.stdout.write("\n")
+        return 0 if result["ok"] else 1
+    if args.cmd == "add-keyreport":
+        result, code = add_keyreport(args.expect, args.root)
+        json.dump(result, sys.stdout, ensure_ascii=False)
+        sys.stdout.write("\n")
+        return code
     if args.cmd == "set-programs":
         pairs = [tuple(x.split("=", 1)) if "=" in x else (x, "") for x in args.pairs]
         result = set_programs(pairs, args.root, args.dry_run)

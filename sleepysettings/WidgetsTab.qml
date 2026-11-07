@@ -16,6 +16,8 @@ TabPage {
     // one line per widget: grip (drag to reorder), name, shown
     Section {
         title: "Widgets"
+        // the keybind overlay's indicator is one of these: its reporter in hyprland.lua, offered with Set up
+        fileIds: ["keyreport"]
 
         OrderList {
             orderKey: "rightOrder"

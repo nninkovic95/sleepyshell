@@ -47,6 +47,7 @@ var LAYOUT = [
         { title: "Advanced", keys: ["updateMinutes", "rightPadding"] }] },
     { tab: "apps", section: "apps", cards: [
         { title: "Default apps", keys: ["defaultTerminal"] },
+        { title: "Password prompt", keys: ["polkitAgent"] },
         { title: "Apps on workspaces", keys: ["workspaceApps"] }] },
     { tab: "notifications", section: "notifications", cards: [
         { title: "Notifications", keys: ["dnd", "toastStack", "shotPreview"] },
@@ -131,6 +132,7 @@ var DOCS = {
     notifOrder: "Order of the notification list in the bell: newest or oldest first.",
     dnd: "Do not disturb: no toasts for normal notifications.",
     shotPreview: "Show the picture under a screenshot's notification.",
+    polkitAgent: "The shell answers apps that ask for an admin password; off leaves that to another polkit agent you run.",
     shotPreviewMax: "Tallest a screenshot preview gets, in pixels.",
     // idle
     idleDim: "Dim the screens after idle time while plugged in.",

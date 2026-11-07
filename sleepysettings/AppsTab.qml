@@ -217,6 +217,17 @@ TabPage {
                 }
 
                 Section {
+                    title: "Password prompt"
+
+                    SwitchRow {
+                        label: "Answer password prompts"
+                        key: "polkitAgent"
+                        info: "When an app needs admin rights, the shell asks for your password (it is the session's polkit agent). Turn it off only if you run another agent, such as hyprpolkitagent: two agents cannot both answer, and the first to start wins."
+                        tags: "polkit agent password admin authentication sudo hyprpolkitagent"
+                    }
+                }
+
+                Section {
                     title: "Apps on workspaces"
 
                     headerItems: InfoTip {

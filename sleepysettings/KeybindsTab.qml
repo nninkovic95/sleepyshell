@@ -27,6 +27,24 @@ TabPage {
     onDiscarding: Keybinds.discard()
 
     property string error: ""
+
+    // Apply onto a keybinds file Sleepysettings did not create: the exact lines, and nothing is written before the yes
+    Connections {
+        target: Keybinds
+        function onCustomAskChanged() {
+            const a = Keybinds.customAsk;
+            if (!a)
+                return;
+            const name = a.path.split("/").pop();
+            const lines = a.removed.map(l => "- " + l).concat(a.added.map(l => "+ " + l)).join("\n");
+            if (!tab.confirm) {
+                Keybinds.customAsk = null;
+                Keybinds.writeError = Settings.tilde(a.path) + " was not written by Sleepysettings and could not be changed here. Your changes are still there to apply.";
+                return;
+            }
+            tab.confirm.askLine("Change " + name + "?", "Sleepysettings did not create " + Settings.tilde(a.path) + ". Apply makes these changes (- removed, + added) and marks the file as managed by Sleepysettings, so it does not ask again. A backup is kept beside it (" + name + ".bak-<date-time>). Cancel writes nothing; your changes stay unapplied.", lines, () => Keybinds.confirmWrite(), "Change");
+        }
+    }
     // the Shell shortcuts section's last refusal ("" when none)
     property string shellError: ""
 
@@ -142,9 +160,9 @@ TabPage {
                         SmallText {
                             objectName: "keybindError"
                             // without the discovery (hyprconf.py could not run) the old test stands in for the file notice
-                            visible: tab.error !== "" || (!Keybinds.customEnabled && !Keybinds.discovered)
+                            visible: tab.error !== "" || Keybinds.writeError !== "" || (!Keybinds.customEnabled && !Keybinds.discovered)
                             color: Theme.urgentFg
-                            text: tab.error !== "" ? tab.error : "Hyprland doesn't load this file yet, so keybinds you add here won't work."
+                            text: tab.error !== "" ? tab.error : Keybinds.writeError !== "" ? Keybinds.writeError : "Hyprland doesn't load this file yet, so keybinds you add here won't work."
                         }
                     }
 
@@ -180,6 +198,9 @@ TabPage {
                             required property var modelData
                             // the bind that sends this action now (staged or in the file), or null
                             readonly property var bind: Keybinds.shellBindOf(modelData.event)
+                            // the binds load after the row: a suggestion goes once the action turns out to have a key
+                            onBindChanged: if (bind && shellCapture.combo === (modelData.suggested ?? ""))
+                                shellCapture.combo = ""
                             Layout.fillWidth: true
                             spacing: 6
 
@@ -199,6 +220,9 @@ TabPage {
                             }
                             KeyCapture {
                                 id: shellCapture
+                                // the suggested key, while the action has none
+                                Component.onCompleted: if (!shellRow.bind && shellRow.modelData.suggested)
+                                    combo = shellRow.modelData.suggested
                             }
                             BarButton {
                                 text: "Set key"
@@ -227,6 +251,14 @@ TabPage {
                         color: Theme.urgentFg
                         text: tab.shellError
                     }
+
+                    // the keybind overlay needs its reporter in hyprland.lua: the full notice, with Set up (asks first)
+                    FileNotice {
+                        objectName: "keyreportNotice"
+                        ids: ["keyreport"]
+                        tooltip: tab.tooltip
+                        Layout.fillWidth: true
+                    }
                 }
 
                 // export and import of keybinds: nothing is written before Add and Apply
@@ -237,6 +269,7 @@ TabPage {
                         objectName: "share"
                         folders: tab.folders
                         tooltip: tab.tooltip
+                        confirm: tab.confirm
                     }
                 }
 

@@ -6,15 +6,16 @@ import qs.services
 import qs.sleepysettings.components
 
 // The Keybinds tab's "Share keybinds" card: Export writes the binds added in Sleepysettings (or every bind Hyprland loads)
-// to a Lua file picked in the window's browser; Import reads a Lua file of hl.bind lines or a .conf file, shows what it would do
+// to a Lua file picked in the window's browser (a file that exists is replaced only after a yes, with a backup); Import reads a Lua file of hl.bind lines or a .conf file, shows what it would do
 // (new / already there / conflict, with a choice per conflict) and writes NOTHING until "Add to the list". Add only stages the binds, like
 // a bind added by hand; Apply writes sleepybinds.lua (after a backup). Everything that is not a command keybind is listed as not imported
 // with its line and why, and is never copied or run (services/Keybinds.qml, scripts/hyprconf.py parse-binds).
 ColumnLayout {
     id: share
-    // the window's file browser and tooltip (the tab passes them in)
+    // the window's file browser, tooltip and confirmation dialog (the tab passes them in)
     property var folders: null
     property var tooltip: null
+    property var confirm: null
     readonly property var plan: Keybinds.importPlan
     readonly property var counts: Keybinds.importPlan ? Keybinds.planCounts() : null
     spacing: 8
@@ -22,6 +23,24 @@ ColumnLayout {
     // the rows "already there" are folded away unless there are only a few (a long default list would bury the news)
     property bool showSame: false
     onPlanChanged: showSame = plan !== null && plan.items.length <= 8
+
+    // an export onto a file that exists is written only after a yes; a backup is kept beside it
+    Connections {
+        target: Keybinds
+        function onExportAskChanged() {
+            const path = Keybinds.exportAsk;
+            if (path === "")
+                return;
+            // without the dialog the file is never replaced; say so instead of doing nothing visible
+            if (!share.confirm) {
+                Keybinds.exportFailed = true;
+                Keybinds.exportMessage = Settings.tilde(path) + " already exists and could not be replaced here; nothing was written.";
+                return;
+            }
+            const name = path.split("/").pop();
+            share.confirm.askLine("Replace " + name + "?", "This file already exists. Export replaces it with your keybinds; a backup is kept beside it (" + name + ".bak-<date-time>). Cancel leaves it as it is.", Settings.tilde(path), () => Keybinds.exportTo(path, true), "Replace");
+        }
+    }
 
     // ---- export ----
     RowLayout {

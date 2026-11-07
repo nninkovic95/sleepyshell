@@ -16,9 +16,12 @@ Rectangle {
     required property var notif
     readonly property bool hovered: mouse.containsMouse
     readonly property bool critical: notif?.urgency === NotificationUrgency.Critical
-    // an app icon given as a file path (Hyprshot names the screenshot) loads as a file, like NotifCard:
-    // the icon theme lookup warned "Could not load icon" for it
-    readonly property string iconSource: Notifs.iconUrl(notif)
+    // the local icons this notification can show, best first, like NotifCard: an image that fails to
+    // load gives way to the app's icon, and with none left the bell shows
+    readonly property var iconSources: Notifs.iconUrls(notif)
+    property int iconTry: 0
+    onIconSourcesChanged: iconTry = 0
+    readonly property string iconSource: iconSources[iconTry] ?? ""
     implicitHeight: 34
     radius: Theme.radiusMd
     color: Qt.tint(Theme.popupBg, hovered ? Theme.hoverBg : "transparent")
@@ -39,6 +42,7 @@ Rectangle {
                 anchors.fill: parent
                 visible: row.iconSource !== ""
                 source: row.iconSource
+                onStatusChanged: if (status === Image.Error) row.iconTry++
             }
 
             Glyph {

@@ -83,6 +83,8 @@ TabPage {
             return "Nothing was written: the file is in a place Sleepy Shell doesn't write to (outside your home folder, or in a folder others can write).";
         case 8:
             return "Nothing was written: the lock that keeps two writes apart couldn't be used.";
+        case 9:
+            return "hypridle.conf wasn't changed: your settings file has a mistake. Fix the file, then Apply again.";
         }
         return "Writing hypridle.conf failed (exit " + code + ").";
     }
@@ -149,7 +151,10 @@ TabPage {
         // greyed out (hypridle or python3 missing, or the config file cannot be written): Apply only saves the keys, it runs nothing
         if (tab.needsText !== "" || tab.fileText !== "")
             return;
-        tab.error = "";
+        // a settings file that does not parse: idle.py would write hypridle.conf from the defaults
+        tab.error = Settings.brokenNote("hypridle.conf wasn't changed");
+        if (tab.error !== "")
+            return;
         tab.source = Battery.onBattery ? "--battery" : "--ac";
         tab.running = true;
         tab.awaitingCommit = true;
@@ -159,26 +164,39 @@ TabPage {
     function afterCommit() {
         tab.awaitingCommit = false;
         ackWait.stop();
+        tab.error = "";
         tab.run();
     }
 
+    // idle.py reads the saved file, so it runs only once the bar said the keys are saved; if the bar went away
+    // first they are still unapplied and nothing runs on the old file
     Connections {
         target: Settings
         function onCommitted(keys) {
             if (tab.awaitingCommit && keys.some(k => tab.keys.includes(k)))
                 tab.afterCommit();
         }
+        function onUnsaved(keys) {
+            if (!tab.awaitingCommit || !keys.some(k => tab.keys.includes(k)))
+                return;
+            tab.awaitingCommit = false;
+            ackWait.stop();
+            tab.running = false;
+            tab.error = "Your idle settings weren't saved: Sleepy Shell's bar stopped first. They're still unapplied; Apply again.";
+        }
     }
 
-    // no word from the bar within three seconds (it went away mid-apply): run anyway
+    // no word from the bar in 15 s (it hangs): the tab stops being busy so the window can close, and still runs
+    // idle.py if the answer comes later
     Timer {
         id: ackWait
-        interval: 3000
+        interval: 15000
         onTriggered: {
             if (!tab.awaitingCommit)
                 return;
-            console.warn("idle: no word from the bar that the idle settings were saved, running idle anyway");
-            tab.afterCommit();
+            console.warn("idle: no word from the bar that the idle settings were saved yet");
+            tab.running = false;
+            tab.error = "Still waiting for Sleepy Shell's bar to save your idle settings. hypridle.conf is updated once it has; keep this window open until then.";
         }
     }
 

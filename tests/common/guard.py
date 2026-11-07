@@ -32,10 +32,10 @@ TARGETS = [
     CONFIG / "mimeapps.list",
 ]
 # the repository's folders inside the shell folder (same list as REPO_DIRS in env.sh): the kit writes
-# under tests/ and git under .git/, so neither can count as a real file a test touched
-SKIP_DIRS = {".git", ".github", "tests", "docs", "gallery", "assets", "tools", "__pycache__"}
+# under tests/, git under .git/ and Claude Code under .claude/, so none of them can count as a real file a test touched
+SKIP_DIRS = {".git", ".github", ".claude", "tests", "docs", "gallery", "assets", "tools", "__pycache__"}
 # the repository's root documents (REPO_FILES in env.sh): edited by hand between runs, not by tests
-REPO_FILES = {"README.md", "TASKS.md", "LICENSE", "SECURITY.md", "CLAUDE.md", "CLAUDE.local.md", ".gitignore"}
+REPO_FILES = {"README.md", "TASKS.md", "LICENSE", "SECURITY.md", "CLAUDE.md", "CLAUDE.local.md", ".gitignore", "install.sh"}
 
 
 def sums():

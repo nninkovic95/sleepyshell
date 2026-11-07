@@ -99,6 +99,8 @@ Singleton {
     // the applied path of each file (what the consumers use) ...
     function pathOf(id) {
         switch (id) {
+        case "keyreport":
+            return Quickshell.shellPath("data/keyreport.lua");
         case "settings":
             return Settings.path;
         case "hypridle":
@@ -150,6 +152,8 @@ Singleton {
         if (!Deps.has("python3"))
             return;
         root.findIdle();
+        if (!keyreportProc.running && HyprConfig.dir !== "")
+            keyreportProc.running = true;
         if (check.running) {
             root.again = true;
             return;
@@ -253,6 +257,8 @@ Singleton {
     }
 
     function problem(id) {
+        if (id === "keyreport")
+            return root.keyreportProblem();
         const path = root.pathOf(id);
         const r = root.info(path);
         const ab = root.about[id];
@@ -344,6 +350,36 @@ Singleton {
         return null;
     }
 
+    // ---- the keybind overlay's reporter (data/keyreport.lua), which hyprland.lua has to load before its binds ----
+    // what `hyprconf.py keyreport-state` said: { ok, format, main, line, sha, loaded, message }, null until it answered.
+    // A problem only while the overlay can be switched on: its shortcut is set (the only way to switch it).
+    property var keyreport: null
+    function keyreportProblem() {
+        const k = root.keyreport;
+        const used = Keybinds.shellBindOf("sleepyshell:keys") !== null;
+        if (!used || !k || k.loaded)
+            return null;
+        const shown = Settings.tilde(k.main ?? HyprConfig.main);
+        if (!k.ok)
+            return root.make("keyreport", "noConfig", false, "The keybind overlay can't name your keybinds: " + root.esc(k.message), root.tipOf("It needs one line in hyprland.lua that loads the shell's key reporter.", shown));
+        return root.make("keyreport", "notLoaded", false, "Hyprland doesn't load the key reporter yet, so the keybind overlay can't name your keybinds. Set up adds it.",
+            root.tipOf("The reporter tells the shell which keybind was used, only while the overlay is on; it never sees typing. Set up adds the line " + root.esc(k.line) + " at the top of " + root.b("hyprland.lua") + ", before the keybinds, after you confirm, and keeps a backup. You can add it yourself instead.", shown),
+            { requireLine: k.line, action: "setup", actionText: "Set up" });
+    }
+    Process {
+        id: keyreportProc
+        command: ["python3", HyprConfig.script, "keyreport-state", "--root", HyprConfig.dir]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.keyreport = JSON.parse(text);
+                } catch (e) {
+                    root.keyreport = null;
+                }
+            }
+        }
+    }
+
     // what a notice's button does
     function act(p) {
         switch (p.action) {
@@ -401,7 +437,9 @@ Singleton {
         if (p === "" || root.setupBusy !== "")
             return;
         root.setupBusy = id;
-        setup.command = ["python3", HyprConfig.script, "add-require", p, "--root", HyprConfig.dir];
+        // the reporter's line goes above the binds, and only the line that was shown (its hash)
+        setup.command = id === "keyreport" ? ["python3", HyprConfig.script, "add-keyreport", "--expect", root.keyreport ? root.keyreport.sha : "", "--root", HyprConfig.dir]
+                                           : ["python3", HyprConfig.script, "add-require", p, "--root", HyprConfig.dir];
         setup.running = true;
     }
 
