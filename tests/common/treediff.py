@@ -15,7 +15,7 @@ from pathlib import Path
 
 STATE = ["sleepysettings.toml", "sleepysettings.toml.*", "settings.json", "settings.json.*"]
 SKIP_DIRS = {".git", ".github", ".claude", "tests", "docs", "gallery", "assets", "tools", "__pycache__"}
-REPO_FILES = {"README.md", "TASKS.md", "LICENSE", "SECURITY.md", "CLAUDE.md", "CLAUDE.local.md", ".gitignore"}
+REPO_FILES = {"README.md", "TASKS.md", "LICENSE", "SECURITY.md", "CLAUDE.md", "CLAUDE.local.md", ".gitignore", "install.sh"}
 
 
 def files(root):

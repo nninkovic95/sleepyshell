@@ -1,7 +1,8 @@
 # Security policy
 
 sleepyshell is a desktop shell for Hyprland, written in Quickshell (QML) with Python helpers. It runs as the
-logged-in user, holds no extra privileges and never asks for root. Four processes share one folder: the bar
+logged-in user, holds no extra privileges and never asks for root (the installer, `install.sh`, uses sudo for
+the steps named under "What the installer does"). Four processes share one folder: the bar
 (`qs -c sleepyshell`, also the notification daemon and the polkit agent), the settings app (Sleepysettings),
 the lock screen (Sleepylock) and the Keybinds window.
 
@@ -177,6 +178,40 @@ named under `hypridle.conf`.
   for the user to install and never installed by the shell.
 - Night light's sunrise and sunset are computed locally from the coordinates the user typed; nothing is
   fetched.
+
+## What the installer does
+
+`install.sh` runs as the user, from the clone, and refuses to start as root, outside a Hyprland 0.55+ session
+with `hyprland.lua`, or on a system that is not Arch-based. It asks every question first, shows a summary of
+everything it will install, create, change and enable, and does nothing before a yes to that summary (`--dry-run`
+stops there). The one step before the summary is installing Python 3 when it is missing, after its own question:
+the installer's helpers need it.
+
+- **Packages:** `sudo pacman -S --needed` for the repository packages of the parts picked; AUR packages only
+  through an AUR helper the user already has, or through paru built from the AUR (`paru-bin`, `makepkg`) after a
+  question that says what will be downloaded and built. Which packages are in the repositories is read from
+  pacman's local database; the AUR is never queried.
+- **System changes, each after its own question (default No):** enabling NetworkManager, bluetooth,
+  power-profiles-daemon (system units, through sudo) and hypridle (a user unit); NetworkManager is not offered
+  while iwd, systemd-networkd or connman runs, nor power-profiles-daemon while TLP, tuned or auto-cpufreq does.
+  The i2c-dev module is loaded at boot only through a new `/etc/modules-load.d/i2c-dev.conf` after a question; an
+  existing file there is left alone. The udev rule for the display buses is not installed.
+- **New files of its own:** the link `~/.config/quickshell/sleepyshell` to the clone; `sleepysettings.toml` from
+  `data/default-settings.toml` when there is no settings file (an old `settings.json` is left for the shell to
+  migrate); `~/.config/hypr/modules/sleepyshell.lua` (starts the shell, its window and layer rules, and the
+  shell's keys where they are free); `sleepybinds.lua` and `hypridle.conf` when they do not exist; matugen's
+  `config.toml` when there is none.
+- **Files of the user's, each only after a question that shows the change, with a copy kept first:** an
+  existing `~/.config/quickshell/sleepyshell` (moved aside, never deleted); a `sleepyshell.lua` the installer did
+  not write (replaced); `hyprland.lua` (one `require` line, through `hyprconf.py add-require`); the matugen config
+  (the colours template's lines appended); and the first theme run, which rewrites every file the matugen config
+  lists, named in the question. A file that changed between the question and the write is not written. The
+  installer's own module is rewritten on a later run when its text changes, with a copy kept.
+- **Not changed:** other bars, notification daemons, polkit agents or wallpaper programs the config starts, and
+  keys the config already binds; the final report names them instead.
+- **The record:** every package installed (explicit or a dependency, repository or AUR), service enabled, link,
+  file created, moved or changed, with the copies, goes into `$XDG_STATE_HOME/sleepyshell/install/manifest.tsv`;
+  the copies are under `backups/<run>/` beside it, and each run's report is kept there.
 
 ## Known limitations
 

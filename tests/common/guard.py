@@ -35,7 +35,7 @@ TARGETS = [
 # under tests/, git under .git/ and Claude Code under .claude/, so none of them can count as a real file a test touched
 SKIP_DIRS = {".git", ".github", ".claude", "tests", "docs", "gallery", "assets", "tools", "__pycache__"}
 # the repository's root documents (REPO_FILES in env.sh): edited by hand between runs, not by tests
-REPO_FILES = {"README.md", "TASKS.md", "LICENSE", "SECURITY.md", "CLAUDE.md", "CLAUDE.local.md", ".gitignore"}
+REPO_FILES = {"README.md", "TASKS.md", "LICENSE", "SECURITY.md", "CLAUDE.md", "CLAUDE.local.md", ".gitignore", "install.sh"}
 
 
 def sums():

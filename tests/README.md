@@ -82,7 +82,7 @@ Run them from this folder.
 | Command | What it does |
 |---|---|
 | `bash run.sh` | Selftest, then every test of every area. |
-| `bash run.sh settings` | One area: `settings`, `keys`, `bar`, `lock`, `kit`. |
+| `bash run.sh settings` | One area: `settings`, `keys`, `bar`, `lock`, `kit`, `install`. |
 | `bash run.sh settings/export-asks.test.py` | One test. |
 | `bash run.sh --twice …` | Each test twice; different results fail (determinism). |
 | `bash run.sh --watch …` | Watch the test screen in a view-only VNC viewer. |
@@ -119,6 +119,7 @@ tests/
 ├── bar/            the bar: islands, session menu, notifications, the settings link, images
 ├── lock/           the lock screen
 ├── kit/            the kit itself (watch mode)
+├── install/        the installer: every question, refusal and record, with stand-ins for pacman, sudo and the rest
 ├── fixtures/       a small Hyprland config every whole-window test starts with
 ├── refs/           reference images of the visual checks
 ├── preview.sh      run a candidate as the bar
@@ -159,6 +160,9 @@ every setting uses) over many per-setting tests; no variations that can't fail i
   folder. One exception: `lock/hypridle-restart.test.sh` needs the user's systemd (a transient stand-in
   unit for hypridle and the lock's scope), so it runs outside the sandbox, keeps its files in the run
   folder, never touches the real hypridle or lock file, and shows its units gone at the end.
+- The installer's tests (`install/`) run install.sh against stand-ins of every program that installs, enables or
+  starts something (`install/stub.py`): no package is ever installed and no service enabled, on the machine or
+  in the sandbox.
 - No new packages for the shell. The kit itself needs `sway` (the private test desktop), `grim`
   (screenshots) and `lua` (the key reporter's test), and for watch mode only `wayvnc` and `tigervnc`.
 - Never test the lock against the account's PAM; lock tests use the test stack (`ui.pam_stack`).

@@ -1070,7 +1070,11 @@ Singleton {
 
     // why a setting does nothing on this machine right now, for a second comment line ("" when it works): a program its tab needs
     // is missing, or it is a laptop setting and there is no battery (greyed settings say why in the file too)
+    // false while rendering the defaults file the repository ships (tools/default-settings.sh): it must not depend on the machine
+    property bool machineNotes: true
     function idleWhy(L, card, k) {
+        if (!root.machineNotes)
+            return "";
         const missing = (L.needs ?? []).filter(p => !Deps.has(p));
         if (missing.length > 0)
             return "Has no effect without " + missing.join(" and ") + " installed.";

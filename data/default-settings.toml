@@ -1,0 +1,366 @@
+# Sleepyshell settings. Every option of the shell is here, laid out like the settings window (Sleepysettings): one [section]
+# per tab in the same order, and inside it the same cards (the ---- Title ---- lines) in the same order.
+#
+# How to edit:
+#   - Change a value after the = and save. The shell picks it up at once; no restart is needed.
+#   - Text goes in quotes ("HH:mm"), switches are true or false, numbers are plain (30, 0.55, -2).
+#   - A list goes in square brackets: ["clock", "network", "battery"].
+#   - The comment above each setting says what it does, the values it accepts and its default.
+#   - To go back to a default, delete the line (or the whole file): the default comes back and Apply writes it here.
+#   - Paths may start with ~ for your home folder.
+#
+# If something here is wrong (a missing quote, a word where a number belongs), the settings window names the line and
+# keeps your last working settings; nothing is overwritten until you fix it. Settings you add that the shell does not know
+# stay in their section. The settings window rewrites this file on Apply and keeps these comments.
+
+# The bar: sizes and look.
+[sleepybar]
+# ---- Bar ----
+# Height of the bar in pixels. Range 24 to 40. Default: 30.
+barHeight = 30
+
+# Text size on the bar, in pixels. Range 11 to 18. Default: 14.
+barFontSize = 14
+
+# Icon size on the bar, in pixels. Range 14 to 24. Default: 18.
+barIconSize = 18
+
+# ---- Dropdowns ----
+# Text size in dropdowns and panels, in pixels. Range 11 to 16. Default: 13.
+fontSize = 13
+
+# Icon size in dropdowns and panels, in pixels. Range 14 to 20. Default: 16.
+iconSize = 16
+
+# ---- Look ----
+# How opaque the islands are (1 is solid). Range 0.2 to 1. Default: 0.55.
+barOpacity = 0.55
+
+# Blur behind see-through islands and windows, set in Hyprland: config (Hyprland's own value), off, light, medium or strong. Hyprland has one blur for everything. Default: "config".
+blurStrength = "config"
+
+# How round the corners are: sharp, default or round, or a number for the island corner radius in pixels. Default: "default".
+corners = "default"
+
+# ---- Islands ----
+# How long an island takes to open or close, in milliseconds (0 opens at once). Range 0 to 800. Default: 260.
+islandAnimMs = 260
+
+# How an island's opening speeds up and slows down: standard, smooth, snappy or linear. Default: "standard".
+islandEasing = "standard"
+
+# ---- Popups and indicators ----
+# Show Caps Lock on or off in the clock island when it is pressed. Default: true.
+capsPeek = true
+
+# How long the clock island shows the volume or Caps Lock after a change, in milliseconds. Range 500 to 3000. Default: 1200.
+peekMs = 1200
+
+# ---- Advanced ----
+# Moves the bar's icons up (negative) or down by a pixel or two so they sit level with the text. Range -3 to 3. Default: 0.
+iconNudge = 0
+
+# How tiles react to the pointer: lift, tilt (lift and lean toward the pointer), or a number for the lean strength in percent of the standard one. Default: "tilt".
+cardHover = "tilt"
+
+# The left island: the workspace dots.
+[left-island]
+# ---- Workspaces ----
+# Workspaces 1 to this number always have a dot. Range 1 to 10. Default: 5.
+workspaces = 5
+
+# Shape of the workspace dots: circle, square, triangle or number, or any short text (a glyph) to draw on each dot. Default: "circle".
+workspaceShape = "circle"
+
+# ---- Advanced ----
+# The active disc slides slower and the dots it passes lift. Default: false.
+workspaceWave = false
+
+# Space between the left island's edges and its contents, in pixels. Range 0 to 16. Default: 6.
+leftPadding = 6
+
+# The centre island: the clock and the control centre.
+[centre-island]
+# ---- Clock ----
+# Clock text size, in pixels. Range 13 to 26. Default: 20.
+clockSize = 20
+
+# Show the date under the clock. Default: true.
+showDate = true
+
+# ---- Next to the clock ----
+# Show the CPU and memory readout in the centre island. Default: true.
+centreSysinfo = true
+
+# Show the audio widget in the centre island. Default: true.
+centreAudio = true
+
+# Which widget sits left of the clock: sysinfo or audio (the other goes right). Default: "sysinfo".
+centreLeft = "sysinfo"
+
+# ---- Shape ----
+# The closed clock island is stepped: the clock part reaches lower than the widgets beside it. Default: true.
+centreStep = true
+
+# The open control centre's middle column hangs lower than the two side columns. Default: true.
+centreUneven = true
+
+# ---- Control centre ----
+# Open the control centre when the pointer rests on the clock. Default: true.
+hoverOpen = true
+
+# Order of the control centre's quick-setting tiles, comma-separated names. Default: "wifi,bluetooth,dnd,awake,profile,night".
+tilesOrder = "wifi,bluetooth,dnd,awake,profile,night"
+
+# Tiles left out of the control centre, comma-separated names. Default: "".
+tilesHidden = ""
+
+# Order of the control centre's tools, comma-separated names (and ids of your own tools). Default: "keybinds,wallpaper,picker,calendar,mixer,palette,settings,shuffle".
+toolsOrder = "keybinds,wallpaper,picker,calendar,mixer,palette,settings,shuffle"
+
+# Tools left out of the control centre, comma-separated names. Default: "picker,shuffle".
+toolsHidden = "picker,shuffle"
+
+# Tools you added, as JSON text: a list of { id, label, icon, kind, value, terminal }. Easier to edit in the settings window. Default: [].
+customTools = []
+
+# Labels and icons you gave built-in tools, as JSON text. Easier to edit in the settings window. Default: {}.
+toolOverrides = '{}'
+
+# ---- Advanced ----
+# The clock's typeface (an installed font family). Default: "IBM 3270".
+clockFont = "IBM 3270"
+
+# The clock's time format, a Qt format string such as HH:mm (HH:mm:ss shows seconds). Default: "HH:mm".
+clockFormat = "HH:mm"
+
+# The date's format, a Qt format string such as ddd d MMM. Default: "ddd d MMM".
+dateFormat = "ddd d MMM"
+
+# How long the control centre stays open after the pointer leaves, in milliseconds. Range 100 to 1500. Default: 350.
+hoverCloseMs = 350
+
+# The right island: which widgets show and in what order.
+[right-island]
+# ---- Widgets ----
+# Order of the right island's widgets, comma-separated names. Default: "updates,network,bluetooth,privacy,notifications,clipboard,tray".
+rightOrder = "updates,network,bluetooth,privacy,notifications,clipboard,tray"
+
+# Right-island widgets that are switched off, comma-separated names. Default: "".
+rightHidden = ""
+
+# How a widget's dropdown meets its island: extend (the island widens so the panel hangs flush under it) or float (a separate card under the island). Default: "extend".
+dropdownFit = "extend"
+
+# ---- Advanced ----
+# How often the updates widget checks for package updates, in minutes. Range 5 to 180. Default: 30.
+updateMinutes = 30
+
+# Space between the right island's edges and its widgets, in pixels. Range 0 to 16. Default: 8.
+rightPadding = 8
+
+# Default terminal and the apps that start on a workspace.
+[apps]
+# ---- Default apps ----
+# Program name of the terminal emulator. Default: "kitty".
+defaultTerminal = "kitty"
+
+# ---- Apps on workspaces ----
+# Apps that start on a workspace, as JSON text of a list. Easier to edit in the settings window. Default: "[]".
+workspaceApps = '[]'
+
+# Notifications.
+[notifications]
+# ---- Notifications ----
+# Do not disturb: no toasts for normal notifications. Default: false.
+dnd = false
+
+# Where a new notification toast goes: top (newest on top) or bottom. Default: "top".
+toastStack = "top"
+
+# Show the picture under a screenshot's notification. Default: true.
+shotPreview = true
+
+# ---- Advanced ----
+# How many notification toasts show at once. Range 1 to 8. Default: 4.
+toastMax = 4
+
+# Tallest a screenshot preview gets, in pixels. Range 100 to 360. Default: 200.
+shotPreviewMax = 200
+
+# Order of the notification list in the bell: newest or oldest first. Default: "newest".
+notifOrder = "newest"
+
+# Theme colours (read by scripts/theme.py).
+[theme]
+# ---- Colours ----
+# The theme: empty for Sleepytheme (colours from the wallpaper), or a community theme as "family:variant", for example "tokyonight:night" (the families are the files in themes/). Default: "".
+themePreset = ""
+
+# matugen's colour scheme, such as scheme-vibrant. Default: "scheme-vibrant".
+themeScheme = "scheme-vibrant"
+
+# dark or light. Default: "dark".
+themeMode = "dark"
+
+# Distance between text and background colours: -1 (lowest) to 1 (highest), 0 is matugen's standard. Default: 0.
+themeContrast = 0
+
+# ---- Appearance ----
+# The icon theme by its folder name (for example "Papirus-Dark"); empty leaves the system's choice alone. Only installed themes work. Default: "".
+iconTheme = ""
+
+# Folder icons in the theme's colours (an extra icon theme on top of the chosen one, made by matugen). Default: false.
+folderColours = false
+
+# The font apps use for menus and labels (a font family name, for example "Inter"); empty leaves the system's choice alone. Default: "".
+gtkFont = ""
+
+# The size of that font, in points. Range 8 to 24. Default: 11.
+gtkFontSize = 11
+
+# ---- Wallpaper ----
+# Change the wallpaper by itself every so often. Default: false.
+wallpaperAuto = false
+
+# How often, in minutes: 5, 10, 15, 30, 60, 120, 180, 360, 720 or 1440, or "custom" for wallpaperCustomMin. Default: "60".
+wallpaperEvery = "60"
+
+# Minutes between wallpaper changes when wallpaperEvery is "custom". Range 5 to 1440. Default: 45.
+wallpaperCustomMin = 45
+
+# random (any other picture) or name (the wallpaper folder in file-name order, starting over at the end). Default: "random".
+wallpaperOrder = "random"
+
+# Also change the wallpaper each time you log in. Default: false.
+wallpaperOnLogin = false
+
+# ---- Advanced ----
+# Pull the seed colour taken from the wallpaper into cool hues. Default: true.
+themeCoolHues = true
+
+# Folder with your wallpapers. Default: "~/Pictures/Wallpapers".
+wallpaperDir = "~/Pictures/Wallpapers"
+
+# Idle timers (read by scripts/idle.py, which writes hypridle.conf).
+[idle]
+# ---- Idle timers ----
+# Dim the screens after idle time while plugged in. Default: true.
+idleDim = true
+
+# Minutes of idle time before dimming while plugged in. Range 1 to 60. Default: 5.
+idleDimMin = 5
+
+# Lock the screen after idle time while plugged in. Default: true.
+idleLock = true
+
+# Minutes of idle time before locking while plugged in. Range 1 to 120. Default: 10.
+idleLockMin = 10
+
+# ---- On battery ----
+# Dim the screens after idle time on battery. Default: true.
+idleBatDim = true
+
+# Minutes of idle time before dimming on battery. Range 1 to 60. Default: 2.
+idleBatDimMin = 2
+
+# Lock the screen after idle time on battery. Default: true.
+idleBatLock = true
+
+# Minutes of idle time before locking on battery. Range 1 to 120. Default: 5.
+idleBatLockMin = 5
+
+# ---- Advanced ----
+# Sleep after idle time while plugged in. Default: false.
+idleSuspend = false
+
+# Minutes of idle time before going to sleep while plugged in. Range 5 to 240. Default: 30.
+idleSuspendMin = 30
+
+# Sleep after idle time on battery. Default: true.
+idleBatSuspend = true
+
+# Minutes of idle time before going to sleep on battery. Range 5 to 240. Default: 15.
+idleBatSuspendMin = 15
+
+# Lock the screen before the machine goes to sleep. Default: true.
+lockBeforeSleep = true
+
+# Laptop power: battery warnings, power profiles, the lid.
+[power]
+# ---- Plugged in ----
+# Power profile to switch to when the charger is connected: keep, power-saver, balanced or performance. Default: "balanced".
+profileAc = "balanced"
+
+# What closing the lid does while plugged in: lock, suspend (sleep), hibernate, nothing, or cmd: followed by a command that sh -c runs only then. Default: "lock".
+lidAc = "lock"
+
+# ---- On battery ----
+# Power profile to switch to when the charger is unplugged: keep, power-saver, balanced or performance. Default: "power-saver".
+profileBat = "power-saver"
+
+# What closing the lid does on battery: lock, suspend (sleep), hibernate, nothing, or cmd: followed by a command that sh -c runs only then. Default: "suspend".
+lidBat = "suspend"
+
+# Send one notification when the charge falls to the low level. Default: true.
+lowBatteryWarn = true
+
+# Charge in percent at which the low battery warning comes. Range 5 to 50. Default: 15.
+lowBatteryPct = 15
+
+# ---- Advanced ----
+# Charge in percent at which the critical warning and its countdown start. Range 2 to 20. Default: 5.
+criticalPct = 5
+
+# What happens 60 seconds after the critical warning: suspend (sleep), hibernate, none, or cmd: followed by a command that sh -c runs only then. Default: "suspend".
+criticalAction = "suspend"
+
+# Monitors and night light.
+[display]
+# ---- Several monitors ----
+# Name of the main monitor (empty: the first one). Default: "".
+mainMonitor = ""
+
+# What the other monitors get: full, lean (workspaces and clock) or none. Default: "full".
+otherMonitors = "full"
+
+# ---- Night light ----
+# Night light colour temperature in kelvin (lower is warmer). Range 2500 to 6500. Default: 4500.
+nightWarmth = 4500
+
+# Night light strength in percent. Range 0 to 100. Default: 100.
+nightStrength = 100
+
+[keybinds]
+# ---- Descriptions ----
+# Your own descriptions of keybinds, by key combination, shown in the Keybinds window. Easier to edit on the Keybinds tab (the pencil on a row). Default: {}.
+keybindNotes = '{}'
+
+# Where the files this shell reads and writes live, and how the settings window lists tabs.
+[config]
+# ---- Hyprland ----
+# The Hyprland file that holds the keybinds you add here. Default: "~/.config/hypr/modules/sleepybinds.lua".
+pathCustombinds = "~/.config/hypr/modules/sleepybinds.lua"
+
+# Keybind files Hyprland loads in some way the settings window cannot see. Default: [].
+keybindExtraFiles = []
+
+# The Hyprland file that holds your monitor settings. Default: "~/.config/hypr/modules/monitors.lua".
+pathMonitors = "~/.config/hypr/modules/monitors.lua"
+
+# The hypridle config that scripts/idle.py writes. Empty: the file hypridle reads, found from how it is started (its -c, else ~/.config/hypr/hypridle.conf). A path here is read by hypridle only when it is started with -c and that path. Default: "".
+pathHypridle = ""
+
+# ---- Theme ----
+# The colours file that matugen writes and the shell watches. Default: "~/.local/state/quickshell/colors.json".
+pathColors = "~/.local/state/quickshell/colors.json"
+
+# ---- Window ----
+# List tabs that cannot work here (a missing program, no battery) greyed out instead of hiding them. Default: false.
+showUnavailableTabs = false
+
+# State of the settings window itself.
+[settings-window]
+# ---- Remembered by the settings window (no need to edit) ----
+# Tabs whose Advanced fold is left open, comma-separated tab keys. Default: "".
+advancedOpen = ""

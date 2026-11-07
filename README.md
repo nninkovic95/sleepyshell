@@ -7,6 +7,9 @@ Python helpers. Floating islands on the top edge, a control centre, notification
 polkit agent, a lock screen, a keybinds window and a full settings app, all themed from your wallpaper or from
 a community colour theme.
 
+**Hyprland only.** Sleepy Shell runs on Hyprland 0.55 or newer with the Lua config (`hyprland.lua`), on Arch
+Linux and Arch-based distributions; the installer refuses anything else.
+
 **Built to be modified.** sleepyshell is plain QML and Python with no build step: every widget is a folder,
 every settings tab is a file, every setting is one line in a schema, and the bar reloads itself when you save.
 A test kit in the repository lets you compile, preview and deploy a change with a backup and an automatic
@@ -317,23 +320,47 @@ The test kit (`tests/`, for development) also needs sway, grim and lua, and its 
 
 ## Install
 
-Clone it anywhere and link it where Quickshell looks, or clone it straight into that folder:
+For Hyprland only: 0.55 or newer with `hyprland.lua`, on Arch Linux or an Arch-based distribution. Clone the
+repository anywhere and run the installer as your own user, from a terminal inside Hyprland:
 
 ```sh
 git clone https://github.com/nninkovic95/sleepyshell ~/dev/sleepyshell
-ln -s ~/dev/sleepyshell ~/.config/quickshell/sleepyshell
+~/dev/sleepyshell/install.sh
 ```
 
-Start it with your session, in `hyprland.lua`:
+1. **Pick the parts.** Each optional dependency from [Dependencies](#dependencies) is a part with a line saying
+   what it enables, and all of them start picked. The shell, Quickshell, the Nerd Font and Python 3 are always
+   installed.
+2. **Answer the questions.** On plain Arch, paru, walker, elephant and pwvucontrol come from the AUR; without
+   paru or yay the installer asks whether to build paru or leave them out. Each system service it could
+   enable (NetworkManager, bluetooth, power-profiles-daemon, hypridle) and the i2c-dev module for monitor
+   brightness is a question of its own, No unless you say yes. Each file of yours it would change is shown
+   with the exact change first.
+3. **Read the summary.** Everything it will install, create, change and enable, before anything happens.
+   `--dry-run` stops here.
+4. **Read the report.** What was done, which files of yours changed and where their copies are, and what is
+   left for you, with the command for each step it did not take.
 
-```lua
-hl.on("hyprland.start", function()
-    hl.exec_cmd("awww-daemon")   -- the wallpaper daemon (or swww-daemon)
-    hl.exec_cmd("qs -c sleepyshell")
-end)
-```
+What it sets up:
 
-The shell is also your notification daemon and polkit agent, so stop any other you were running.
+- `~/.config/quickshell/sleepyshell`, a link to the clone, where Quickshell looks.
+- The default settings (`data/default-settings.toml`) as `sleepysettings.toml`, when there is no settings file.
+- `~/.config/hypr/modules/sleepyshell.lua`, a module of its own: it starts the shell and the wallpaper daemon
+  with Hyprland, floats the shell's windows, blurs its surfaces, and binds SUPER + ESCAPE (session menu),
+  SUPER + L (lock) and Caps Lock (the indicator) where those keys are free. One `require` line in
+  `hyprland.lua` loads it, after you say yes.
+- The Keybinds tab's file `sleepybinds.lua` (with SUPER + / for the Keybinds window) and `hypridle.conf`, when
+  they do not exist yet.
+- The bar's colours template in matugen's config, and a first theme run; every file the theme run rewrites is
+  named in its question and copied first.
+
+The interface is full-screen and needs nothing but bash; `--plain` asks plain questions instead (also chosen by
+itself when the terminal cannot show it). Everything it did is recorded in `~/.local/state/sleepyshell/install/`:
+`manifest.tsv`, copies of every file of yours it changed, and each run's report. Running it again changes only
+what is missing.
+
+The shell is also your notification daemon and polkit agent: the report names any other bar, notification
+daemon, polkit agent or wallpaper program your config starts, so you can remove it.
 
 Then open **Sleepysettings** (the gear in the control centre, or
 `qs -c sleepyshell ipc call sleepybar toggle settings`). Its Config tab checks every file the shell needs and
@@ -390,7 +417,9 @@ Everything below is a normal edit of a text file, picked up by the running shell
 - **Add a setting.** One entry in the `schema` of `services/Settings.qml` (its tab, default and range), one
   sentence in `services/SettingsDocs.js` (it becomes the comment in the settings file) and one row in the tab's
   file (`NumberRow`, `ChoiceRow`, `SwitchRow`, each with a label, an info tip and search tags). Staging, live
-  preview, Apply, Discard, revert-to-default, search and the file write come for free.
+  preview, Apply, Discard, revert-to-default, search and the file write come for free. Then
+  `tools/default-settings.sh` renders the settings file the installer ships again (a test of the kit fails until
+  it matches the schema).
 - **Add a widget.** A folder under `sleepybar/widgets/` with the piece that sits on the bar and its dropdown.
   Register it by name in `sleepybar/islands/Sleepyright.qml` and add the name and its label to
   `services/Settings.qml`; it then appears in the Right island tab where it can be reordered and hidden. A
@@ -428,6 +457,7 @@ sleepyshell/
 ├── sleepysettings.qml     the settings app, its own process
 ├── sleepylock.qml         the lock screen, its own process
 ├── sleepykeys.qml         the Keybinds window, its own process
+├── install.sh             the installer: packages, the link, the Hyprland module, the first theme run
 ├── Theme.qml              colours, corners, sizes and motion for all of them
 ├── components/            pieces two or more programs use: buttons, switch, slider, highlight, toast
 ├── services/              system state and logic: settings, audio, network, power, monitors, keybinds
@@ -444,12 +474,13 @@ sleepyshell/
 ├── sleepylock/            the lock screen's surfaces
 ├── sleepykeys/            the Keybinds window
 ├── scripts/               Python and shell helpers
-├── themes/, templates/    community colour themes, folder-icon templates
-├── data/                  the Material icon index, Hyprland's default binds
+├── themes/, templates/    community colour themes, the bar's colours template, folder-icon templates
+├── data/                  the Material icon index, Hyprland's default binds, the default settings
 ├── tests/                 the test kit: sandbox, compile gate, preview, deploy, focused tests
 ├── gallery/               the recordings: an index of the clips
 ├── assets/                the clips (animated WebP) and the screenshots
-├── tools/merge-dev.sh     merges dev into main without the dev-only paths
+├── tools/                 merge-dev.sh (dev into main without the dev-only paths), the installer's helper,
+│                          default-settings.sh (renders data/default-settings.toml from the schema)
 ├── .github/               CI (dev-only guard, Claude reviews, weekly audit, releases) and the git hooks
 └── SECURITY.md            the security policy: reporting, and what the shell trusts, runs and writes
 ```
@@ -498,6 +529,11 @@ exactly what will change and you say yes, and a backup is kept beside it:
 - **A keybind export**: a file that already exists is replaced only after you confirm it.
 - **`hypridle.conf`**: a missing file is created only after you see its path and content; a file you wrote
   yourself is replaced only after you say yes.
+- **The installer**: `hyprland.lua` (one `require` line), the matugen config (the colours template), an
+  existing `~/.config/quickshell/sleepyshell` (moved aside) and the files the first theme run rewrites, each
+  only after a question that shows the change, with a copy kept and recorded; a file that changed after the
+  question is not written. System services and the i2c-dev module are separate questions, and nothing
+  happens before you confirm the summary.
 
 There is one exception, and it only concerns the shell's own file: on a laptop, the bar rewrites the
 `hypridle.conf` it wrote itself when the charger is plugged in or out, to switch between the plugged-in and the
@@ -506,7 +542,8 @@ on-battery timers. A file you wrote is never touched that way.
 The desktop settings you pick (default apps, icon theme, interface font, light or dark) are applied when you
 press Apply, and the Apply bar names what will be written first. Theming writes the colour files your own
 matugen config lists. The shell never asks for root, never installs anything (install commands are shown,
-never run) and makes no network connections itself. The full list of what it reads, runs and writes is in
+never run) and makes no network connections itself; only the installer installs packages, through pacman and
+an AUR helper, after its summary. The full list of what it reads, runs and writes is in
 [SECURITY.md](SECURITY.md).
 
 ### How the shell is checked

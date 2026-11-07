@@ -2,7 +2,7 @@
 # run.sh [--twice] [--watch] [--update-refs] [--no-selftest] [AREA|TEST...]: run the suite, or some areas or tests.
 #
 #   bash tests/run.sh                       selftest, then every test of every area
-#   bash tests/run.sh settings              one area (a folder: settings, keys, bar, lock, kit)
+#   bash tests/run.sh settings              one area (a folder: settings, keys, bar, lock, kit, install)
 #   bash tests/run.sh settings/export.test.py   one test
 #   --twice        run each test twice and fail when the two runs print different results (determinism)
 #   --watch        share the private test screen live and view-only in a VNC viewer on the desktop (wayvnc on a Unix
@@ -16,7 +16,7 @@
 # test's PASS/FAIL lines, then one summary line per test and the totals; exits 1 if any test failed.
 set -uo pipefail
 . "$(dirname "$(readlink -f "$0")")/common/env.sh"
-AREAS=(settings keys bar lock kit)
+AREAS=(settings keys bar lock kit install)
 TWICE=0 SELFTEST=1 TREE=
 args=()
 next_is_tree=0

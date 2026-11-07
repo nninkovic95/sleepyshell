@@ -28,5 +28,8 @@ PKGBUILD
 *.install
 .github/*
 tools/*.sh
+tools/install.py
+tools/default-settings.*
+tests/install/*
 tests/deploy.sh
 tests/common/*
