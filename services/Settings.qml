@@ -208,6 +208,7 @@ Singleton {
             // ---- BEGIN apps (Apps tab) ----
             // the terminal emulator's program name (services/DefaultApps.qml); the other defaults live in mimeapps.list
             defaultTerminal: { tab: "apps", def: "kitty" },
+            polkitAgent: { tab: "apps", def: true },
             // the apps that start on a workspace: a JSON text of a list (services/WorkspaceApps.qml documents the entries);
             // a string so a draft compares and resets like any other key
             workspaceApps: { tab: "apps", def: "[]" },
@@ -327,6 +328,8 @@ Singleton {
     // ---- BEGIN apps ----
     // applied values only: a launch must not follow a draft
     readonly property string defaultTerminal: stored("defaultTerminal")
+    // applied value only: a draft must not make the agent register and unregister
+    readonly property bool polkitAgent: stored("polkitAgent")
     readonly property string workspaceApps: stored("workspaceApps")
     // ---- END apps ----
     readonly property string themeScheme: stored("themeScheme")
@@ -1348,6 +1351,7 @@ Singleton {
             property string pathColors: root.schema.pathColors.def
             // ---- BEGIN apps ----
             property string defaultTerminal: root.schema.defaultTerminal.def
+            property bool polkitAgent: root.schema.polkitAgent.def
             property string workspaceApps: root.schema.workspaceApps.def
             // ---- END apps ----
             property string themeScheme: root.schema.themeScheme.def

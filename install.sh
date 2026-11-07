@@ -285,14 +285,15 @@ page() {
 # ---------------------------------------------------------------------------------------------------------------------
 # The parts. Each: id|label|what it enables|packages. "core" is always installed.
 COMPONENTS=(
-    "core|Sleepy Shell|Always installed: Quickshell, the Nerd Font for text and icons, Python 3.|quickshell ttf-jetbrains-mono-nerd python"
+    "core|Sleepy Shell|Always installed: Quickshell, the Nerd Font for text and icons, Python 3, polkit for the password prompt, and the clocks' font IBM 3270 (from its own project; see the summary).|quickshell ttf-jetbrains-mono-nerd python polkit"
     "theme|Wallpaper theming|Colours from your wallpaper, the wallpaper picker and Shuffle colours.|matugen imagemagick awww"
     "idle|Idle timers|Dim, lock and sleep after a while.|hypridle"
     "audio|Audio|The audio pill and panels, and the microphone, camera and screen-share indicators.|pipewire wireplumber"
     "network|Network|The network widget and the Wi-Fi tile.|networkmanager"
     "bluetooth|Bluetooth|The Bluetooth tile and widget.|bluez"
     "updates|Package updates|The updates widget and Update now.|paru fakeroot"
-    "wlclip|Screenshot copy|Copying a screenshot from its notification.|wl-clipboard"
+    "screenshots|Screenshots|Hyprshot takes them (Print: an area of the screen); the shell shows each one in its notification, and a click copies it.|hyprshot wl-clipboard"
+    "battery|Battery|The battery widget, low battery warnings and the battery details in the Power tab (laptops).|upower"
     "power|Power profiles|The power profile tile and a profile per power source.|power-profiles-daemon"
     "system|System tools|Backlight slider, lid and session actions, default apps, icon theme and font, test notifications.|systemd util-linux glib2 xdg-utils fontconfig libnotify"
     "logout|Log out|Log out from the session menu.|uwsm"
@@ -300,6 +301,7 @@ COMPONENTS=(
     "calendar|Calendar|The calendar popup and the Calendar tool.|khal"
     "gpu|GPU names|GPU names in the System tab instead of PCI ids.|pciutils"
     "apps|Mixer and colour picker|The Audio mixer tool and the Colour picker tool.|pwvucontrol hyprpicker"
+    "terminal|Terminal|kitty, the terminal the shell opens for Update now, a new calendar event and the network settings. Untick it if you use another terminal, and pick yours in Sleepysettings' Apps tab.|kitty"
 )
 NC=${#COMPONENTS[@]}
 C_ID=() C_LABEL=() C_DESC=() C_PKGS=() C_ON=()
@@ -371,26 +373,59 @@ picker() {
             esac
         done
     fi
-    local cur=0 top=0 per area out mark i line
+    local cur=0 top=0 avail out mark i j line used
+    # item_lines I W: the picker's lines of part I at width W into ITEM (each "style<TAB>text"): its mark and
+    # label, then its description and its packages, both wrapped, so a long package list is never cut off
+    # the wrapped text is made once per width (a redraw per key press stays quick)
+    local -a WD=() WP=()
+    local wrapped_at=0
+    item_lines() {
+        local i=$1 w=$2 t mark="[x]"
+        if [ "$wrapped_at" != "$w" ]; then
+            for ((t = 0; t < NC; t++)); do
+                WD[t]=$(printf '%s\n' "${C_DESC[t]}" | fold -s -w $((w - 8)) | sed 's/ *$//')
+                WP[t]=$({ pkg_line "${C_PKGS[t]}"; echo; } | fold -s -w $((w - 8)) | sed 's/ *$//')
+            done
+            wrapped_at=$w
+        fi
+        [ "${C_ON[i]}" = 0 ] && mark="[ ]"
+        [ "$i" = 0 ] && mark="[*]"
+        ITEM=("label"$'\t'"$mark ${C_LABEL[i]}")
+        while IFS= read -r t; do ITEM+=("n"$'\t'"      $t"); done <<<"${WD[i]}"
+        while IFS= read -r t; do ITEM+=("d"$'\t'"      $t"); done <<<"${WP[i]}"
+    }
     while :; do
         size
-        area=$(((ROWS - 6) / 3))
+        avail=$((ROWS - 6))
+        # the rows of every part (a blank line between parts), then the first part shown so the selected one fits
+        local -a H=()
+        for ((i = 0; i < NC; i++)); do item_lines "$i" "$COLS"; H[i]=$((${#ITEM[@]} + 1)); done
         [ "$cur" -lt "$top" ] && top=$cur
-        [ "$cur" -ge $((top + area)) ] && top=$((cur - area + 1))
+        while :; do
+            used=0
+            for ((j = top; j <= cur; j++)); do used=$((used + H[j])); done
+            [ "$used" -le "$avail" ] || [ "$top" -ge "$cur" ] || { top=$((top + 1)); continue; }
+            break
+        done
         out="$ESC[H$ESC[2J$S_R$(printf '%-*.*s' "$COLS" "$COLS" " Sleepy Shell installer: $SCREEN ")$S_N"$'\n'
         out+="$S_D  All parts start picked. Without a part its feature is greyed out or hidden; the rest works.$S_N"$'\n'
-        for ((i = top; i < NC && i < top + area; i++)); do
-            mark="[x]"
-            [ "${C_ON[i]}" = 0 ] && mark="[ ]"
-            [ "$i" = 0 ] && mark="[*]"
-            line=$(printf '%s %s' "$mark" "${C_LABEL[i]}")
-            if [ "$i" = "$cur" ]; then out+=$'\n'"$S_R> ${line:0:$((COLS - 3))}$S_N"$'\n'
-            else out+=$'\n'"  $S_B${line:0:$((COLS - 3))}$S_N"$'\n'; fi
-            out+="      ${C_DESC[i]:0:$((COLS - 7))}"$'\n'
-            line=$(pkg_line "${C_PKGS[i]}")
-            out+="$S_D      ${line:0:$((COLS - 7))}$S_N"
+        used=0
+        for ((i = top; i < NC; i++)); do
+            [ $((used + H[i])) -le "$avail" ] || break
+            used=$((used + H[i]))
+            item_lines "$i" "$COLS"
+            out+=$'\n'
+            for e in "${ITEM[@]}"; do
+                line=${e#*$'\t'}
+                case ${e%%$'\t'*} in
+                label) if [ "$i" = "$cur" ]; then out+="$S_R> ${line:0:$((COLS - 3))}$S_N"$'\n'; else out+="  $S_B${line:0:$((COLS - 3))}$S_N"$'\n'; fi ;;
+                d) out+="$S_D${line:0:$((COLS - 1))}$S_N"$'\n' ;;
+                *) out+="${line:0:$((COLS - 1))}"$'\n' ;;
+                esac
+            done
         done
-        out+=$'\n\n'"$S_D  Up/Down move, Space switches, a all, n none, Enter goes on, q quits. [*] is always installed.$S_N"
+        [ "$i" -lt "$NC" ] && out+="$S_D  (more below)$S_N"
+        out+=$'\n'"$S_D  Up/Down move, Space switches, a all, n none, Enter goes on, q quits. [*] is always installed.$S_N"
         printf '%s' "$out"
         read_key
         case $KEY in
@@ -410,6 +445,20 @@ picker() {
 # What will be done: filled by the questions, shown in the summary, done in order.
 REPO_PKGS=() AUR_PKGS=() AUR_LEFT=() SERVICES=() TODO=() DECLINED=()
 BOOTSTRAP=0 HELPER="" I2C=0 START=0
+# who answers password prompts: "shell", or the name of the user's own polkit agent; its user units to switch off
+POLKIT=shell POLKIT_UNITS=()
+# polkit agents another desktop may run (process names; the user units some of them come as)
+POLKIT_AGENTS=(hyprpolkitagent polkit-gnome-authentication-agent-1 polkit-kde-authentication-agent-1 lxqt-policykit-agent lxpolkit
+    polkit-mate-authentication-agent-1 xfce-polkit soteria)
+POLKIT_UNIT_NAMES=(hyprpolkitagent.service plasma-polkit-agent.service polkit-gnome-authentication-agent-1.service lxqt-policykit-agent.service)
+# The clocks' font, IBM 3270: no Arch package has it under that name (ttf-3270-nerd's faces are named "3270 Nerd Font", sit
+# lower and include condensed faces Qt may pick), so the original comes from its own project's release, checked against
+# this SHA-256 before anything of it is used. Tests: SLEEPYSHELL_FONT_ZIP names a local zip instead of the download, and
+# only then SLEEPYSHELL_FONT_SHA256 the sum it must have.
+FONT_URL=https://github.com/rbanffy/3270font/releases/download/v3.0.1/3270_fonts_d916271.zip
+FONT_SHA=623fb815b16d6c4940b5014a21c5474ef6cddb02c325d03f153341b676b4cffa
+FONT_FILES=(3270-Regular.ttf 3270SemiCondensed-Regular.ttf 3270Condensed-Regular.ttf)
+DO_FONT=0
 DO_LINK="" DO_SETTINGS=0 DO_MODULE="" DO_REQUIRE=0 DO_BINDS=0 DO_IDLE=0 DO_MATUGEN="" DO_THEME=0
 jget() { python3 -I -c '
 import json, sys
@@ -421,6 +470,8 @@ print("" if v is None else json.dumps(v) if isinstance(v, (bool, list, dict)) el
 running() {
     if [ ${#1} -le 15 ]; then pgrep -x -- "$1" >/dev/null; else pgrep -f -- "(^|/)$1( |\$)" >/dev/null; fi
 }
+# enabled --user UNIT: does the unit start with the session
+enabled() { systemctl --user is-enabled --quiet "$2" 2>/dev/null; }
 # active [--user] UNIT: is the unit running
 active() {
     if [ "$1" = --user ]; then systemctl --user is-active --quiet "$2" 2>/dev/null; else systemctl is-active --quiet "$1" 2>/dev/null; fi
@@ -429,7 +480,7 @@ active() {
 record() {
     mkdir -p "$STATE_BASE"
     if [ ! -f "$MANIFEST" ]; then
-        printf '# Sleepy Shell installer record: run<TAB>kind<TAB>details. Kinds: package NAME explicit|dependency repo|aur;\n# service system|user UNIT; link PATH TARGET; moved PATH BACKUP; created PATH; changed PATH BACKUP; backup PATH BACKUP;\n# root-created PATH; dir-created PATH; pending PATH (a write began: a later line for PATH says what it did, none means\n# it may or may not have happened).\n' >"$MANIFEST"
+        printf '# Sleepy Shell installer record: run<TAB>kind<TAB>details. Kinds: package NAME explicit|dependency repo|aur;\n# service system|user UNIT; service-disabled user UNIT; link PATH TARGET; moved PATH BACKUP; created PATH; changed PATH BACKUP; backup PATH BACKUP;\n# root-created PATH; dir-created PATH; unchanged PATH (asked, but nothing needed doing); pending PATH (a write began: a later line for PATH says what it did, none means\n# it may or may not have happened).\n' >"$MANIFEST"
     fi
     local IFS=$'\t'
     printf '%s\t%s\n' "$STAMP" "$*" >>"$MANIFEST"
@@ -508,7 +559,7 @@ main() {
     fi
 
     # what the user's files look like (read only)
-    python3 -I "$SRC/tools/install.py" plan $(picked theme && echo --theming) >"$PLAN" 2>"$WORK/plan.err" || {
+    python3 -I "$SRC/tools/install.py" plan $(picked theme && echo --theming) $(picked screenshots && echo --screenshots) >"$PLAN" 2>"$WORK/plan.err" || {
         body_clear; say e "The installer could not read your configuration:"; say n "$(tail -3 "$WORK/plan.err")"; page "Stopped"; return 1
     }
 
@@ -698,9 +749,45 @@ for o in m["outputs"]:
     # programs that would do the shell's jobs too, and keys that were taken (only reported)
     local c
     while IFS= read -r c; do [ -n "$c" ] && TODO+=("$c"); done < <(python3 -I "$SRC/tools/install.py" notes "$PLAN")
-    for p in waybar hyprpanel nwg-panel ags eww swaync mako dunst fnott hyprpolkitagent polkit-gnome-authentication-agent-1 lxpolkit hyprpaper swaybg; do
+    for p in waybar hyprpanel nwg-panel ags eww swaync mako dunst fnott hyprpaper swaybg; do
         running "$p" && TODO+=("$p is running now and does a job Sleepy Shell does (a bar, notifications, the polkit prompt or the wallpaper). Stop it before using the shell, and stop starting it with your session.")
     done
+
+    # the clocks' font: fetched only when no "IBM 3270" is installed (fontconfig may itself come with the packages)
+    font_present || DO_FONT=1
+
+    # password prompts: the shell is a polkit agent, and only one agent can answer (the first to register wins)
+    local agents=() a first=""
+    for a in "${POLKIT_AGENTS[@]}"; do running "$a" && { agents+=("$a, running now"); first=${first:-$a}; }; done
+    for a in "${POLKIT_UNIT_NAMES[@]}"; do
+        if active --user "$a" || enabled --user "$a"; then agents+=("$a, a service of your user"); POLKIT_UNITS+=("$a"); first=${first:-${a%.service}}; fi
+    done
+    local lines=()
+    while IFS= read -r a; do [ -n "$a" ] && { lines+=("$a"); agents+=("${a%%$'\t'*}, started in ${a#*$'\t'}"); first=${first:-${a%%$'\t'*}}; }; done < <(python3 -I -c '
+import json, sys
+for c in json.load(open(sys.argv[1]))["hypr"]["conflicts"]:
+    if c["why"] == "another polkit agent":
+        print(c["name"] + "\t" + c["file"] + ", line " + str(c["line"]))' "$PLAN")
+    if [ ${#agents[@]} -gt 0 ]; then
+        body_clear
+        say n "Another polkit agent answers password prompts (an app asking for admin rights) now:"
+        for a in "${agents[@]}"; do say a "  $a"; done
+        blank
+        say n "Sleepy Shell has its own prompt, and two agents cannot both answer: the first to start wins. Use the shell's?"
+        blank
+        say n "Yes: the shell answers from its next start."
+        [ ${#POLKIT_UNITS[@]} -gt 0 ] && say n "  These services of your user are disabled and stopped (systemctl --user disable --now): ${POLKIT_UNITS[*]}"
+        [ ${#lines[@]} -gt 0 ] && say n "  Your Hyprland config's line that starts it is not changed; the report says which line to remove."
+        say n "No: yours stays, and the shell's prompt is turned off (Sleepysettings, Apps tab, Password prompt)."
+        if ask "Password prompt" n "Use the shell's" "Keep mine"; then
+            POLKIT=shell
+            for a in "${lines[@]}"; do TODO+=("Password prompts: remove the line that starts ${a%%$'\t'*} (${a#*$'\t'}), so it does not start before the shell's agent at the next login."); done
+            for a in "${agents[@]}"; do [[ $a == *", running now" ]] && TODO+=("Password prompts: ${a%%,*} still runs until you log out; the shell's agent takes over at the next login."); done
+        else
+            POLKIT=$first POLKIT_UNITS=()
+            [ "$DO_SETTINGS" = 1 ] || TODO+=("Password prompts: you kept $first. Turn off Answer password prompts in Sleepysettings (Apps tab), so the shell does not try to answer too.")
+        fi
+    fi
 
     # start it now
     if pgrep -f '^(qs|quickshell) -c sleepyshell( -d)?$' >/dev/null; then
@@ -739,6 +826,7 @@ summary() {
     blank
     say b "New files (the installer's own)"
     local any=0
+    [ "$DO_FONT" = 1 ] && { say n "  The clocks' font IBM 3270 (3270font 3.0.1, downloaded from github.com and checked against a fixed SHA-256) in ${XDG_DATA_HOME:-$HOME/.local/share}/fonts"; any=1; }
     case $DO_LINK in new | move) say n "  $LINK -> $SRC"; any=1 ;; esac
     [ "$DO_SETTINGS" = 1 ] && { say n "  $SRC/sleepysettings.toml (the default settings)"; any=1; }
     [ "$DO_MODULE" = new ] && { say n "  $(jget module.path) (starts the shell, its window rules and keys)"; any=1; }
@@ -758,6 +846,8 @@ summary() {
     [ "$any" = 0 ] && say d "  None."
     blank
     [ "$START" = 1 ] && { say n "Then start the shell."; blank; }
+    if [ ${#POLKIT_UNITS[@]} -gt 0 ]; then say n "Password prompts: disable and stop ${POLKIT_UNITS[*]}; the shell answers them."; blank
+    elif [ "$POLKIT" != shell ]; then say n "Password prompts: $POLKIT keeps answering them; the shell's prompt is off."; blank; fi
     if [ ${#DECLINED[@]} -gt 0 ] || [ ${#TODO[@]} -gt 0 ]; then
         say b "Not done (listed again in the final report)"
         for s in "${DECLINED[@]}" "${TODO[@]}"; do say y "  - $s"; done
@@ -817,8 +907,9 @@ run_steps() {
     [ ${#REPO_PKGS[@]} -gt 0 ] && plan_steps+=("repo|Install packages from the repositories")
     [ "$BOOTSTRAP" = 1 ] && plan_steps+=("paru|Build paru from the AUR")
     [ ${#AUR_PKGS[@]} -gt 0 ] && plan_steps+=("aur|Install packages from the AUR")
-    { [ ${#SERVICES[@]} -gt 0 ] || [ "$I2C" = 1 ]; } && plan_steps+=("services|Enable services")
+    { [ ${#SERVICES[@]} -gt 0 ] || [ "$I2C" = 1 ] || [ ${#POLKIT_UNITS[@]} -gt 0 ]; } && plan_steps+=("services|Enable services")
     [ -n "$DO_LINK" ] && plan_steps+=("link|Link the shell where Quickshell finds it")
+    [ "$DO_FONT" = 1 ] && plan_steps+=("font|The clocks' font (IBM 3270)")
     [ "$DO_SETTINGS" = 1 ] && plan_steps+=("settings|Default settings")
     [ -n "$DO_MODULE" ] || [ "$DO_REQUIRE" = 1 ] || [ "$DO_BINDS" = 1 ] && plan_steps+=("hypr|Hyprland: module, keys and require line")
     [ "$DO_IDLE" = 1 ] && plan_steps+=("idle|Idle timers file")
@@ -876,6 +967,10 @@ do_aur() {
 }
 do_services() {
     local s scope unit ok=0
+    for unit in "${POLKIT_UNITS[@]}"; do
+        if quiet systemctl --user disable --now "$unit"; then record service-disabled user "$unit"; DONE+=("Disabled and stopped $unit (password prompts go to the shell)")
+        else ok=1; FAILED+=("$unit could not be disabled: systemctl --user disable --now $unit"); fi
+    done
     for s in "${SERVICES[@]}"; do
         scope=${s%% *} unit=${s#* }
         if [ "$scope" = user ]; then
@@ -914,12 +1009,67 @@ do_link() {
     record link "$LINK" "$SRC"
     DONE+=("Linked $LINK to $SRC")
 }
+# font_present: is IBM 3270 installed (fontconfig knows the family, or its three files are in the user's font folder)
+font_present() {
+    local f dir=${XDG_DATA_HOME:-$HOME/.local/share}/fonts all=1
+    command -v fc-list >/dev/null && fc-list : family | grep -qxF 'IBM 3270' && return 0
+    for f in "${FONT_FILES[@]}"; do [ -f "$dir/$f" ] || all=0; done
+    [ "$all" = 1 ]
+}
+do_font() {
+    if font_present; then
+        DONE+=("The clocks' font IBM 3270 is already installed"); return 0
+    fi
+    local dir=${XDG_DATA_HOME:-$HOME/.local/share}/fonts zip=$WORK/3270.zip x=$WORK/3270 want=$FONT_SHA sum f src ok=0
+    if [ -n "${SLEEPYSHELL_FONT_ZIP:-}" ]; then
+        cp -- "$SLEEPYSHELL_FONT_ZIP" "$zip" || { FAIL_WHY="$SLEEPYSHELL_FONT_ZIP could not be read"; return 1; }
+        want=${SLEEPYSHELL_FONT_SHA256:-$FONT_SHA}
+    else
+        command -v curl >/dev/null || { FAIL_WHY="curl is not installed, so the font could not be downloaded"; return 1; }
+        quiet curl -L --fail --proto '=https' --tlsv1.2 --max-time 120 -o "$zip" -- "$FONT_URL" ||
+            { FAIL_WHY="the download failed ($FONT_URL)"; return 1; }
+    fi
+    sum=$(sha256sum -- "$zip" | cut -d' ' -f1)
+    [ "$sum" = "$want" ] || { FAIL_WHY="the downloaded file is not the expected one (SHA-256 $sum), so none of it was used"; return 1; }
+    # only the three font files (at the archive's top or in a folder; a pattern that matches nothing is an error to
+    # bsdtar); it refuses absolute paths and .. in an archive by default
+    mkdir -p -- "$x"
+    quiet bsdtar -xf "$zip" -C "$x" --include '*3270-Regular.ttf' --include '*3270SemiCondensed-Regular.ttf' \
+        --include '*3270Condensed-Regular.ttf' ||
+        { FAIL_WHY="the font archive could not be unpacked"; return 1; }
+    ensure_dir "$dir"
+    for f in "${FONT_FILES[@]}"; do
+        src=$(find "$x" -type f -name "$f" | head -1)
+        [ -n "$src" ] || { ok=1; FAILED+=("$f is not in the font archive"); continue; }
+        if [ -e "$dir/$f" ] || [ -L "$dir/$f" ]; then TODO+=("$dir/$f already exists and was left alone."); continue; fi
+        record pending "$dir/$f"
+        cp -n -- "$src" "$dir/$f" && chmod 644 -- "$dir/$f" && record created "$dir/$f" || { ok=1; FAILED+=("$dir/$f could not be written"); }
+    done
+    command -v fc-cache >/dev/null && quiet fc-cache -f "$dir"
+    [ "$ok" = 0 ] && DONE+=("Installed the clocks' font IBM 3270 in $dir")
+    return $ok
+}
 do_settings() {
     [ -e "$SRC/sleepysettings.toml" ] && { DONE+=("Settings: a settings file appeared meanwhile and was kept"); return 0; }
     record pending "$SRC/sleepysettings.toml"
     cp -n -- "$SRC/data/default-settings.toml" "$SRC/sleepysettings.toml" || { FAIL_WHY="could not copy the default settings"; return 1; }
     record created "$SRC/sleepysettings.toml"
     DONE+=("Default settings: $SRC/sleepysettings.toml")
+    # two answers that belong in this new file: the user's own polkit agent, and a terminal when kitty (the default) is not there
+    [ "$POLKIT" = shell ] || sed -i 's/^polkitAgent = true$/polkitAgent = false/' "$SRC/sleepysettings.toml"
+    if ! command -v kitty >/dev/null; then
+        local t="" c
+        c=${TERMINAL:-}
+        c=${c##*/}
+        [[ $c =~ ^[A-Za-z0-9._-]+$ ]] && command -v "$c" >/dev/null && t=$c
+        if [ -z "$t" ]; then for c in foot alacritty wezterm ghostty konsole gnome-terminal xterm; do command -v "$c" >/dev/null && { t=$c; break; }; done; fi
+        if [ -n "$t" ]; then
+            sed -i "s/^defaultTerminal = \"kitty\"\$/defaultTerminal = \"$t\"/" "$SRC/sleepysettings.toml"
+            DONE+=("Terminal for Update now, new calendar events and the network settings: $t (kitty is not installed; change it in Sleepysettings, Apps tab)")
+        else
+            TODO+=("No terminal was found. Update now, new calendar events and the network settings open one: install a terminal and pick it in Sleepysettings (Apps tab).")
+        fi
+    fi
 }
 # write_file PATH SHA-SHOWN TEXT-SOURCE...: the helper's safe write; sets WROTE_BACKUP
 write_file() {
@@ -1034,7 +1184,7 @@ do_theme() {
     local outs=() o list
     command -v matugen >/dev/null && command -v magick >/dev/null || { FAIL_WHY="matugen or ImageMagick is missing"; return 1; }
     # every file a run writes, as the config lists them now (the template may just have been added)
-    python3 -I "$SRC/tools/install.py" plan --theming >"$WORK/plan2.json" 2>>"$LOG" || { FAIL_WHY="matugen's config could not be read"; return 1; }
+    python3 -I "$SRC/tools/install.py" plan --theming $(picked screenshots && echo --screenshots) >"$WORK/plan2.json" 2>>"$LOG" || { FAIL_WHY="matugen's config could not be read"; return 1; }
     # what the config writes now (the colours file only when the template is really there)
     while IFS= read -r o; do [ -n "$o" ] && outs+=("$o"); done < <(python3 -I -c 'import json,sys
 d = json.load(open(sys.argv[1])); m = d["matugen"]
@@ -1099,6 +1249,8 @@ report() {
         for s in "${DECLINED[@]}" "${TODO[@]}"; do say y "  - $s"; done
         blank
     fi
+    if [ "$POLKIT" = shell ]; then say n "Password prompts are answered by Sleepy Shell."; else say n "Password prompts are answered by $POLKIT (you kept it; the shell's prompt is off)."; fi
+    blank
     say b "Next"
     say n "  Open Sleepysettings from the gear in the control centre. Its Config tab checks every file the shell uses."
     blank

@@ -302,7 +302,9 @@ everything else works.
 | NetworkManager (optional) | The network widget and the Wi-Fi tile |
 | BlueZ (optional) | The Bluetooth tile and widget |
 | pacman, paru, fakeroot (optional) | The updates widget and Update now |
-| wl-clipboard (optional) | Copying a screenshot from its notification |
+| Hyprshot (with grim and slurp), wl-clipboard (optional) | Screenshots: Hyprshot takes them (the installer binds Print to an area), the shell shows each in its notification and copies it on a click |
+| UPower (`upower`) (optional) | The battery widget, the low battery warnings and the Power tab's battery details |
+| polkit (optional; the installer always installs it) | The password prompt the shell shows when an app asks for more rights |
 | DDC/CI access: the `i2c-dev` module and the display buses (optional) | External monitor brightness, contrast, input and colour preset (the Display tab shows the steps) |
 | power-profiles-daemon (optional) | The power profile tile and a profile per power source |
 | systemd (`busctl`, `systemd-inhibit`, `loginctl`, `systemctl`), `flock` from util-linux, `gdbus` from glib2 (optional) | The backlight slider, lid actions, and the lock and session actions |
@@ -314,7 +316,7 @@ everything else works.
 | khal (optional) | The calendar popup and the Calendar tool (hidden without it) |
 | pciutils (optional) | GPU names in the System tab instead of PCI ids |
 | pwvucontrol, hyprpicker (optional) | The Audio mixer tool, and the Colour picker tool once switched on |
-| A terminal, file manager, editor and browser (optional) | Your own choice, set in the Apps tab; the file manager (a terminal one such as Yazi works) opens Show in folder for screenshots. A missing one is reported, never assumed |
+| A terminal, file manager, editor and browser (optional) | Your own choice, set in the Apps tab (the installer offers kitty, the tab's default terminal); the file manager (a terminal one such as Yazi works) opens Show in folder for screenshots. A missing one is reported, never assumed |
 
 The test kit (`tests/`, for development) also needs sway, grim and lua, and its watch mode wayvnc and tigervnc.
 
@@ -329,8 +331,9 @@ git clone https://github.com/nninkovic95/sleepyshell ~/dev/sleepyshell
 ```
 
 1. **Pick the parts.** Each optional dependency from [Dependencies](#dependencies) is a part with a line saying
-   what it enables, and all of them start picked. The shell, Quickshell, the Nerd Font and Python 3 are always
-   installed.
+   what it enables, and all of them start picked. The shell, Quickshell, JetBrainsMono Nerd Font, Python 3 and
+   polkit are always installed, and the clocks' font IBM 3270 when it is missing: no Arch package has it, so it
+   comes from the 3270font project's release on GitHub, checked against a fixed SHA-256.
 2. **Answer the questions.** On plain Arch, paru, walker, elephant and pwvucontrol come from the AUR; without
    paru or yay the installer asks whether to build paru or leave them out. Each system service it could
    enable (NetworkManager, bluetooth, power-profiles-daemon, hypridle) and the i2c-dev module for monitor
@@ -347,7 +350,8 @@ What it sets up:
 - The default settings (`data/default-settings.toml`) as `sleepysettings.toml`, when there is no settings file.
 - `~/.config/hypr/modules/sleepyshell.lua`, a module of its own: it starts the shell and the wallpaper daemon
   with Hyprland, floats the shell's windows, blurs its surfaces, and binds SUPER + ESCAPE (session menu),
-  SUPER + L (lock) and Caps Lock (the indicator) where those keys are free. One `require` line in
+  SUPER + L (lock), Caps Lock (the indicator) and, with the Screenshots part, Print (Hyprshot, an area) where
+  those keys are free. One `require` line in
   `hyprland.lua` loads it, after you say yes.
 - The Keybinds tab's file `sleepybinds.lua` (with SUPER + / for the Keybinds window) and `hypridle.conf`, when
   they do not exist yet.
@@ -532,8 +536,9 @@ exactly what will change and you say yes, and a backup is kept beside it:
 - **The installer**: `hyprland.lua` (one `require` line), the matugen config (the colours template), an
   existing `~/.config/quickshell/sleepyshell` (moved aside) and the files the first theme run rewrites, each
   only after a question that shows the change, with a copy kept and recorded; a file that changed after the
-  question is not written. System services and the i2c-dev module are separate questions, and nothing
-  happens before you confirm the summary.
+  question is not written. System services, another polkit agent and the i2c-dev module are separate
+  questions, and nothing happens before you confirm the summary. Its one download (the clocks' font, when it
+  is missing) is used only if its SHA-256 matches the one fixed in the script.
 
 There is one exception, and it only concerns the shell's own file: on a laptop, the bar rewrites the
 `hypridle.conf` it wrote itself when the charger is plugged in or out, to switch between the plugged-in and the

@@ -20,12 +20,12 @@ sc_refuse_os() {
 }
 sc_refuse_nohypr() {
     world refuse_nohypr
-    echo "HYPRLAND_INSTANCE_SIGNATURE=" >"$D/refuse_nohypr/env"
+    echo "HYPRLAND_INSTANCE_SIGNATURE=" >>"$D/refuse_nohypr/env"
     snap refuse_nohypr before; run refuse_nohypr </dev/null; snap refuse_nohypr after
 }
 sc_refuse_old() {
     world refuse_old
-    echo "STUB_HYPR_VER=0.54.2" >"$D/refuse_old/env"
+    echo "STUB_HYPR_VER=0.54.2" >>"$D/refuse_old/env"
     snap refuse_old before; run refuse_old </dev/null; snap refuse_old after
 }
 sc_refuse_conf() {
@@ -140,6 +140,74 @@ sc_dotfiles() {
     printf 'require("modules.sleepyshell")\n' >>"$D/dotfiles/home/.config/hypr/hyprland.lua"
     cp "$D/dotfiles/home/.config/hypr/hyprland.lua" "$D/dotfiles/hyprland.orig"
     answers y "" n n n n n n n y | run dotfiles --plain
+}
+
+# files of the user's already there, and yes to each: a foreign sleepyshell.lua (replaced), a matugen config with a kitty
+# template that runs a hook (the template appended, the hook named), an existing kitty.conf (rewritten by the theme run,
+# copied first); iwd and TLP run, so NetworkManager and power-profiles-daemon are not offered
+sc_existing() {
+    world existing
+    local H=$D/existing/home
+    helper paru existing
+    mkdir -p "$H/.config/hypr/modules" "$H/.config/matugen/templates" "$H/.config/kitty"
+    printf -- '-- my own module\nhl.bind("SUPER + F1", hl.dsp.exec_cmd("true"))\n' >"$H/.config/hypr/modules/sleepyshell.lua"
+    printf '[config]\n\n[templates.kitty]\ninput_path = "~/.config/matugen/templates/kitty.conf"\noutput_path = "~/.config/kitty/kitty.conf"\npost_hook = "true"\n' >"$H/.config/matugen/config.toml"
+    printf 'background {{colors.surface.default.hex}}\n' >"$H/.config/matugen/templates/kitty.conf"
+    printf 'background #123456\n' >"$H/.config/kitty/kitty.conf"
+    printf '%s\n' iwd tlp >"$D/existing/stub/active"
+    for f in .config/hypr/modules/sleepyshell.lua .config/matugen/config.toml .config/kitty/kitty.conf; do
+        cp "$H/$f" "$D/existing/orig-${f##*/}"
+    done
+    # welcome, picker, replace the module, require line, matugen lines, theme run (all yes), Bluetooth, hypridle,
+    # i2c-dev, start (no), summary
+    answers y "" y y y y n n n n y | run existing --plain
+}
+
+# XDG_CONFIG_HOME is not ~/.config: matugen would read another config than the shell, so no theme run is offered
+sc_xdg() {
+    world xdg
+    local H=$D/xdg/home
+    mv "$H/.config/hypr" "$H/.xdgconf-hypr"
+    mkdir -p "$H/xdgconf"
+    mv "$H/.xdgconf-hypr" "$H/xdgconf/hypr"
+    echo "XDG_CONFIG_HOME=$H/xdgconf" >>"$D/xdg/env"
+    helper paru xdg
+    # welcome, picker, require line, NetworkManager, Bluetooth, power profiles, hypridle, i2c-dev, start, summary
+    answers y "" n n n n n n n y | run xdg --plain
+}
+
+# another polkit agent runs as a user service: keep it (the shell's prompt goes off in the new settings), or use the
+# shell's (the service is disabled); the second world has no kitty and TERMINAL set, so the new settings name that one
+sc_polkit_keep() {
+    world polkit_keep
+    helper paru polkit_keep
+    echo "user:hyprpolkitagent.service" >"$D/polkit_keep/stub/active"
+    # welcome, picker, require line, theme run, NetworkManager, Bluetooth, power profiles, hypridle, i2c-dev, password
+    # prompt (keep mine), start, summary
+    answers y "" n n n n n n n n n y | run polkit_keep --plain
+}
+sc_polkit_use() {
+    world polkit_use
+    helper paru polkit_use
+    echo "user:hyprpolkitagent.service" >"$D/polkit_use/stub/active"
+    rm -f "$D/polkit_use/bin/kitty"
+    ln -s "$KIT/install/stub.py" "$D/polkit_use/bin/myterm"
+    echo "TERMINAL=/usr/local/bin/myterm" >>"$D/polkit_use/env"
+    answers y "" n n n n n n n y n y | run polkit_use --plain
+}
+
+# the clocks' font from the world's stand-in archive (see world in inner.sh); with another checksum nothing is installed
+sc_font_ok() {
+    world font_ok
+    helper paru font_ok
+    # welcome, picker, require line, theme run, NetworkManager, Bluetooth, power profiles, hypridle, i2c-dev, start, summary
+    answers y "" n n n n n n n n y | run font_ok --plain
+}
+sc_font_bad() {
+    world font_bad
+    helper paru font_bad
+    echo "SLEEPYSHELL_FONT_SHA256=0000000000000000000000000000000000000000000000000000000000000000" >>"$D/font_bad/env"
+    answers y "" n n n n n n n n y | run font_bad --plain
 }
 
 # pacman fails: nothing after it is set up, and the run says so

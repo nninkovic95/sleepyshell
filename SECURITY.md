@@ -191,11 +191,19 @@ the installer's helpers need it.
   through an AUR helper the user already has, or through paru built from the AUR (`paru-bin`, `makepkg`) after a
   question that says what will be downloaded and built. Which packages are in the repositories is read from
   pacman's local database; the AUR is never queried.
+- **One download of its own:** when no font named "IBM 3270" is installed (the clocks' font; no Arch package
+  has it under that name), the 3270font project's release archive is fetched over HTTPS from GitHub, used only
+  if its SHA-256 is the one fixed in `install.sh`, and only its three font files are copied into
+  `~/.local/share/fonts` (an existing file there is left alone). The summary names the download first.
 - **System changes, each after its own question (default No):** enabling NetworkManager, bluetooth,
   power-profiles-daemon (system units, through sudo) and hypridle (a user unit); NetworkManager is not offered
   while iwd, systemd-networkd or connman runs, nor power-profiles-daemon while TLP, tuned or auto-cpufreq does.
   The i2c-dev module is loaded at boot only through a new `/etc/modules-load.d/i2c-dev.conf` after a question; an
   existing file there is left alone. The udev rule for the display buses is not installed.
+- **Another polkit agent:** when one runs (or is set to start), the installer asks whether the shell's prompt or
+  the user's agent answers password prompts, default the user's. Keeping it turns the shell's prompt off in a
+  newly copied settings file (Apps tab, "Answer password prompts"); choosing the shell's disables the agent's
+  user service. A line in the Hyprland config that starts the agent is named in the report, never edited.
 - **New files of its own:** the link `~/.config/quickshell/sleepyshell` to the clone; `sleepysettings.toml` from
   `data/default-settings.toml` when there is no settings file (an old `settings.json` is left for the shell to
   migrate); `~/.config/hypr/modules/sleepyshell.lua` (starts the shell, its window and layer rules, and the

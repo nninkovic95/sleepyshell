@@ -165,6 +165,10 @@ rightPadding = 8
 # Program name of the terminal emulator. Default: "kitty".
 defaultTerminal = "kitty"
 
+# ---- Password prompt ----
+# The shell answers apps that ask for an admin password; off leaves that to another polkit agent you run. Default: true.
+polkitAgent = true
+
 # ---- Apps on workspaces ----
 # Apps that start on a workspace, as JSON text of a list. Easier to edit in the settings window. Default: "[]".
 workspaceApps = '[]'

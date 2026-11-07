@@ -66,8 +66,12 @@ ShellRoot {
         id: power
     }
 
-    // the session's polkit agent (admin password prompts), replaces hyprpolkitagent
-    PolkitPrompt {}
+    // the session's polkit agent (admin password prompts), replaces hyprpolkitagent; off when the user keeps an agent of
+    // their own (two agents cannot both answer, the first to register wins)
+    LazyLoader {
+        active: Settings.polkitAgent
+        PolkitPrompt {}
+    }
 
     // lock / suspend / log out / reboot / shut down, replaces wlogout
     SessionMenu {}

@@ -16,8 +16,8 @@ the names the repositories have), the running units are $STUB_DIR/active. Behavi
   paru, yay   -S --needed P...  adds them from the AUR
   git         clone URL DIR      makes DIR
   makepkg     -si               installs paru-bin and links paru into $STUB_BIN
-  systemctl   [--user] is-active [--quiet] UNIT   by $STUB_DIR/active ("user:UNIT" for --user);
-              [--user] enable --now UNIT          adds it there; anything else exit 0
+  systemctl   [--user] is-active|is-enabled [--quiet] UNIT   by $STUB_DIR/active ("user:UNIT" for --user);
+              [--user] enable --now UNIT          adds it there; disable --now UNIT takes it out; anything else exit 0
   hyprctl     version -j        Hyprland $STUB_HYPR_VER (default 0.57.1)
   qs          -c sleepyshell -d   a process whose command line is "qs -c sleepyshell -d" (it waits on a pipe), so
                                   install.sh sees the shell running; its pid in $STUB_DIR/qs.pid (inner.sh stops it when
@@ -142,11 +142,13 @@ if name == "makepkg":
 if name == "systemctl":
     user = "--user" in args
     rest = [a for a in args if a not in ("--user", "--quiet", "--now")]
-    if rest[:1] == ["is-active"]:
+    if rest[:1] in (["is-active"], ["is-enabled"]):
         unit = rest[1]
         sys.exit(0 if (("user:" if user else "") + unit) in active() or unit.removesuffix(".service") in active() else 3)
     if rest[:1] == ["enable"] and len(rest) > 1:
         (D / "active").write_text("\n".join(sorted(active() | {("user:" if user else "") + rest[1]})) + "\n")
+    if rest[:1] == ["disable"] and len(rest) > 1:
+        (D / "active").write_text("\n".join(sorted(active() - {("user:" if user else "") + rest[1]})) + "\n")
     sys.exit(0)
 
 if name == "hyprctl":

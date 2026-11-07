@@ -36,10 +36,19 @@ world() {
     printf 'NAME="Arch Linux"\nPRETTY_NAME="Arch Linux"\nID=arch\n' >"$S/os-release"
     printf '%s\n' quickshell ttf-jetbrains-mono-nerd python matugen imagemagick awww hypridle pipewire wireplumber \
         networkmanager bluez fakeroot wl-clipboard power-profiles-daemon systemd util-linux glib2 xdg-utils fontconfig \
-        libnotify uwsm khal pciutils hyprpicker git base-devel bash >"$S/stub/repo"
+        libnotify uwsm khal pciutils hyprpicker git base-devel bash ttf-3270-nerd polkit hyprshot upower kitty >"$S/stub/repo"
     printf '%s\n' "bash explicit repo" "systemd explicit repo" "util-linux explicit repo" "glib2 explicit repo" \
         "fontconfig explicit repo" "pciutils explicit repo" "xdg-utils explicit repo" "python explicit repo" >"$S/stub/installed"
     : >"$S/stub/calls.log"
+    # fonts: only /usr/share/fonts and the world's own home, whatever this machine has installed elsewhere; the clocks'
+    # font comes from a stand-in archive (three dummy files) with its checksum, never from the network
+    printf '<?xml version="1.0"?>\n<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">\n<fontconfig><dir>/usr/share/fonts</dir><dir prefix="xdg">fonts</dir><cachedir>%s/fc-cache</cachedir></fontconfig>\n' "$S" >"$S/fonts.conf"
+    python3 -I -c 'import sys, zipfile
+with zipfile.ZipFile(sys.argv[1], "w") as z:
+    for n in ("3270-Regular.ttf", "3270SemiCondensed-Regular.ttf", "3270Condensed-Regular.ttf", "README.md"):
+        z.writestr(n, "stand-in for " + n + "\n")' "$S/fonts.zip"
+    printf '%s\n' "FONTCONFIG_FILE=$S/fonts.conf" "SLEEPYSHELL_FONT_ZIP=$S/fonts.zip" \
+        "SLEEPYSHELL_FONT_SHA256=$(sha256sum "$S/fonts.zip" | cut -d' ' -f1)" >"$S/env"
 }
 
 # helper NAME WORLD: the world has that AUR helper installed
@@ -52,6 +61,7 @@ helper() {
 run() {
     local S=$D/$1 extra=()
     shift
+    # later lines win (env sets them in order), so a scenario appends what it changes
     [ -f "$S/env" ] && mapfile -t extra <"$S/env"
     env -i HOME="$S/home" PATH="$S/bin" LANG=C.UTF-8 TERM=dumb \
         XDG_CONFIG_HOME="$S/home/.config" XDG_STATE_HOME="$S/home/.local/state" XDG_CACHE_HOME="$S/home/.cache" \

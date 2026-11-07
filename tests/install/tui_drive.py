@@ -108,6 +108,21 @@ last = screen_text(raw[seen_upto:].split(b"\x1b[H\x1b[2J")[-1])
 for line in last.split("\n"):
     if "Wallpaper theming" in line:
         print("PICKER", line.strip())
+# down to System tools, whose package line is longer than the screen is wide: it must wrap, not be cut off
+for _ in range(9):
+    key("j")
+    time.sleep(0.05)
+# the newest frame, once the cursor has reached System tools (a redraw per key)
+frame, end = "", time.time() + 10
+while time.time() < end:
+    pump(0.2)
+    frame = screen_text(raw[seen_upto:].split(b"\x1b[H\x1b[2J")[-1])
+    if "> [x] System tools" in frame and "Up/Down move" in frame:
+        break
+lines = frame.split("\n")
+print("WRAPPED", "yes" if "libnotify" in frame and "> [x] System tools" in frame and max(len(l.rstrip()) for l in lines) <= 100 else "no")
+with open(W / "frames.txt", "a") as f:
+    f.write("==== picker at System tools\n" + frame + "\n")
 key("\r")
 t, _ = wait_for("AUR helper")
 ok &= t is not None

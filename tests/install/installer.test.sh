@@ -31,7 +31,7 @@ cp "${INSTALL_SH:-$REPO/install.sh}" "$D/clone-src/install.sh"
 cp "$REPO/tools/install.py" "$D/clone-src/tools/"
 
 SCENARIOS=(refuse_os refuse_nohypr refuse_old refuse_conf derivative nopython fresh declines dryrun aur_declined changed
-    taken pacman_fails interrupted dotfiles tui)
+    taken pacman_fails interrupted dotfiles existing xdg polkit_keep polkit_use font_ok font_bad tui)
 timeout 600 bash "$KIT/common/sandbox.sh" "$D" bash "$KIT/install/inner.sh" "$D" "${SCENARIOS[@]}"
 
 python3 -I - "$D" <<'CHECK_INSTALLER_PY'
@@ -92,7 +92,8 @@ o1, c1 = out(w, "out-1.txt"), calls(w, "calls-1.log")
 h = H(w)
 check("Sleepy Shell is installed." in o1 and "Failed" not in o1, "fresh: finished without a failed step", o1[-2500:])
 repo_line = next((l for l in c1.splitlines() if l.startswith("ROOT pacman -S")), "")
-for p in ["quickshell", "ttf-jetbrains-mono-nerd", "matugen", "imagemagick", "awww", "hypridle", "git", "base-devel"]:
+for p in ["quickshell", "ttf-jetbrains-mono-nerd", "polkit", "matugen", "imagemagick", "awww", "hypridle",
+          "hyprshot", "wl-clipboard", "upower", "kitty", "git", "base-devel"]:
     check(f" {p}" in repo_line, f"fresh: {p} installed from the repositories", repo_line)
 check(repo_line != "" and not re.search(r" (walker|elephant|elephant-clipboard|pwvucontrol|paru)( |$)", repo_line),
       "fresh: no AUR package is passed to pacman", repo_line)
@@ -107,7 +108,8 @@ defaults = read(D / w / "clone/data/default-settings.toml")
 check(defaults != "" and read(D / w / "clone/sleepysettings.toml") == defaults, "fresh: the default settings are in place")
 mod = read(h / ".config/hypr/modules/sleepyshell.lua")
 check(mod.startswith("-- Sleepy Shell: written by its installer") and 'hl.exec_cmd("qs -c sleepyshell")' in mod
-      and "SUPER + ESCAPE" in mod and "SUPER + L" in mod and "Caps_Lock" in mod and 'require("modules.sleepybinds")' in mod,
+      and "SUPER + ESCAPE" in mod and "SUPER + L" in mod and "Caps_Lock" in mod and 'require("modules.sleepybinds")' in mod
+      and 'hl.bind("Print", hl.dsp.exec_cmd("hyprshot -m region"))' in mod,
       "fresh: the module starts the shell, binds its keys and loads the Keybinds tab's file", mod)
 hl = read(h / ".config/hypr/hyprland.lua")
 check(hl.count('require("modules.sleepyshell")') == 1, "fresh: one require line in hyprland.lua", hl)
@@ -204,6 +206,73 @@ check('require("modules.sleepyshell")' in o.split("== Finished ==")[-1], "declin
 check(not re.search(r"systemctl (--user )?enable", calls(w)), "declines: no service enabled", calls(w))
 check("theme.py" not in calls(w) and "awww img" not in calls(w), "declines: the theme did not run", calls(w))
 
+# ---- existing files, yes to each
+w = "existing"
+o, c, h, m = out(w), calls(w), H(w), manifest(w)
+bk = lambda path: next((r[3] for r in m if r[1] == "changed" and r[2] == str(h / path)), "")
+mod = read(h / ".config/hypr/modules/sleepyshell.lua")
+check("== Your file: sleepyshell.lua" in o and mod.startswith("-- Sleepy Shell: written by its installer")
+      and read(bk(".config/hypr/modules/sleepyshell.lua")) == read(D / w / "orig-sleepyshell.lua"),
+      "existing: a foreign sleepyshell.lua is replaced after the yes, its copy recorded", (bk(".config/hypr/modules/sleepyshell.lua"), o[-1500:]))
+mt = read(h / ".config/matugen/config.toml")
+try:
+    tm = tomllib.loads(mt)["templates"]
+    ok = "kitty" in tm and "sleepyshell" in tm and mt.startswith(read(D / w / "orig-config.toml"))
+except ValueError as e:
+    ok, tm = False, e
+check(ok and read(bk(".config/matugen/config.toml")) == read(D / w / "orig-config.toml"),
+      "existing: the matugen config keeps its own lines, gains the template, its copy recorded", (tm, bk(".config/matugen/config.toml")))
+kitty = read(h / ".config/kitty/kitty.conf")
+check(re.fullmatch(r"background #[0-9a-fA-F]{6}\n", kitty) is not None and kitty != read(D / w / "orig-kitty.conf")
+      and read(bk(".config/kitty/kitty.conf")) == read(D / w / "orig-kitty.conf"),
+      "existing: the theme run rewrites kitty.conf after copying it, the copy recorded", (kitty, bk(".config/kitty/kitty.conf")))
+question = o.split("== First theme run", 1)[-1].split("Every file", 1)[0]
+check("rewrite" in question and "kitty.conf" in question, "existing: the theme question names kitty.conf as rewritten", question)
+check("runs commands of its own" in o and "kitty" in o.split("runs commands of its own")[1][:200], "existing: the hook is named in the question", o[-2500:])
+check("Service: NetworkManager" not in o and "iwd manages your network" in o, "existing: NetworkManager not offered beside iwd, and said why", o[-2500:])
+check("Service: power-profiles-daemon" not in o and "tlp manages power" in o, "existing: power-profiles-daemon not offered beside TLP, and said why", o[-2500:])
+check(not re.search(r"systemctl (--user )?enable", c), "existing: no service enabled", c)
+
+# ---- XDG_CONFIG_HOME elsewhere
+w = "xdg"
+o = out(w)
+check("== First theme run" not in o and "XDG_CONFIG_HOME is not ~/.config" in o and "theme.py" not in calls(w)
+      and "awww img" not in calls(w), "xdg: no theme run offered, and the report says why", o[-1500:])
+check((H(w) / "xdgconf/quickshell/sleepyshell").is_symlink() and (H(w) / "xdgconf/hypr/modules/sleepyshell.lua").exists(),
+      "xdg: the link and the module go under XDG_CONFIG_HOME", o[-800:])
+
+# ---- another polkit agent
+w = "polkit_keep"
+o = out(w)
+check("== Password prompt ==" in o and "hyprpolkitagent.service, a service of your user" in o, "polkit_keep: the other agent is found and asked about", o[-2500:])
+check(re.search(r"^polkitAgent = false$", read(D / w / "clone/sleepysettings.toml"), re.M) is not None
+      and "disable" not in calls(w), "polkit_keep: kept; the shell's prompt is off in the new settings and the service untouched",
+      calls(w)[-800:])
+check("Password prompts are answered by hyprpolkitagent" in o.split("== Finished ==")[-1], "polkit_keep: the report names the agent that answers", o[-1500:])
+w = "polkit_use"
+o, m = out(w), manifest(w)
+check("systemctl --user disable --now hyprpolkitagent.service" in calls(w) and ["service-disabled", "user", "hyprpolkitagent.service"] in [r[1:4] for r in m]
+      and re.search(r"^polkitAgent = true$", read(D / w / "clone/sleepysettings.toml"), re.M) is not None,
+      "polkit_use: the other agent's service is disabled and recorded, the shell's prompt stays on", (calls(w)[-800:], m[-6:]))
+check("Password prompts are answered by Sleepy Shell" in o.split("== Finished ==")[-1], "polkit_use: the report says the shell answers", o[-1500:])
+check(re.search(r'^defaultTerminal = "myterm"$', read(D / w / "clone/sleepysettings.toml"), re.M) is not None and "Terminal for Update now" in o,
+      "polkit_use: without kitty the new settings name $TERMINAL as the shell's terminal", o[-1500:])
+
+# ---- the clocks' font
+w = "font_ok"
+fdir = H(w) / ".local/share/fonts"
+names = ["3270-Regular.ttf", "3270SemiCondensed-Regular.ttf", "3270Condensed-Regular.ttf"]
+check(all(read(fdir / n) == f"stand-in for {n}\n" for n in names) and not (fdir / "README.md").exists()
+      and all(["created", str(fdir / n)] in [r[1:3] for r in manifest(w)] for n in names),
+      "font_ok: the three font files of the checked archive are installed and recorded, nothing else of it", out(w)[-1500:])
+check("The clocks' font IBM 3270" in out(w).split("== Summary ==", 1)[-1], "font_ok: the summary names the download", out(w)[-2500:])
+w = "font_bad"
+check(not any((H(w) / ".local/share/fonts" / n).exists() for n in names) and "not the expected one" in out(w) and rc(w) == "1",
+      "font_bad: an archive with another SHA-256 installs nothing, and the run says so", out(w)[-1500:])
+w = "fresh"
+check("Installed the clocks' font IBM 3270" in out(w, "out-1.txt") and "The clocks' font" not in out(w, "out-2.txt").split("== Summary ==", 1)[-1].split("Install /", 1)[0],
+      "fresh: the clocks' font is installed once and not downloaded again on the next run", out(w, "out-2.txt")[-1500:])
+
 # ---- dry run
 w = "dryrun"
 check(rc(w) == "0" and "Dry run: nothing was installed or changed." in out(w), "dryrun: stops after the summary", out(w)[-800:])
@@ -245,6 +314,7 @@ w = "tui"
 t = read(D / w / "drive.txt")
 check(rc(w) == "0", "tui: every screen came", t[-2000:])
 check("PICKER" in t and "[ ] Wallpaper theming" in t, "tui: Space unticks a part in the picker", t[-2000:])
+check("WRAPPED yes" in t, "tui: a package line longer than the screen wraps in the picker", read(D / w / "frames.txt")[-3000:])
 check("SCREEN Summary" in t and "[ Install ]" in t and "Cancel" in t and "matugen" not in t.split("SUMMARY", 1)[-1].split("Services")[0],
       "tui: the summary shows the choice, without the unticked part's packages", t[-2000:])
 check("SCREEN Cancelled" in t and "EXIT 1" in t, "tui: cancel at the summary ends the run", t[-800:])

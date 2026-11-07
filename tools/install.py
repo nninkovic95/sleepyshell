@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """The parts of install.sh that need more than bash: reading the user's config files and writing files safely.
 
-  install.py plan [--theming]     what the installer would do with the user's files, as one JSON object (reads only)
+  install.py plan [--theming] [--screenshots]
+                                  what the installer would do with the user's files, as one JSON object (reads only)
   install.py write PATH --was SHA|none --backup-dir DIR
                                   write stdin to PATH (atomic; a symlink is written through to its target) only when
                                   PATH is still what the user was shown: SHA is the sha256 of its content then, "none"
@@ -56,6 +57,8 @@ CONFLICTS = {
     "mako": "another notification daemon", "dunst": "another notification daemon", "fnott": "another notification daemon",
     "hyprpolkitagent": "another polkit agent", "polkit-gnome-authentication-agent-1": "another polkit agent",
     "lxpolkit": "another polkit agent", "polkit-kde-authentication-agent-1": "another polkit agent",
+    "lxqt-policykit-agent": "another polkit agent", "polkit-mate-authentication-agent-1": "another polkit agent",
+    "xfce-polkit": "another polkit agent", "soteria": "another polkit agent",
     "hyprpaper": "another wallpaper program", "swaybg": "another wallpaper program",
 }
 
@@ -67,6 +70,8 @@ BINDS = [
     (["SUPER"], "L", 'hl.bind("SUPER + L", hl.dsp.exec_cmd("qs -n -p ~/.config/quickshell/sleepyshell/sleepylock.qml"), { locked = true })',
      "the lock screen"),
 ]
+# with the Screenshots part: Print takes a screenshot of an area (the shell previews Hyprshot's notifications)
+SCREENSHOT_BIND = ([], "Print", 'hl.bind("Print", hl.dsp.exec_cmd("hyprshot -m region"))', "a screenshot of an area (Hyprshot)")
 # the Keybinds window's key lives in the Keybinds tab's own file, so the tab can change it later
 KEYS_WINDOW = (["SUPER"], "slash", 'hl.bind("SUPER + slash", hl.dsp.event("sleepyshell:keybinds"))', "the Keybinds window")
 
@@ -117,7 +122,7 @@ def combo(mods, key):
     return (frozenset(m.upper() for m in mods), key.lower())
 
 
-def plan(theming):
+def plan(theming, screenshots=False):
     d = discover()
     st = settings()
     colors = expand(st.get("pathColors") or COLORS_DEFAULT)
@@ -151,10 +156,11 @@ def plan(theming):
             continue
         bound.setdefault(combo(b.get("mods", []), b.get("key", "")), b)
     keys, taken = [], []
-    for mods, key, line, what in BINDS:
+    for mods, key, line, what in BINDS + ([SCREENSHOT_BIND] if screenshots else []):
         hit = bound.get(combo(mods, key))
         event = line.split("hl.dsp.event(", 1)[1].split(")", 1)[0] if "hl.dsp.event(" in line else None
-        if hit and (event and event in hit.get("raw", "") or "sleepylock.qml" in line and "sleepylock.qml" in hit.get("raw", "")):
+        if hit and (event and event in hit.get("raw", "") or "sleepylock.qml" in line and "sleepylock.qml" in hit.get("raw", "")
+                    or "hyprshot" in line and "hyprshot" in hit.get("raw", "")):
             continue  # the user's config already binds this key to the same thing
         if hit:
             taken.append({"combo": " + ".join(mods + [key]), "what": what, "action": hit.get("action", ""),
@@ -227,6 +233,8 @@ def notes(plan_path):
     d = json.loads(Path(plan_path).read_text())
     out = []
     for c in d["hypr"]["conflicts"]:
+        if c["why"] == "another polkit agent":
+            continue  # asked about on its own, with the shell's prompt
         out.append(f"Your Hyprland config starts {c['name']} ({c['why']}) in {c['file']}, line {c['line']}. Sleepy Shell does "
                    "that job itself; remove that line so the two do not clash.")
     for t in d["module"]["taken"]:
@@ -385,7 +393,7 @@ def main(argv):
         return 0 if argv else 2
     cmd = argv[0]
     if cmd == "plan":
-        print(json.dumps(plan("--theming" in argv[1:]), indent=1))
+        print(json.dumps(plan("--theming" in argv[1:], "--screenshots" in argv[1:]), indent=1))
         return 0
     if cmd == "notes" and len(argv) == 2:
         for line in notes(argv[1]):
