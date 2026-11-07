@@ -16,7 +16,13 @@ Singleton {
     readonly property var active: wifi ? (wifi.networks.values.find(n => n.connected) ?? null) : null
     readonly property real strength: active?.signalStrength ?? 0
 
-    readonly property string label: wiredUp ? "Wired" : wifiUp ? (active?.name ?? "Wi-Fi") : !wifi ? "No Wi-Fi adapter" : wifiEnabled ? "Not connected" : "Wi-Fi off"
+    // NetworkManager's own internet check, so the shell sends no requests of its own. Unknown (the
+    // check is turned off in NetworkManager) counts as online: no warning without a real result.
+    // None and Limited both mean a link without internet while a device is connected.
+    readonly property bool portal: online && Networking.connectivity === NetworkConnectivity.Portal
+    readonly property bool noInternet: online && (portal || Networking.connectivity === NetworkConnectivity.Limited || Networking.connectivity === NetworkConnectivity.None)
+
+    readonly property string label: (wiredUp ? "Wired" : wifiUp ? (active?.name ?? "Wi-Fi") : !wifi ? "No Wi-Fi adapter" : wifiEnabled ? "Not connected" : "Wi-Fi off") + (portal ? " · Sign-in needed" : noInternet ? " · No internet" : "")
 
     // connected first, then saved, then by signal in three coarse bands (a raw strength sort
     // reordered the rows on every scan tick, under the pointer), then by name
@@ -31,12 +37,13 @@ Singleton {
 
     function glyph() {
         if (wiredUp)
-            return 0xF0200;
+            return noInternet ? 0xF0202 : 0xF0200;
         if (!wifi || !wifiEnabled)
             return 0xF092D;
         if (!wifiUp)
             return 0xF092F;
-        return strengthGlyph(strength);
+        // without internet, the same strength with a "!": each strength glyph's alert variant is the next codepoint
+        return strengthGlyph(strength) + (noInternet ? 1 : 0);
     }
 
     function setWifi(on) {

@@ -47,7 +47,7 @@ BarButton {
                 Layout.preferredWidth: 24
                 cp: Net.glyph()
                 font.pixelSize: 18
-                color: Net.online ? Theme.primary : Theme.fg
+                color: Net.online && !Net.noInternet ? Theme.primary : Theme.fg
             }
 
             Text {

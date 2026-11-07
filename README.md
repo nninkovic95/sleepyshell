@@ -87,7 +87,9 @@ Reorder and hide them in the Right island tab. Default order:
 - **Package updates**: the count of repository and AUR updates, shown only when there are some. The dropdown
   lists up to 30 packages, refreshes, and starts the update in your terminal; right click re-checks. Checks
   every 30 min (a setting).
-- **Network**: glyph plus Wi-Fi signal. The dropdown shows the connection, the network list (scans while open,
+- **Network**: glyph plus Wi-Fi signal. The glyph gets a "!" (a crossed cable when wired) while connected without
+  internet, from NetworkManager's own connectivity check; a network that needs a sign-in page says so. The
+  dropdown shows the connection, the network list (scans while open,
   sorted connected, saved, by signal; click to connect or disconnect; a password prompt inline; failure
   reasons), live download and upload speed, and a button to the terminal network settings.
 - **Bluetooth**: the number of connected devices while the adapter is on.
