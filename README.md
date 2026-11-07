@@ -1,6 +1,6 @@
 # sleepyshell
 
-![sleepyshell: the control centre opening from the clock, then the updates dropdown](assets/clips/hero.webp)
+![sleepyshell, slide by slide: the desktop, the control centre, the notification list, Sleepysettings, a new theme, the Keybinds window, the session menu and the lock screen](assets/clips/hero.webp)
 
 A desktop shell for [Hyprland](https://hypr.land), written in [Quickshell](https://quickshell.org) (QML) with
 Python helpers. Floating islands on the top edge, a control centre, notifications, an on-screen display, a
@@ -565,7 +565,7 @@ an AUR helper, after its summary. The full list of what it reads, runs and write
 
 ### How the AI review works
 
-Every push is reviewed by Claude in GitHub Actions against a fixed checklist,
+Once CI is switched on, every push is reviewed by Claude in GitHub Actions against a fixed checklist,
 [`.github/review/CHECKLIST.md`](.github/review/CHECKLIST.md): security problems, files changed without asking,
 development-only code on `main`, personal data in the code, and documentation that no longer matches the code.
 
@@ -622,6 +622,6 @@ It is not the product of throwing prompts at a model. I designed the shell and d
 setting and every "not planned". The work runs as an agentic workflow: each job is scoped and briefed before
 any code is written, I watch the patterns in what comes back and correct them, every change passes a compile
 gate and checks in a bubblewrap sandbox before it reaches a desktop, security-sensitive parts get dedicated
-reviews (and every push is reviewed again by Claude on GitHub), and nothing stays until I have tested it on a
-real desktop. The decisions and the responsibility are mine. Bug reports and contributions are welcome, with or
-without AI.
+reviews (and once CI is on, every push is reviewed again by Claude on GitHub), and nothing stays until I have
+tested it on a real desktop. The decisions and the responsibility are mine. Bug reports and contributions are
+welcome, with or without AI.

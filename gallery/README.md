@@ -12,7 +12,7 @@ shot list for the ones still to come, one feature per clip, each later with a pa
 | [`settings.webp`](../assets/clips/settings.webp) | The control centre, a tour of the settings app's tabs, test notifications. |
 | [`notification-list.webp`](../assets/clips/notification-list.webp) | The bell opens the notification list, which scrolls. |
 | [`updates.webp`](../assets/clips/updates.webp) | The updates dropdown, then the update running in the terminal. |
-| [`hero.webp`](../assets/clips/hero.webp) | A short cut of `overview.webp`, the top of the README. |
+| [`hero.webp`](../assets/clips/hero.webp) | The top of the README: seven stills from the showcase recording (the desktop, the control centre, the notification list, Sleepysettings, a new theme, the Keybinds window, the session menu) and the lock screen, each sliding in from the right like a workspace switch. |
 
 ## Shot list
 
