@@ -11,6 +11,8 @@ Item {
     property int glyph: 0
     property string glyphText: glyph ? String.fromCodePoint(glyph) : ""
     property bool glyphFirst: false
+    // instead of a glyph: a component that draws the icon (leave glyph 0); it can read glyphSize and currentFg
+    property Component iconItem: null
     // on the bar (glued) the bar sizes, inside panels the panel sizes
     property int glyphSize: glued ? Theme.barIconSize : Theme.iconSize
     property color bg: "transparent"
@@ -86,6 +88,15 @@ Item {
             visible: text !== ""
             font.pixelSize: root.glyphSize
             color: root.currentFg
+        }
+
+        // an icon drawn by the widget itself (the Wi-Fi fan filled to the strength), in the glyph's place
+        Loader {
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: Theme.iconNudge
+            active: root.iconItem !== null
+            visible: active
+            sourceComponent: root.iconItem
         }
 
         Text {

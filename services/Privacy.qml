@@ -29,8 +29,14 @@ Singleton {
     function prop(n, key) {
         return String(n.properties[key] ?? "");
     }
+    // stream names that belong to a library, not an app: WebRTC's voice engine (Discord and other calls) and Chromium's
+    // capture name the stream after themselves; the process name is the app then
+    readonly property var engineNames: ["webrtc voiceengine", "chromium input"]
     function appLabel(n) {
-        return prop(n, "application.name") || prop(n, "application.process.binary") || n.name;
+        const app = prop(n, "application.name"), bin = prop(n, "application.process.binary");
+        if (bin && engineNames.includes(app.toLowerCase()))
+            return bin;
+        return app || bin || n.name;
     }
     function unique(list) {
         return list.filter((x, i) => list.indexOf(x) === i);

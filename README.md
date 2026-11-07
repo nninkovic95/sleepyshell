@@ -87,7 +87,8 @@ Reorder and hide them in the Right island tab. Default order:
 - **Package updates**: the count of repository and AUR updates, shown only when there are some. The dropdown
   lists up to 30 packages, refreshes, and starts the update in your terminal; right click re-checks. Checks
   every 30 min (a setting).
-- **Network**: glyph plus Wi-Fi signal. The glyph gets a "!" (a crossed cable when wired) while connected without
+- **Network**: glyph plus Wi-Fi signal; the Wi-Fi fan is filled to the exact percentage beside it, not in four
+  steps. The glyph gets a "!" (a crossed cable when wired) while connected without
   internet, from NetworkManager's own connectivity check; a network that needs a sign-in page says so. The
   dropdown shows the connection, the network list (scans while open,
   sorted connected, saved, by signal; click to connect or disconnect; a password prompt inline; failure
@@ -97,7 +98,8 @@ Reorder and hide them in the Right island tab. Default order:
   charging; click opens the Power tab.
 - **Privacy**: microphone, camera and screen-share indicators, only while something uses them (read from
   PipeWire; Easy Effects, meters and muted streams are ignored; portal screencasts are detected). The dropdown
-  names the app and what it uses.
+  names the app and what it uses (the program, where the stream carries only its voice library's name, as
+  Discord's does).
 - **Notifications**: the bell with a count while notifications wait, muted under Do not disturb. The dropdown
   has a Do not disturb switch, Clear all (the cards swipe out one by one) and the cards, newest or oldest
   first.
@@ -108,7 +110,7 @@ Reorder and hide them in the Right island tab. Default order:
   Super+Shift+L suggested), and a small indicator shows on the island only while it is on. Hyprland reports only
   keybinds that fire, never typing, and only while the overlay is on; it needs one line at the top of
   `hyprland.lua` (the Keybinds tab offers Set up).
-- **Recording**: a dot while a screen recorder says it is recording (over the shell's IPC, below).
+- **Recording**: a blinking red dot while a screen recorder says it is recording (over the shell's IPC, below).
 - **System tray**: StatusNotifier icons with a themed right-click menu (with submenus); middle click for the
   secondary action; the wheel scrolls the item. Hidden when empty.
 </details>

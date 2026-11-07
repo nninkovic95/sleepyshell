@@ -13,8 +13,21 @@ BarButton {
     required property var bar
     readonly property bool onWifi: Net.wifiUp && !Net.wiredUp
     // figure before the glyph, like the CPU and memory readouts
-    text: onWifi ? Math.round(Net.strength * 100) + "%" : ""
-    glyph: Net.glyph()
+    readonly property int percent: Math.round(Net.strength * 100)
+    text: onWifi ? percent + "%" : ""
+    // on Wi-Fi the fan is filled to the same percentage as the figure beside it
+    glyph: onWifi ? 0 : Net.glyph()
+    iconItem: onWifi ? barFan : null
+
+    Component {
+        id: barFan
+        SignalFan {
+            level: root.percent / 100
+            alert: Net.noInternet
+            pixelSize: root.glyphSize
+            color: root.currentFg
+        }
+    }
     // the width of "100%" plus the glyph is reserved, so the island does not jitter as the strength changes
     minWidth: onWifi ? Math.ceil(widest.width) + 4 + Theme.iconCell + hpad * 2 : 0
     inset: true
@@ -45,9 +58,19 @@ BarButton {
 
             Glyph {
                 Layout.preferredWidth: 24
+                visible: !root.onWifi
                 cp: Net.glyph()
                 font.pixelSize: 18
                 color: Net.online && !Net.noInternet ? Theme.primary : Theme.fg
+            }
+
+            SignalFan {
+                Layout.preferredWidth: 24
+                visible: root.onWifi
+                level: root.percent / 100
+                alert: Net.noInternet
+                pixelSize: 18
+                color: Net.noInternet ? Theme.fg : Theme.primary
             }
 
             Text {
