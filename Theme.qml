@@ -148,30 +148,6 @@ Singleton {
 
     // island fill: a lighter container tone at low alpha, so the frosted blur behind it
     // reads against the dark wallpaper (surface at 0.72 was indistinguishable from it)
-    // ---- the warning colour for icons on the bar (the right island's indicators) ----
-    // The palette's alert red (urgent) is a container colour: dark in dark themes and pale in light ones, so as a bar icon
-    // it barely shows (1.3:1 against a dark bar). alertIcon keeps its hue and saturation and moves its lightness, lighter on
-    // a dark bar and darker on a light one, until it reaches 4.5:1 against the bar's colour; recomputed with the palette.
-    function luminance(c) {
-        const f = v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-        return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
-    }
-    function contrast(a, b) {
-        const la = luminance(a), lb = luminance(b);
-        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
-    }
-    function readable(c, bg, min) {
-        const dark = luminance(bg) < 0.4;
-        let l = c.hslLightness;
-        let out = Qt.hsla(c.hslHue, c.hslSaturation, l, 1);
-        for (let i = 0; i < 40 && contrast(out, bg) < min; i++) {
-            l = dark ? Math.min(1, l + 0.025) : Math.max(0, l - 0.025);
-            out = Qt.hsla(c.hslHue, c.hslSaturation, l, 1);
-        }
-        return out;
-    }
-    readonly property color alertIcon: readable(urgent, containerHighest, 4.5)
-
     readonly property real barOpacity: Settings.barOpacity
     readonly property color barBg: Qt.alpha(containerHighest, barOpacity)
 

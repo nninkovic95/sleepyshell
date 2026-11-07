@@ -24,8 +24,8 @@ parts = s.js("""(function () {
   const glyph = o.children.find(k => sleepytestDriver.typeName(k) === 'Glyph');
   return { behind: o.children.filter(k => k !== glyph).length, icon: String(glyph.color) };
 })()""")
-check(parts["behind"] == 0 and parts["icon"] == s.js("String(Theme.alertIcon)"),
-      "it is the icon alone in the warning colour, like the microphone indicator", f"{parts}")
+check(parts["behind"] == 0 and parts["icon"] == s.js("String(Theme.accent)"),
+      "it is the icon alone in the accent colour, like the microphone indicator", f"{parts}")
 icons = s.bar_icons()
 check(icons.get("recordingIndicator") == icons.get("Clipboard") is not None, "the dot sits on the same line as the buttons beside it", f"{icons}")
 s.call("sleepybar", "recording", "false")

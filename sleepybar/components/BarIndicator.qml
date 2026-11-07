@@ -3,7 +3,7 @@ import qs
 import qs.components
 
 // A state indicator on the right island (Caps Lock, keybind overlay, click circles, recording): the icon alone, in the
-// warning colour (Theme.alertIcon), on the same line as the buttons beside it, shown only while `shown` is true. Information only: no
+// accent colour (Theme.accent, as the palette gives it), on the same line as the buttons beside it, shown only while `shown` is true. Information only: no
 // background, no hover, nothing to click (a clickable indicator, the privacy one, is a button and gets the hover
 // highlight only on hover).
 Item {
@@ -23,7 +23,6 @@ Item {
         anchors.verticalCenterOffset: Theme.iconNudge + Theme.insetPad / 2
         cp: ind.cp
         font.pixelSize: Math.round(Theme.barIconSize * ind.glyphScale)
-        // the warning colour, made readable on the bar (Theme.alertIcon)
-        color: Theme.alertIcon
+        color: Theme.accent
     }
 }

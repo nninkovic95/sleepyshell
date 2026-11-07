@@ -83,25 +83,11 @@ check(s.wait(lambda: shows("clicksIndicator")) and shows("keysIndicator"), "both
 icons = s.bar_icons()
 check(icons.get("keysIndicator") == icons.get("clicksIndicator") == icons.get("Clipboard") is not None,
       "both indicators sit on the same line as the buttons beside them", f"{icons}")
-urgent, hover = s.js("String(Theme.alertIcon)"), s.js("String(Theme.hoverBg)")
-
-
-def contrast(a, b):
-    """WCAG contrast of two #rrggbb colours, worked out here, apart from the shell's own code."""
-    def lum(h):
-        r, g, b_ = (int(h.lstrip("#")[-6:][i:i + 2], 16) / 255 for i in (0, 2, 4))
-        f = lambda v: v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
-        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b_)
-    la, lb = lum(a), lum(b)
-    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
-
-
-bar_bg = s.js("String(Theme.containerHighest)")
-check(contrast(urgent, bar_bg) >= 4.4, "the warning icon colour reads against the bar (at least 4.5:1)", f"{urgent} on {bar_bg}: {contrast(urgent, bar_bg):.2f}:1")
+accent, hover = s.js("String(Theme.accent)"), s.js("String(Theme.hoverBg)")
 for name in ("keysIndicator", "clicksIndicator", "CapsIndicator"):
     parts = pill_parts(name)
-    check(parts and parts["behind"] == 0 and parts["icon"] == urgent, f"{name} is the icon alone, in the readable warning colour",
-          f"{parts}, urgent {urgent}")
+    check(parts and parts["behind"] == 0 and parts["icon"] == accent, f"{name} is the icon alone, in the accent colour",
+          f"{parts}, accent {accent}")
 bar_icon = s.js("Theme.barIconSize")
 caps = pill_parts("CapsIndicator") or {}
 check(caps.get("size") == round(bar_icon * 5 / 6) and (pill_parts("keysIndicator") or {}).get("size") == bar_icon,
@@ -109,7 +95,7 @@ check(caps.get("size") == round(bar_icon * 5 / 6) and (pill_parts("keysIndicator
 privacy = s.js("(function () { const e = sleepytestDriver.scan().items.find(e => sleepytestDriver.typeName(e.obj) === 'PrivacyPill'); "
                "return e ? { bg: String(e.obj.bg), hover: String(e.obj.hoverBg), fg: String(e.obj.fg), hoverFg: String(e.obj.hoverFg), "
                "lift: e.obj.lift } : null })()")
-check(privacy and privacy["bg"] == s.js("String(Qt.color('transparent'))") and privacy["fg"] == privacy["hoverFg"] == urgent,
+check(privacy and privacy["bg"] == s.js("String(Qt.color('transparent'))") and privacy["fg"] == privacy["hoverFg"] == accent,
       "the microphone, camera and screen-share indicator has the same warning icon and nothing behind it at rest", f"{privacy}")
 check(privacy and privacy["hover"] == hover and privacy["lift"] is True,
       "and, being clickable, the hover highlight and lift, on hover only", f"{privacy}")
@@ -151,12 +137,11 @@ check(not rings(), "no ring once they are off")
 
 env_errors = ("pipewire", "quickshell.network", "Network will not work")
 errs = [e for e in s.errors() if not any(x in e for x in env_errors)]
-# a light palette: the alert red is pale there, so the icon colour must turn dark to stay readable
-# fed through Theme.apply, the function a theme run's new palette file goes through
-s.js("""Theme.apply('{"surface_container_highest": "#e6e0e9", "error_container": "#ffdad6", "on_error_container": "#410002", "surface": "#fef7ff", "on_surface": "#1d1b20"}')""")
-light = s.wait(lambda: s.js("String(Theme.containerHighest)") == "#e6e0e9", 5)
-icon = s.js("String(Theme.alertIcon)")
-check(light and contrast(icon, "#e6e0e9") >= 4.4 and contrast("#ffdad6", "#e6e0e9") < 1.5,
-      "in a light palette the pale alert red becomes a dark red that still reads (at least 4.5:1)", f"{icon}: {contrast(icon, '#e6e0e9'):.2f}:1")
+# a new palette (fed through Theme.apply, the function a theme run's palette file goes through): the icons take its
+# accent (primary_container) exactly as given
+s.js("""Theme.apply('{"surface_container_highest": "#e6e0e9", "primary_container": "#dde1ff", "error_container": "#ffdad6"}')""")
+took = s.wait(lambda: s.js("String(Theme.accent)") == "#dde1ff", 5)
+icon = (pill_parts("CapsIndicator") or {}).get("icon")
+check(took and icon == "#dde1ff", "the icons take the palette's accent (primary_container) exactly", f"accent {s.js('String(Theme.accent)')}, icon {icon}")
 check(not errs, "no QML errors", "; ".join(errs[:3]))
 done()
