@@ -117,8 +117,10 @@ Item {
     // the wave's strength: up while the disc slides, eased back down when it stops, so the dot it
     // lands on settles instead of dropping (the dots' Lifts follow the disc frame by frame)
     property real wave: 0
-    // 1 while the disc is a slot or more from where it is going, falling to 0 as it arrives: the
-    // dot it lands on lifts only briefly (the disc slows down on top of it)
+    // 1 while the disc is a slot or more from where it is going, falling to 0 as it arrives. It damps
+    // every dot, not only the one it lands on: the wave reaches further than one slot, so the resting
+    // disc kept both neighbours lifted (the one past the target too) until the slide's long ease-out
+    // had finished and the wave had faded
     readonly property real arrive: Math.min(1, Math.abs((edgeL + edgeR) / 2 - (animL.to + animR.to) / 2) / disc)
     Behavior on wave {
         NumberAnimation {
@@ -294,7 +296,7 @@ Item {
                 peak: Theme.dotLiftScale
                 maxPx: 1000
                 eased: false
-                level: Settings.workspaceWave && !root.number ? root.wave * Math.max(0, 1 - Math.abs(btn.x + btn.width / 2 - (root.edgeL + root.edgeR) / 2) / (root.disc * 1.5)) * (btn === root.focusedItem ? root.arrive : 1) : 0
+                level: Settings.workspaceWave && !root.number ? root.wave * Math.max(0, 1 - Math.abs(btn.x + btn.width / 2 - (root.edgeL + root.edgeR) / 2) / (root.disc * 1.5)) * root.arrive : 0
             }
 
             MouseArea {

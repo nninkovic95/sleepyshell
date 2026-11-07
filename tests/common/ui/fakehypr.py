@@ -97,9 +97,17 @@ class Fake:
         if m and "focus" in text:
             n = int(m.group(1))
             if n != self.st["active"]:
+                old, kept = self.st["active"], self.st["occupied"]
+                # Hyprland creates a workspace when it is first focused and destroys an empty one when it is left
+                if n not in kept:
+                    self.broadcast(f"createworkspace>>{n}")
+                    self.broadcast(f"createworkspacev2>>{n},{n}")
                 self.st["active"] = n
                 self.broadcast(f"workspace>>{n}")
                 self.broadcast(f"workspacev2>>{n},{n}")
+                if old not in kept:
+                    self.broadcast(f"destroyworkspace>>{old}")
+                    self.broadcast(f"destroyworkspacev2>>{old},{old}")
                 self.broadcast(f"focusedmon>>{self.st['monitor']['name']},{n}")
 
     def broadcast(self, line):
