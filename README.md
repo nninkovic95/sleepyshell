@@ -20,7 +20,6 @@ after showing you exactly what will change, with a backup kept. See [Security](#
 
 ## Contents
 
-- [What it looks like](#what-it-looks-like)
 - [Features](#features)
 - [Dependencies](#dependencies)
 - [Install](#install)
@@ -32,17 +31,7 @@ after showing you exactly what will change, with a backup kept. See [Security](#
 - [Licence](#licence)
 - [AI disclaimer](#ai-disclaimer)
 
-## What it looks like
-
-| | |
-|---|---|
-| ![The Keybinds window: every Hyprland keybind, grouped and searchable](assets/screenshots/keybinds.webp) | ![The session menu: Lock, Sleep, Log out, Reboot, Shut down](assets/screenshots/session-menu.webp) |
-| **Keybinds window**: every keybind your Hyprland files define, grouped, searchable, each with a plain description. | **Session menu**: letter keys, and the last three must be held for a moment. |
-| ![The lock screen: blurred wallpaper, clock, password field](assets/screenshots/lock-screen.webp) | |
-| **Lock screen**: its own process, so a crash of the bar can never unlock a session. | |
-
-More in motion in the [gallery](gallery/README.md): the control centre with the Wi-Fi list, a tour of the
-settings app, the notification list, and the updates dropdown with the terminal updater.
+More screenshots and clips in the [gallery](gallery/README.md).
 
 ## Features
 
@@ -481,7 +470,7 @@ sleepyshell/
 ├── themes/, templates/    community colour themes, the bar's colours template, folder-icon templates
 ├── data/                  the Material icon index, Hyprland's default binds, the default settings
 ├── tests/                 the test kit: sandbox, compile gate, preview, deploy, focused tests
-├── gallery/               the recordings: an index of the clips
+├── gallery/               the gallery: the slideshow and a full-size screenshot of each feature
 ├── assets/                the clips (animated WebP) and the screenshots
 ├── tools/                 merge-dev.sh (dev into main without the dev-only paths), the installer's helper,
 │                          default-settings.sh (renders data/default-settings.toml from the schema)
