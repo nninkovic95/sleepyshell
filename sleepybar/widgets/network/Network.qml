@@ -106,14 +106,42 @@ BarButton {
             color: Theme.containerHighest
         }
 
-        // samples /proc/net/dev only while the dropdown is open
-        NetSpeed {
+        // the most the connection can carry at its current signal (or cable speed), not the traffic of the moment;
+        // in megabits as the link reports it, and in megabytes as a download shows it
+        RowLayout {
+            objectName: "linkRate"
+            visible: Net.linkRate > 0
             Layout.fillWidth: true
             Layout.leftMargin: 10
             Layout.topMargin: 2
             Layout.bottomMargin: 2
-            active: pop.open
-            iface: Net.iface
+            spacing: 4
+
+            Glyph {
+                cp: 0xF04C5
+                Layout.alignment: Qt.AlignVCenter
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: "Up to " + Math.round(Net.linkRate) + " Mbit/s  ·  " + (Net.linkRate / 8).toFixed(Net.linkRate < 80 ? 1 : 0) + " MB/s"
+                font.family: Theme.font
+                font.pixelSize: Theme.fontSize
+                color: Theme.fg
+                elide: Text.ElideRight
+            }
+        }
+
+        // the Wi-Fi rate is read only while this list is open
+        Connections {
+            target: pop
+            function onOpenChanged() {
+                Net.rateWatchers += pop.open ? 1 : -1;
+            }
+        }
+        Component.onDestruction: {
+            if (pop.open)
+                Net.rateWatchers -= 1;
         }
 
         MenuItem {

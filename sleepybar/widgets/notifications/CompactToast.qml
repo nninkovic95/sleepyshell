@@ -65,7 +65,7 @@ Rectangle {
         }
 
         Text {
-            text: row.notif?.appName ?? ""
+            text: Notifs.appLabel(row.notif)
             textFormat: Text.PlainText
             elide: Text.ElideRight
             Layout.maximumWidth: 120

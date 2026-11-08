@@ -92,7 +92,8 @@ Reorder and hide them in the Right island tab. Default order:
   internet, from NetworkManager's own connectivity check; a network that needs a sign-in page says so. The
   dropdown shows the connection, the network list (scans while open,
   sorted connected, saved, by signal; click to connect or disconnect; a password prompt inline; failure
-  reasons), live download and upload speed, and a button to the terminal network settings.
+  reasons), the most the connection can carry at its current signal (or the cable's speed), and a button to the
+  terminal network settings.
 - **Bluetooth**: the number of connected devices while the adapter is on.
 - **Battery**: percentage and glyph on laptops, red under the low level while discharging, accent while
   charging; click opens the Power tab.

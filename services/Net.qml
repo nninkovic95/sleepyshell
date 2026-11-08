@@ -1,9 +1,11 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Networking
 
-// Network state through Quickshell's NetworkManager backend (no nmcli polling).
+// Network state through Quickshell's NetworkManager backend; NetworkManager is asked directly only for the Wi-Fi
+// link rate, and only while the network dropdown is open.
 Singleton {
     id: root
 
@@ -66,9 +68,35 @@ Singleton {
         return !n.connected && !n.known && (n.security === WifiSecurityType.Wpa2Psk || n.security === WifiSecurityType.WpaPsk || n.security === WifiSecurityType.Sae);
     }
 
-    // Interface of the connection in use, for the speed readout (wired wins, as in `label`).
-    // Empty when nothing is connected; NetSpeed then falls back to the first interface with traffic.
-    readonly property string iface: (wiredUp ? wired : wifiUp ? wifi : null)?.name ?? ""
+    // The most the connection can carry now, in Mbit/s (0 when unknown): a cable's negotiated speed, or the rate the
+    // Wi-Fi card and the access point settled on for the current signal (it drops as the signal weakens). Wired wins,
+    // as in `label`. Quickshell gives the speed only for wired devices, so the Wi-Fi rate is NetworkManager's own
+    // (Device.Wireless.Bitrate, in Kbit/s), read only while something shows it: rateWatchers counts the viewers.
+    property int rateWatchers: 0
+    property real wifiRate: 0
+    readonly property real linkRate: wiredUp ? (wired?.linkSpeed ?? 0) : wifiUp ? wifiRate : 0
+
+    Process {
+        id: rateProc
+        command: ["sh", "-c", 'p=$(nmcli -g GENERAL.DBUS-PATH device show "$1") && gdbus call --system --dest org.freedesktop.NetworkManager --object-path "$p" --method org.freedesktop.DBus.Properties.Get org.freedesktop.NetworkManager.Device.Wireless Bitrate', "sh", root.wifi?.name ?? ""]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const m = /uint32 (\d+)/.exec(text);
+                root.wifiRate = m ? parseInt(m[1], 10) / 1000 : 0;
+            }
+        }
+    }
+
+    Timer {
+        interval: 2000
+        repeat: true
+        triggeredOnStart: true
+        running: root.rateWatchers > 0 && root.wifiUp && !root.wiredUp
+        onTriggered: {
+            if (!rateProc.running)
+                rateProc.running = true;
+        }
+    }
 
     // connected networks disconnect; saved or open ones connect directly (a network that
     // needsPassword is handled by WifiList before it gets here)
