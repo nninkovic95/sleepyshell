@@ -72,7 +72,8 @@ padding are settings.
     same) that are off until you switch them on in the Centre island tab and drag them into place, plus your
     own tools (an installed app, a command with or without a terminal, or a link), each with a label and a
     Material icon picked by name. A tool whose program is missing is greyed with the reason;
-  - output and input audio panels (mute, slider, device list; Easy Effects chains resolve to the hardware node)
+  - output and input audio panels (mute, slider, a list of the real devices, without virtual ones such as Easy
+    Effects'; Easy Effects chains resolve to the hardware node)
     and a backlight slider on laptops;
   - a Power button that opens the session menu.
 - The centre island can be stepped (a deeper outline under the clock) and the open panel uneven.
