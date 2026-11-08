@@ -41,6 +41,20 @@ BarButton {
     // by one
     property real lastStart: 0
     readonly property var listOrder: Settings.notifOrder === "oldest" ? Notifs.list.slice().reverse() : Notifs.list
+    // with the list scrolled down, the cards above the view go at once before the sweep starts: swiped
+    // in turn they slid out unseen while the visible cards waited, so Clear all looked dead
+    function dropAbove() {
+        const gone = [];
+        for (let i = 0; i < root.listOrder.length; i++) {
+            const card = notifList.itemAtIndex(i);
+            if (card && card.y + card.height > notifList.contentY + 4)
+                break;
+            gone.push(root.listOrder[i]);
+        }
+        root.swept = gone;
+        for (const n of gone)
+            n.dismiss();
+    }
     Timer {
         id: sweep
         running: Notifs.clearing
@@ -51,6 +65,7 @@ BarButton {
             if (running) {
                 root.swept = [];
                 root.idleBeats = 0;
+                root.dropAbove();
             }
         }
         onTriggered: {
@@ -132,6 +147,7 @@ BarButton {
         // room around the cards for their hover lift and tilt: the list clips, and a card scaled to
         // its full width lost its rounded corners at the clip edge
         ListView {
+            id: notifList
             Layout.fillWidth: true
             Layout.preferredHeight: Math.min(contentHeight + topMargin + bottomMargin, 460)
             visible: Notifs.count > 0
