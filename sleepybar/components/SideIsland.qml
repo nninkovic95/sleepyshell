@@ -16,17 +16,26 @@ import qs.services
 //
 // Island host contract. A widget's IslandDropdown finds the island it sits in by walking up
 // to the first ancestor with `attach`, then talks to it only through these members. SideIsland
-// implements them for the side islands; GrowingIsland's panel item implements them for the centre:
-//   attach, glueLeft, glueRight  which edges the island is glued to
+// implements them for the side islands; GrowingIsland's island item implements them for the centre:
+//   attach       which edges the island is glued to (its presence marks an island host)
 //   hostX        left edge of the island's window on screen (0 here: the bar window spans the screen)
 //   hostWindow   the island's window when it is not the bar (for the dropdown's focus grab), else null
 //   hangY        where a dropdown's top edge sits (the island's bottom edge)
 //   canExtend    true when the island widens itself so a dropdown hangs flush under its straight
 //                bottom edge; false: the dropdown floats as a card under it
-//   straightEdge()           the straight part of the bottom edge on screen, {l, r}, without any extension
-//   fitPanel(panelX, panelW) widen the island over a panel at panelX..panelX+panelW; returns where the
-//                            panel's sides sit flush with the island while it is not extended, {edgeL, edgeR}
-//   releasePanel()           drop the extension again
+//   drawsPanel, dropLayer   true when the island draws the dropdown's fill itself as part of its own outline (the
+//                centre island); the dropdown's content then goes into dropLayer, in the island's own coordinates,
+//                and the dropdown draws no fill (false and null here: the bar draws a side island's dropdowns)
+//   needsAnchor  true when a dropdown hangs from its widget rather than from the island (the centre island's slots):
+//                one whose widget is hidden is refused at open, and an open one closes when its widget hides; false
+//                here, a hidden widget's dropdown still opens and stays open
+//   straightEdge()           the straight part of the bottom edge on screen, {l, r}, without any extension (asked
+//                            only while canExtend is false)
+//   fitPanel(panelX, panelW, drop)  widen the island over the dropdown `drop`'s panel at panelX..panelX+panelW;
+//                            returns where the panel's sides sit flush with the island while it is not
+//                            extended, {edgeL, edgeR}; an island that draws the panel returns where it sits
+//   releasePanel(drop)       drop the extension for that dropdown again (a side island ignores `drop`: Popouts keeps
+//                            one dropdown open at a time, so the one releasing is the one it widened for)
 // The island owns its geometry: a dropdown never writes extendLeft / extendRight itself.
 Item {
     id: root
@@ -43,6 +52,9 @@ Item {
     readonly property var hostWindow: null
     readonly property real hangY: Theme.barHeight
     readonly property bool canExtend: Settings.dropdownFit !== "float"
+    readonly property bool drawsPanel: false
+    readonly property Item dropLayer: null
+    readonly property bool needsAnchor: false
 
     function straightEdge() {
         const x = mapToItem(null, 0, 0).x + hostX + extendLeft;

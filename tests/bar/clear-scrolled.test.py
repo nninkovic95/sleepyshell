@@ -1,8 +1,10 @@
 """Tier 3 (Clear all looks broken): Clear all in the notification dropdown after the list was scrolled down.
   - the cards scrolled out above the view are dropped at once, without a swipe nobody can see;
   - every card that was in view slides out to the right, one after another from the top, while it is in view;
-  - nothing waits for the fallback (about 2.5 s without a card taking its turn) and then vanishes unseen.
+  - nothing waits for the fallback (about 2.5 s without a card taking its turn) and then vanishes unseen;
+  - once the list is empty the bell hides and closes the dropdown.
 A recorder inside the shell samples every card's place each 15 ms, so the check sees the motion, not only the result."""
+import json
 import subprocess
 import sys
 import time
@@ -124,6 +126,11 @@ for a, b in zip(log, log[1:]):
     else:
         run_start = None
 check(stall < 1000, "the sweep never stalls", f"longest wait between cards {stall} ms")
+
+# once the list is empty the bell leaves the bar and closes its dropdown itself (Notifications.qml)
+time.sleep(0.8)
+after = s.js("(function () { const d = (Popouts.byName['notifications'] || [])[0]; return d ? [d.open, d.anchorItem.visible] : null; })()")
+check(after == [False, False], "Clear all closes the dropdown once the list is empty, with the bell hidden", json.dumps(after))
 
 errs = [e for e in s.errors() if not any(x in e for x in ("pipewire", "quickshell.network", "Network will not work"))]
 check(not errs, "no QML errors", "; ".join(errs[:3]))

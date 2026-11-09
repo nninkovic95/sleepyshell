@@ -200,7 +200,9 @@ Approaches that were checked and are not used:
 
 - Qt Quick Test (`qmltestrunner`) for the row types: it is installed, but it cannot load Quickshell's
   types, which live only inside the `qs` binary; every row would need stand-ins for `Settings`, `Theme`
-  and `Deps`, so the test would check the stand-ins.
+  and `Deps`, so the test would check the stand-ins. It is used only for a component that imports nothing
+  but Qt Quick, such as the island outline (`bar/islandshape.test.sh`, run offscreen with the software
+  scene graph, so the same command runs without a GPU or a compositor).
 - A headless Hyprland inside bubblewrap: its backend library gets its buffers only from the real display
   card (with a seat) or from a parent compositor (the live one); there is no headless-only mode. While
   trying, it reached logind over the system bus, which is why the sandbox hides the system bus.

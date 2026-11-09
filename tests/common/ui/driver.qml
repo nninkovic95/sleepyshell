@@ -1,7 +1,8 @@
 // The test driver, added by inject.py inside the root object of a run copy's entry file; never part of the shell.
 // It only reads: where items are and what they show. Clicks and keys come from outside, through the test compositor's
 // virtual pointer and keyboard (wlinput.py), so they take the real input path. IPC target "sleepytest":
-//   ping, windows, find <spec JSON>, texts <window index>, js <expression>
+//   ping, windows, find <spec JSON>, texts <window index>, js <expression>,
+//   recordStart <probe> <target> <property>, recordStop: a frame recorder (see recordStart below)
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -21,6 +22,12 @@ import Quickshell.Io
         }
         function js(code: string): string {
             return sleepytestDriver.run(code);
+        }
+        function recordStart(probe: string, target: string, prop: string): string {
+            return sleepytestDriver.recordStart(probe, target, prop);
+        }
+        function recordStop(): string {
+            return JSON.stringify(sleepytestDriver.recordStop());
         }
     }
     QtObject {
@@ -175,5 +182,57 @@ import Quickshell.Io
             } catch (e) {
                 return JSON.stringify({ error: String(e) });
             }
+        }
+
+        // Frame recorder, read-only. Every frame (a FrameAnimation) the expression `probe` is evaluated and kept as
+        // [frame number, changes so far, value]; "changes" counts the change signals of `prop` on the object `target`
+        // (an expression). A test can then prove that no frame was skipped and that every change was seen by its own
+        // frame, so a recording never passes by missing the frame that would have failed it.
+        property var recFrames: null
+        property var recWatch: null
+        property var recProbe: null
+        property var recLog: []
+        property int recChanges: 0
+        function recordStart(probe, target, prop) {
+            recordStop();
+            try {
+                recProbe = eval("(function () { return (" + probe + "); })");
+                const obj = eval("(" + target + ")");
+                const handler = "on" + prop.charAt(0).toUpperCase() + prop.slice(1) + "Changed";
+                recChanges = 0;
+                recLog = [];
+                recWatch = Qt.createQmlObject("import QtQuick; Connections { property var drv: null; function " + handler + "() { drv.recChanges++; } }", sleepytestDriver, "sleepytestRecWatch");
+                recWatch.drv = sleepytestDriver;
+                recWatch.target = obj;
+                recFrames = Qt.createQmlObject("import QtQuick; FrameAnimation { property var drv: null; running: true; onTriggered: drv.recTick(currentFrame) }", sleepytestDriver, "sleepytestRecFrames");
+                recFrames.drv = sleepytestDriver;
+                return "ok";
+            } catch (e) {
+                recordStop();
+                return "error: " + e;
+            }
+        }
+        function recTick(frame) {
+            let v;
+            try {
+                v = recProbe();
+            } catch (e) {
+                v = { error: String(e) };
+            }
+            recLog.push([frame, recChanges, v]);
+        }
+        function recordStop() {
+            if (recFrames) {
+                recFrames.running = false;
+                recFrames.destroy();
+                recFrames = null;
+            }
+            if (recWatch) {
+                recWatch.destroy();
+                recWatch = null;
+            }
+            const out = recLog;
+            recLog = [];
+            return out;
         }
     }
