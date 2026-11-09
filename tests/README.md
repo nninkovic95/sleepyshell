@@ -93,15 +93,22 @@ Run them from this folder.
 | `bash preview.sh stop` | Stop the preview and start the live shell again. |
 | `bash preview.sh status` | What runs now. |
 | `bash deploy.sh plan TREE` | What a deploy would add, change and remove. Writes nothing. |
-| `bash deploy.sh apply TREE` | Compile gate, full backup, copy (new files first), remove what moved, verify, restart or reload, wait for the shell to load; rolls back by itself if it does not. |
+| `bash deploy.sh apply TREE` | Compile gate, full backup, copy (new files first), remove the known shell files the candidate dropped, verify, restart or reload, wait for the shell to load; rolls back by itself if it does not. Writes the deploy's manifest (`deployed.txt`) beside the backup. |
 | `bash deploy.sh rollback [BACKUP]` | Put the newest (or the named) backup back. |
 | `bash deploy.sh list` | The backups. |
 | `bash common/cleanup.sh [RUN]` | Stop and delete one run, or every run. |
 | `python3 common/guard.py snapshot NAME` / `verify NAME` / `targets` | The checksum guard by hand. |
 
+A run shows where it is: each test's header carries its place (`== [3/37] bar/islands.test.py`), and a line after
+each test counts the tests done so far (`-- 3 of 37 done: 3 ok, 0 failed`); the summary and totals come last
+(`kit/run-progress.test.sh` checks this).
+
 A *tree* is a copy of the shell: the live folder itself, or a candidate copied from it without the
 repository's files. The user's state (`sleepysettings.toml`, `settings.json` and their copies) is never
-deployed, removed or restored by a rollback. `deploy.sh` tests itself on a scratch copy when
+deployed, removed or restored by a rollback. A file the live tree has and the candidate lacks is removed only
+when it is a known shell file (tracked by git in the live checkout, or put in place by an earlier deploy);
+anything else is listed as unknown and left alone (`kit/deploy-unknown-files.test.sh`), since the live tree is
+the repository checkout. `deploy.sh` tests itself on a scratch copy when
 `SLEEPYSHELL_LIVE` (and `SLEEPYSHELL_BACKUPS`) point elsewhere; it then never stops, starts or reloads a
 shell. `preview.sh` and `deploy.sh` act on the live session by design; tests never do.
 

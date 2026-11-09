@@ -11,22 +11,41 @@
 #   3. a running preview is stopped and the live settings window closed, so neither reloads on a
 #      half-copied tree
 #   4. new files first (a reload that fires mid-copy must not meet a file using a type not there yet),
-#      then changed files, then files the candidate no longer has are removed, then empty folders
-#   5. the live tree must now equal the candidate (state files aside), else it rolls back
+#      then changed files, then known shell files the candidate no longer has are removed, then empty folders
+#   5. the live tree must now equal the candidate (state and unknown files aside), else it rolls back;
+#      the deploy's manifest (the shell files it put in place) is kept beside the backup as deployed.txt
 #   6. the shell is restarted when files were added or removed (a hot reload after a failed mid-copy
 #      reload watches only the files it had loaded) and reloaded otherwise; then its log must say
 #      "Configuration Loaded", else it rolls back and restarts the old shell
 # The user's state (sleepysettings.toml, settings.json and their copies) is never deployed, removed
 # or restored, and neither are the repository's own files (.git, tests/, docs/, README and the other
-# root documents; the list is REPO_DIRS/REPO_FILES in common/env.sh). With SLEEPYSHELL_LIVE set to a
-# scratch copy the script tests itself: it then never stops, starts or reloads a shell.
+# root documents; the list is REPO_DIRS/REPO_FILES in common/env.sh). A file the live tree has and the
+# candidate lacks is removed only when it is a known shell file: tracked by git in the live checkout,
+# or put in place by an earlier deploy (its deployed.txt); anything else is reported as unknown and
+# left alone, since the live tree is the repository checkout and holds files that are not the shell's.
+# With SLEEPYSHELL_LIVE set to a scratch copy the script tests itself: it then never stops, starts or
+# reloads a shell (kit/deploy-unknown-files.test.sh).
 set -euo pipefail
 . "$(dirname "$(readlink -f "$0")")/common/env.sh"
 REAL=no
 [ "$(readlink -m "$LIVE")" = "$(readlink -m "$REAL_LIVE")" ] && REAL=yes
 
+# known_files [PATH...]: the shell files a deploy may remove, one per line: tracked by git in the live
+# checkout, listed by an earlier deploy's manifest, or given (a rollback: what the undone deploy added)
+known_files() {
+    { git -C "$LIVE" ls-files 2>/dev/null || true
+      cat "$BACKUPS"/*/deployed.txt 2>/dev/null || true
+      if [ "$#" -gt 0 ]; then printf '%s\n' "$@"; fi
+    } | sort -u
+}
+
+# plan_json SRC DST [KNOWN...]: the plan as JSON (common/treediff.py)
 plan_json() {
-    python3 -I "$KIT/common/treediff.py" "$1" "$2"
+    local k
+    k=$(mktemp)
+    known_files "${@:3}" >"$k"
+    python3 -I "$KIT/common/treediff.py" "$1" "$2" "$k"
+    rm -f -- "$k"
 }
 
 # field of a plan: new, changed or removed, one path per line
@@ -59,6 +78,11 @@ copy_plan() {
 
 counts() {
     python3 -I -c 'import json,sys; p=json.load(open(sys.argv[1])); print(len(p["new"]), "new,", len(p["changed"]), "changed,", len(p["removed"]), "removed")' "$1"
+}
+
+# the unknown files of a plan, as one line for the log ("" when there are none)
+unknowns() {
+    python3 -I -c 'import json,sys; u=json.load(open(sys.argv[1]))["unknown"]; print(f"{len(u)} unknown file(s) left alone: " + ", ".join(u[:8]) + (" …" if len(u) > 8 else "") if u else "")' "$1"
 }
 
 quiet_shells() {
@@ -105,11 +129,13 @@ rollback() {
     mkdir -p "$T"
     tar -C "$T" -xzf "$B/live.tar.gz"
     plan=$T.plan.json
-    plan_json "$T" "$LIVE" > "$plan"
+    # what the undone deploy added is known too: it goes again
+    mapfile -t added < <(field "$B/plan.json" new)
+    plan_json "$T" "$LIVE" "${added[@]}" > "$plan"
     echo "deploy: rollback to $(basename "$B"): $(counts "$plan")"
     [ "$REAL" = yes ] && quiet_shells
     copy_plan "$T" "$plan"
-    plan_json "$T" "$LIVE" > "$plan"
+    plan_json "$T" "$LIVE" "${added[@]}" > "$plan"
     if [ "$(counts "$plan")" != "0 new, 0 changed, 0 removed" ]; then
         echo "deploy: rollback left differences: $(counts "$plan")"
         rm -rf -- "$T" "$plan"
@@ -129,8 +155,8 @@ plan)
     echo "$p" | python3 -I -c '
 import json, sys
 p = json.load(sys.stdin)
-for k in ("new", "changed", "removed"):
-    print(f"{k} ({len(p[k])}):")
+for k, title in (("new", "new"), ("changed", "changed"), ("removed", "removed"), ("unknown", "unknown, left alone")):
+    print(f"{title} ({len(p[k])}):")
     for f in p[k]:
         print("   ", f)'
     ;;
@@ -150,14 +176,18 @@ apply)
     tar -C "$LIVE" $(tar_excludes) -czf "$B/live.tar.gz" .
     echo "$C" > "$B/candidate.txt"
     echo "deploy: $(counts "$B/plan.json"); backup $stamp"
+    u=$(unknowns "$B/plan.json")
+    [ -n "$u" ] && echo "deploy: $u"
     [ "$REAL" = yes ] && quiet_shells
     copy_plan "$C" "$B/plan.json"
-    check=$(plan_json "$C" "$LIVE" | python3 -I -c 'import json,sys; p=json.load(sys.stdin); print(sum(len(v) for v in p.values()))')
+    # (unknown files stay, so they are not differences)
+    check=$(plan_json "$C" "$LIVE" | python3 -I -c 'import json,sys; p=json.load(sys.stdin); print(len(p["new"]) + len(p["changed"]) + len(p["removed"]))')
     if [ "$check" != 0 ]; then
         echo "deploy: the live tree does not match the candidate after copying; rolling back"
         rollback "$B"
         exit 1
     fi
+    python3 -I "$KIT/common/treediff.py" --files "$C" > "$B/deployed.txt"
     echo "deploy: files in place"
     if [ "$REAL" = yes ]; then
         restart=no
