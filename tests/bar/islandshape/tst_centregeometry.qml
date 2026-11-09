@@ -3,7 +3,9 @@
 // (written next to each row), never by calling the module twice; the inputs are the kit's measured sizes (header
 // row, clock column 41 px with the date, control centre body 1022 x 329, its middle column at 325 + 372, its sides
 // 235 deep; bar 30, island radius 14, step fillet 6, corner 10, panel padding 12). The default row's open size,
-// 1046 x 396, is also the size an earlier audit measured on the live shell.
+// 1046 x 396, is also the size an earlier audit measured on the live shell. The rows place the island in a window as
+// wide as the open island with its outer fillets (1046 + 2 x 14 = 1074), so it starts at the window's left edge;
+// test_sizes_screen_wide places it in a window as wide as the screen, as the shell does.
 import QtQuick
 import QtTest
 import "../../../sleepybar/components/CentreGeometry.js" as Geometry
@@ -14,7 +16,7 @@ TestCase {
     readonly property var look: ({ pad: 12, barH: 30, radius: 14, stepFillet: 6, stepCorner: 10 })
 
     function sizes(m) {
-        return Geometry.sizes(Object.assign({ clockH: 41, bodyW: 1022, bodyH: 329, sideDepth: 235 }, look, m));
+        return Geometry.sizes(Object.assign({ windowW: 1074, clockH: 41, bodyW: 1022, bodyH: 329, sideDepth: 235 }, look, m));
     }
     function skylines(s, m) {
         return Geometry.skylines(s, Object.assign({ clockW: 87, middle: { x: 325, width: 372 } }, look, m));
@@ -30,9 +32,18 @@ TestCase {
         compare(s.fullW, 1046, "open width: max(header 400 + 2 x 14, body 1022 + 2 x 12)");
         compare(s.fullH, 396, "open height: 51 + 4 + 329 + 12");
         compare(s.sideH, 302, "open sides: 51 + 4 + 235 + 12");
-        compare(s.surfaceW, 1074, "surface: 1046 + 2 x 14");
         compare(s.headerX, 337, "header centred: (1074 - 400) / 2");
         compare(s.colX, 26, "body: (1074 - 1046) / 2 + 12");
+    }
+
+    // A window as wide as the screen (2560): the header and the body are centred on it, and a rounder corner (radius
+    // 20, the Rounded set) moves neither, since the body still decides the open width (max(400 + 40, 1046) = 1046)
+    function test_sizes_screen_wide() {
+        const s = sizes({ windowW: 2560, headerW: 400, uneven: true, stepped: true });
+        compare(s.headerX, 1080, "header centred: (2560 - 400) / 2");
+        compare(s.colX, 769, "body: (2560 - 1046) / 2 + 12");
+        const round = sizes({ windowW: 2560, headerW: 400, uneven: true, stepped: true, radius: 20, stepFillet: 8, stepCorner: 14 });
+        compare([round.headerX, round.colX], [1080, 769], "radius 20: header and body stay");
     }
 
     function test_skylines_default() {

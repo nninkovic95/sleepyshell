@@ -2,13 +2,13 @@
 
 // The centre island's size rules (GrowingIsland.qml), as plain arithmetic over what its content measures, the
 // settings and the theme, so the rules read in one place, apart from the island's state, surface and input. Every
-// position is in the island surface's own coordinates: the content is placed there once and never moves, and the
-// outline (IslandShape.qml) grows around it.
+// position is in the island window's coordinates, the island centred in it: the content is placed there once and
+// never moves, and the outline (IslandShape.qml) grows around it.
 
-// The closed and open sizes, the surface width and where the header and the panel body sit.
-//   m: headerW (the header row), clockH (the clock column), bodyW / bodyH (the panel body), sideDepth (the deeper side
-//      column), uneven (a middle column hangs deeper than the sides), stepped (Settings.centreStep with a widget
-//      beside the clock), pad, barH, radius, stepFillet, stepCorner
+// The closed and open sizes and where the header and the panel body sit.
+//   m: windowW (the island window's width), headerW (the header row), clockH (the clock column), bodyW / bodyH (the
+//      panel body), sideDepth (the deeper side column), uneven (a middle column hangs deeper than the sides), stepped
+//      (Settings.centreStep with a widget beside the clock), pad, barH, radius, stepFillet, stepCorner
 function sizes(m) {
     // Closed, the island fits a two-line header (clock and date, 5 px above and below). Stepped, the clock part
     // reaches at least stepCorner + stepFillet below the sides, so the step has room for its corners and fillets.
@@ -16,7 +16,6 @@ function sizes(m) {
     const fullW = Math.max(m.headerW + 2 * m.radius, m.bodyW + 2 * m.pad);
     // the body starts 4 px under the closed header
     const fullH = startH + 4 + m.bodyH + m.pad;
-    const surfaceW = Math.ceil(fullW) + 2 * m.radius;
     return {
         startH: startH,
         fullW: fullW,
@@ -24,9 +23,8 @@ function sizes(m) {
         // Open, the side columns end higher than the middle one, both where the deeper of the two does, not each at
         // its own depth; without a middle column the open panel is one plain rectangle.
         sideH: m.uneven ? Math.min(fullH, startH + 4 + m.sideDepth + m.pad) : fullH,
-        surfaceW: surfaceW,
-        headerX: Math.round((surfaceW - m.headerW) / 2),
-        colX: Math.round((surfaceW - fullW) / 2) + m.pad
+        headerX: Math.round((m.windowW - m.headerW) / 2),
+        colX: Math.round((m.windowW - fullW) / 2) + m.pad
     };
 }
 

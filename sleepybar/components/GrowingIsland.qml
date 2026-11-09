@@ -78,7 +78,7 @@ PanelWindow {
     readonly property Item middle: Settings.centreUneven ? middleItem : null
     readonly property real sideDepth: Math.max(leftSide ? leftSide.implicitHeight : 0, rightSide ? rightSide.implicitHeight : 0)
     readonly property var size: Geometry.sizes({
-        headerW: header.implicitWidth, clockH: header.clockH, bodyW: col.implicitWidth, bodyH: col.implicitHeight,
+        windowW: bar.screen.width, headerW: header.implicitWidth, clockH: header.clockH, bodyW: col.implicitWidth, bodyH: col.implicitHeight,
         sideDepth: sideDepth, uneven: middle !== null, stepped: Settings.centreStep && (header.leftShown || header.rightShown),
         pad: pad, barH: Theme.barHeight, radius: Theme.islandRadius, stepFillet: Theme.stepFillet, stepCorner: Theme.stepCorner
     })
@@ -132,15 +132,19 @@ PanelWindow {
     }
 
     // ---- surface and input ----
+    // The window spans the screen and never changes its width or place: a layer surface resized and moved in one
+    // change shows an old frame at the new place on Hyprland for a frame or two, which made the island shake when its
+    // size changed (a corner roundness change). The island is drawn centred inside it, so a change of its size is a
+    // redraw only. Where nothing is drawn the window is transparent and outside the input mask (and the installer's
+    // blur rule ignores transparent pixels).
     screen: bar.screen
     visible: true
     color: "transparent"
     anchors.top: true
     anchors.left: true
+    anchors.right: true
     margins.top: 0
-    margins.left: Math.round((bar.screen.width - implicitWidth) / 2)
     exclusionMode: ExclusionMode.Ignore
-    implicitWidth: size.surfaceW
     implicitHeight: surfaceH
     WlrLayershell.namespace: "sleepyshell-popup"
     WlrLayershell.layer: WlrLayer.Top
@@ -214,18 +218,33 @@ PanelWindow {
     // Hover: entering the island opens the panel, leaving the panel closes it after a moment.
     // Not while a text field has the keyboard (a half-typed password would be lost); the panel
     // closes once typing ends with the pointer still outside.
+    // The pointer is on the island only where the outline is drawn: the input mask decides only where the pointer
+    // enters the window, and Hyprland then keeps sending it to the window anywhere in it, across the whole strip, so
+    // the window's own hover would last until the pointer leaves the strip.
+    readonly property bool pointerOn: panelHover.hovered && outline.contains(panelHover.point.position)
+    onPointerOnChanged: {
+        if (pointerOn) {
+            leaveTimer.stop();
+            // not while a card is open: the pointer on the card is for the card (a click on the clock still opens
+            // the panel)
+            if (!open && Settings.hoverOpen && card === null)
+                open = true;
+        } else {
+            leaveTimer.restart();
+        }
+    }
     Timer {
         id: leaveTimer
         interval: Settings.hoverCloseMs
         onTriggered: {
             // with hover opening off (settings) the panel was opened by a click and stays until
             // a click outside clears the focus grab
-            if (!panelHover.hovered && !root.wantsKeyboard && Settings.hoverOpen)
+            if (!root.pointerOn && !root.wantsKeyboard && Settings.hoverOpen)
                 root.open = false;
         }
     }
     onWantsKeyboardChanged: {
-        if (!wantsKeyboard && !panelHover.hovered)
+        if (!wantsKeyboard && !pointerOn)
             leaveTimer.restart();
     }
 
@@ -235,11 +254,12 @@ PanelWindow {
         anchors.fill: parent
 
         // ---- host contract (SideIsland.qml's header) ----
-        // An island in another window than the bar (hostX: that window's left edge on screen, hostWindow for the
-        // focus grab). It draws a slot's card itself, as one deeper part of its outline under that slot (drawsPanel,
-        // in dropLayer, inside the fill), hanging from that side's bottom edge (hangY).
+        // An island in another window than the bar (hostX: that window's left edge on screen, 0 as it spans the screen
+        // like the bar's; hostWindow for the focus grab). It draws a slot's card itself, as one deeper part of its
+        // outline under that slot (drawsPanel, in dropLayer, inside the fill), hanging from that side's bottom edge
+        // (hangY).
         readonly property string attach: "top"
-        readonly property real hostX: root.margins.left
+        readonly property real hostX: 0
         readonly property var hostWindow: root
         readonly property real hangY: root.sky.cardY
         readonly property bool canExtend: true
@@ -256,20 +276,10 @@ PanelWindow {
                 root.card = null;
         }
 
-        // hovering anywhere on the island (clock, CPU/memory, audio) opens the panel; leaving it
-        // closes the panel after a moment. Not while a card is open: the pointer on the card is for the card (a
-        // click on the clock still opens the panel).
+        // the window's hover and where the pointer is in it, for `pointerOn` (anywhere on the drawn island: clock,
+        // CPU/memory, audio, a card, the open panel)
         HoverHandler {
             id: panelHover
-            onHoveredChanged: {
-                if (hovered) {
-                    leaveTimer.stop();
-                    if (!root.open && Settings.hoverOpen && root.card === null)
-                        root.open = true;
-                } else {
-                    leaveTimer.restart();
-                }
-            }
         }
 
         // ---- drawing: the outline ----

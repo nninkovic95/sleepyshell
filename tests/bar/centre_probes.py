@@ -205,9 +205,14 @@ def press_key():
 
 
 def centre_x(s):
-    """The centre island's middle on screen."""
-    geo = s.js("(function () { const c = Popouts.byName['clock'][0]; return [c.margins.left, c.implicitWidth]; })()")
-    return geo[0] + geo[1] / 2
+    """The middle of the centre island's clock on screen (hovering there opens the island)."""
+    return s.js("""(function () {
+      const c = Popouts.byName["clock"][0];
+      let clock = null;
+      const find = it => { if (!clock && String(it).startsWith("QQuickText") && it.text === c.title) clock = it; for (let i = 0; i < it.children.length && !clock; i++) find(it.children[i]); };
+      find(c.contentItem);
+      return c.margins.left + clock.mapToItem(null, clock.width / 2, 0).x;
+    })()""")
 
 
 def closed_at_rest(s):
