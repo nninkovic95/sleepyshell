@@ -13,8 +13,21 @@ BarButton {
     required property var bar
     readonly property bool onWifi: Net.wifiUp && !Net.wiredUp
     // figure before the glyph, like the CPU and memory readouts
-    text: onWifi ? Math.round(Net.strength * 100) + "%" : ""
-    glyph: Net.glyph()
+    readonly property int percent: Math.round(Net.strength * 100)
+    text: onWifi ? percent + "%" : ""
+    // on Wi-Fi the fan is filled to the same percentage as the figure beside it
+    glyph: onWifi ? 0 : Net.glyph()
+    iconItem: onWifi ? barFan : null
+
+    Component {
+        id: barFan
+        SignalFan {
+            level: root.percent / 100
+            alert: Net.noInternet
+            pixelSize: root.glyphSize
+            color: root.currentFg
+        }
+    }
     // the width of "100%" plus the glyph is reserved, so the island does not jitter as the strength changes
     minWidth: onWifi ? Math.ceil(widest.width) + 4 + Theme.iconCell + hpad * 2 : 0
     inset: true
@@ -45,9 +58,19 @@ BarButton {
 
             Glyph {
                 Layout.preferredWidth: 24
+                visible: !root.onWifi
                 cp: Net.glyph()
                 font.pixelSize: 18
-                color: Net.online ? Theme.primary : Theme.fg
+                color: Net.online && !Net.noInternet ? Theme.primary : Theme.fg
+            }
+
+            SignalFan {
+                Layout.preferredWidth: 24
+                visible: root.onWifi
+                level: root.percent / 100
+                alert: Net.noInternet
+                pixelSize: 18
+                color: Net.noInternet ? Theme.fg : Theme.primary
             }
 
             Text {
@@ -83,14 +106,42 @@ BarButton {
             color: Theme.containerHighest
         }
 
-        // samples /proc/net/dev only while the dropdown is open
-        NetSpeed {
+        // the most the connection can carry at its current signal (or cable speed), not the traffic of the moment;
+        // in megabits as the link reports it, and in megabytes as a download shows it
+        RowLayout {
+            objectName: "linkRate"
+            visible: Net.linkRate > 0
             Layout.fillWidth: true
             Layout.leftMargin: 10
             Layout.topMargin: 2
             Layout.bottomMargin: 2
-            active: pop.open
-            iface: Net.iface
+            spacing: 4
+
+            Glyph {
+                cp: 0xF04C5
+                Layout.alignment: Qt.AlignVCenter
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: "Up to " + Math.round(Net.linkRate) + " Mbit/s  ·  " + (Net.linkRate / 8).toFixed(Net.linkRate < 80 ? 1 : 0) + " MB/s"
+                font.family: Theme.font
+                font.pixelSize: Theme.fontSize
+                color: Theme.fg
+                elide: Text.ElideRight
+            }
+        }
+
+        // the Wi-Fi rate is read only while this list is open
+        Connections {
+            target: pop
+            function onOpenChanged() {
+                Net.rateWatchers += pop.open ? 1 : -1;
+            }
+        }
+        Component.onDestruction: {
+            if (pop.open)
+                Net.rateWatchers -= 1;
         }
 
         MenuItem {

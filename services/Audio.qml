@@ -6,8 +6,9 @@ import Quickshell.Services.Pipewire
 // Default sink and source through PipeWire, hardware device lists for switching, and the node
 // whose volume is shown and changed.
 //
-// Every sink and source is listed, including Easy Effects' virtual ones (as pwvucontrol does).
-// Volume and mute, however, go to a hardware node: a virtual sink's own volume is not applied to
+// The device lists hold real devices only: Easy Effects' virtual sink and source (and any other node PipeWire marks
+// virtual) are left out, since Easy Effects follows the default card and processes every app on its own, so there is
+// nothing to pick them for. Volume and mute go to a hardware node too: a virtual sink's own volume is not applied to
 // what Easy Effects reads from it (observed: the number changed, the sound did not), and the
 // virtual source has no audio object at all. So when the default is virtual, the bar shows and
 // controls the hardware device at the other end of the Easy Effects chain, found via the links:
@@ -39,8 +40,11 @@ Singleton {
         return !n.isStream && !n.isSink && ((n.audio && (n.type & 2) === 0) || mediaClass(n).startsWith("Audio/Source"));
     }
 
-    readonly property var sinks: Pipewire.nodes.values.filter(n => isSinkDevice(n))
-    readonly property var sources: Pipewire.nodes.values.filter(n => isSourceDevice(n))
+    function isVirtualDevice(n) {
+        return isVirtual(n) || mediaClass(n).endsWith("/Virtual");
+    }
+    readonly property var sinks: Pipewire.nodes.values.filter(n => isSinkDevice(n) && !isVirtualDevice(n))
+    readonly property var sources: Pipewire.nodes.values.filter(n => isSourceDevice(n) && !isVirtualDevice(n))
 
     // audio and properties are only valid on tracked nodes; track them all (a dozen on this machine)
     PwObjectTracker {

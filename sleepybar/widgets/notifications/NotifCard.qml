@@ -218,7 +218,7 @@ Item {
 
                 Text {
                     Layout.fillWidth: true
-                    text: (root.notif?.appName ?? "") + (Notifs.ago(root.notif) !== "" ? "  ·  " + Notifs.ago(root.notif) : "")
+                    text: [Notifs.appLabel(root.notif), Notifs.ago(root.notif)].filter(t => t !== "").join("  ·  ")
                     textFormat: Text.PlainText
                     font.family: Theme.font
                     font.pixelSize: Theme.fontSize + 1

@@ -11,18 +11,20 @@ import qs.components
 // island continues above them, rounded bottom. Closed by a click outside, one open at a time. Children
 // go into a ColumnLayout.
 //
-// One shape with its island: the panel is drawn in the bar's own layer surface (Sleepybar.qml,
-// `dropLayer`), the surface the side islands are drawn in, not in a surface of its own. Two surfaces
-// meant two fills and two blurs meeting at a seam, and with a translucent fill whatever lay behind each
-// (wallpaper above, a window below) showed as a line along the join. The bar grows its surface down
-// while a dropdown is shown and takes input on the panel (Sleepybar.qml, "dropdowns"); this item only
-// holds the state and the geometry and is never drawn itself.
+// One shape with its island: the panel is drawn in its island's layer surface, not in a surface of its own: the
+// bar's (Sleepybar.qml, `dropLayer`) under a side island, the centre island's own under one of its slots. Two
+// surfaces meant two fills and two blurs meeting at a seam, and with a translucent fill whatever lay behind each
+// (wallpaper above, a window below) showed as a line along the join. The bar grows its surface down while a side
+// island's dropdown is shown and takes input on the panel (Sleepybar.qml, "dropdowns"); this item only holds the
+// state and the geometry and is never drawn itself.
 //
 // Styled like the centre island's control centre (GrowingIsland.qml): the same fill, the same padding,
 // and it grows down from the island on the islands' one clock instead of appearing at once. The island it
 // hangs from is found once at open and asked through the island host contract (SideIsland.qml's header);
-// the island widens itself, the dropdown follows its sides. Under the centre island (which cannot widen)
-// the panel floats a few pixels below it as a rounded card, drawn in the bar's surface as well.
+// the island widens itself, the dropdown follows its sides. An island that draws the panel itself
+// (`drawsPanel`, the centre island: the card is one deeper part of its one outline) takes the content into its
+// own layer, and this item draws no fill. Under an island set to "float" the panel floats a few pixels below it
+// as a rounded card.
 //   hover: true    a hover panel: the anchor opens it and closes it after leaving both; no focus grab
 //   wantsKeyboard  true while a text field inside needs keys (the bar's surface asks for them then)
 Item {
@@ -72,9 +74,11 @@ Item {
     property real hangY: Theme.barHeight
     property real anchorX: 0
     property real panelX: 0
-    // Under an island that does not extend (the centre island, or any island with dropdownFit
-    // "float") the panel floats a few pixels below it as a rounded card.
+    // Under an island that does not extend (a side island with dropdownFit "float") the panel floats a few pixels
+    // below it as a rounded card.
     readonly property bool floating: island !== null && !island.canExtend
+    // the island draws the panel's fill and places it (see the header)
+    readonly property bool hostDraws: island !== null && island.drawsPanel
     // The panel's sides follow the island's extension: it grows out of the island's straight bottom edge and shrinks back
     // into it on the island's own clock, so no part of it sticks out past a narrowing island.
     // edgeL / edgeR: where a side sits flush with the un-extended island; a panel that already fits
@@ -82,8 +86,8 @@ Item {
     property bool fitted: false
     property real edgeL: 0
     property real edgeR: 0
-    readonly property real sideL: fitted ? Math.max(panelX, edgeL - island.extendLeft) : panelX
-    readonly property real sideR: fitted ? Math.min(panelX + panelW, edgeR + island.extendRight) : panelX + panelW
+    readonly property real sideL: fitted && !hostDraws ? Math.max(panelX, edgeL - island.extendLeft) : panelX
+    readonly property real sideR: fitted && !hostDraws ? Math.min(panelX + panelW, edgeR + island.extendRight) : panelX + panelW
     readonly property int fillet: Theme.islandRadius
     readonly property int panelW: (fixedWidth > 0 ? fixedWidth : col.implicitWidth) + pad * 2
     // where the panel's top sits in the bar's surface, and its full height (the bar sizes its surface
@@ -104,7 +108,10 @@ Item {
     // coordinates, which are also the bar surface's: it spans the screen from its top-left corner.
     function placeUnderAnchor() {
         // bar is still unbound for a moment while a Loader creates the widget (Sleepyright.qml); a
-        // dropdown opened in that moment (hover during a reload) is placed on the next event loop pass
+        // dropdown opened in that moment (hover during a reload) is placed on the next event loop pass,
+        // unless it has closed again by then (an island asked to fit it would keep the room for nothing)
+        if (!open)
+            return;
         if (!bar) {
             Qt.callLater(placeUnderAnchor);
             return;
@@ -112,7 +119,6 @@ Item {
         const i = findIsland();
         island = i;
         hostWindow = i ? i.hostWindow : null;
-        hangY = i ? i.hangY : Theme.barHeight;
         anchorX = anchorItem.mapToItem(null, anchorItem.width / 2, 0).x + (i ? i.hostX : 0);
 
         const r = fillet;
@@ -127,15 +133,21 @@ Item {
 
         fitted = i !== null && i.canExtend;
         if (fitted) {
-            const fit = i.fitPanel(panelX, panelW);
+            const fit = i.fitPanel(panelX, panelW, root);
             edgeL = fit.edgeL;
             edgeR = fit.edgeR;
+            // an island that draws the panel also decides where it sits
+            if (i.drawsPanel)
+                panelX = fit.edgeL;
         }
+        // read after the fit: an island that draws the panel settles its outline for it first (the centre island's
+        // peek row gives way to a card, and the flat outline is no longer deepened for it)
+        hangY = i ? i.hangY : Theme.barHeight;
     }
 
     function releaseIsland() {
         if (fitted)
-            island.releasePanel();
+            island.releasePanel(root);
     }
 
     // ---- registration with the bar and Popouts ----
@@ -144,7 +156,9 @@ Item {
         item: panel
     }
     onShownChanged: {
-        if (!bar)
+        // (found here too: `shown` can change before onOpenChanged has placed the panel)
+        const i = island ?? findIsland();
+        if (!bar || (i && i.drawsPanel))
             return;
         if (shown)
             bar.dropShown(root);
@@ -158,6 +172,10 @@ Item {
     Component.onDestruction: {
         if (name !== "")
             Popouts.unregister(name, root);
+        // destroyed while open (its widget made anew): the island gets back the room it took; only while open, so a
+        // closed one cannot drop an extension another dropdown on the same island holds
+        if (open)
+            releaseIsland();
         if (bar)
             bar.dropHidden(root);
     }
@@ -179,6 +197,15 @@ Item {
     }
 
     onOpenChanged: {
+        // under an island whose dropdowns hang from their widgets (needsAnchor: the centre island's slots), one whose
+        // widget is hidden has nothing to hang from: refused, with one line in the shell log, before anything else (no
+        // other dropdown is closed, no island is asked to fit it)
+        if (open && !anchorItem.visible && findIsland()?.needsAnchor) {
+            console.info(`sleepyshell: the ${name || "dropdown"} card was not opened: its widget is hidden`);
+            fitted = false;
+            open = false;
+            return;
+        }
         if (open) {
             // close the previous dropdown first: its releaseIsland() would otherwise wipe the
             // extension this one is about to set on the same island (review 3, F9)
@@ -191,6 +218,14 @@ Item {
             releaseIsland();
         }
     }
+    // ... and closes when its widget hides while it is open
+    Connections {
+        target: root.anchorItem
+        function onVisibleChanged() {
+            if (root.open && !root.anchorItem.visible && root.island?.needsAnchor)
+                root.open = false;
+        }
+    }
 
     // ---- drawing and content ----
     // the island's fill; theme changes fade like the islands do
@@ -201,21 +236,27 @@ Item {
         }
     }
 
-    // The panel lives in the bar's surface (`dropLayer`), positioned in its coordinates. It is a
-    // property object, not a child: a child would be drawn where the dropdown is declared, inside the
-    // widget and clipped by the island.
-    readonly property Highlight panel: Highlight {
-        parent: root.bar ? root.bar.dropLayer : null
+    // The panel lives in a layer surface's drop layer, positioned in its coordinates: the bar's (`dropLayer`), or
+    // the island's own when it draws the panel. It is a property object, not a child: a child would be drawn where
+    // the dropdown is declared, inside the widget and clipped by the island.
+    readonly property Item panel: Item {
+        parent: root.hostDraws ? root.island.dropLayer : root.bar ? root.bar.dropLayer : null
         visible: root.shown
-        x: root.sideL
+        x: root.sideL - (root.hostDraws ? root.island.hostX : 0)
         y: root.panelTop
         width: root.sideR - root.sideL
-        height: Math.round(root.fullH * root.progress)
-        radius: root.fillet
-        // the fillets shrink with the panel, so none is left hanging once the panel is gone
-        fillet: Math.min(root.fillet, height)
-        glued: !root.floating
-        color: root.fill
+        // drawn by the island, the card's depth follows the island's outline and only the content fades here
+        height: root.hostDraws ? root.fullH : Math.round(root.fullH * root.progress)
+
+        Highlight {
+            anchors.fill: parent
+            visible: !root.hostDraws
+            radius: root.fillet
+            // the fillets shrink with the panel, so none is left hanging once the panel is gone
+            fillet: Math.min(root.fillet, height)
+            glued: !root.floating
+            color: root.fill
+        }
 
         HoverHandler {
             id: panelHover

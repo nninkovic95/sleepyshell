@@ -13,7 +13,9 @@
 #
 # A test is <area>/<name>.test.sh (a script that prints PASS/FAIL lines and exits 1 on a failure) or <area>/<name>.test.py
 # (a whole-window test run through common/ui/run-ui.sh). Every other file in an area folder is a helper. Prints each
-# test's PASS/FAIL lines, then one summary line per test and the totals; exits 1 if any test failed.
+# test's PASS/FAIL lines under a header with its place in the run ("== [n/N] area/name"), a line after each test with
+# the tests done so far ("-- n of N done: k ok, f failed"), then one summary line per test and the totals; exits 1 if
+# any test failed.
 set -uo pipefail
 . "$(dirname "$(readlink -f "$0")")/common/env.sh"
 AREAS=(settings keys bar lock kit install)
@@ -71,14 +73,18 @@ one() {
 
 summary=()
 failed=0
+passed=0
+i=0
 for t in "${tests[@]}"; do
-    echo "== $t"
+    # where a long run is: the test's place in the run, and after it the tests done so far
+    i=$((i + 1))
+    echo "== [$i/${#tests[@]}] $t"
     start=$SECONDS
     out=$(one "$t" 2>&1)
     rc=$?
     echo "$out"
     if [ "$TWICE" = 1 ]; then
-        echo "== $t (second run)"
+        echo "== [$i/${#tests[@]}] $t (second run)"
         out2=$(one "$t" 2>&1)
         rc2=$?
         echo "$out2"
@@ -92,10 +98,12 @@ for t in "${tests[@]}"; do
     secs=$((SECONDS - start))
     if [ "$rc" = 0 ] && [ "$n_fail" = 0 ] && [ "$n_pass" -gt 0 ]; then
         summary+=("ok      $t ($n_pass checks, ${secs}s)")
+        passed=$((passed + 1))
     else
         summary+=("FAILED  $t ($n_pass passed, $n_fail failed, ${secs}s)")
         failed=$((failed + 1))
     fi
+    echo "-- $i of ${#tests[@]} done: $passed ok, $failed failed"
 done
 
 echo "== summary"

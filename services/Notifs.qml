@@ -271,6 +271,13 @@ Singleton {
         Popouts.toggle("notifications");
     }
 
+    // The app name shown on a card: empty for notify-send, which sends its own name when a script does not pass
+    // one (-a), and that name tells the reader nothing about who sent it
+    function appLabel(n) {
+        const a = n?.appName ?? "";
+        return a.toLowerCase() === "notify-send" ? "" : a;
+    }
+
     // "now", "3 min", "2 h", "yesterday", "4 d"
     function ago(n) {
         tick;

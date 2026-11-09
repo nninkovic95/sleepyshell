@@ -99,6 +99,16 @@ check(privacy and privacy["bg"] == s.js("String(Qt.color('transparent'))") and p
       "the microphone, camera and screen-share indicator has the same warning icon and nothing behind it at rest", f"{privacy}")
 check(privacy and privacy["hover"] == hover and privacy["lift"] is True,
       "and, being clickable, the hover highlight and lift, on hover only", f"{privacy}")
+# the list must name the app that holds the microphone: Discord's capture stream carries its voice library's name
+label = lambda props: f"Privacy.appLabel({{ name: '{props.get('application.name', '')}', properties: {props} }})"
+# in parentheses: qs reads an argument that starts with "[" as a list and splits it
+names = s.js("([" + ", ".join(label(p) for p in (
+    {"application.name": "WEBRTC VoiceEngine", "application.process.binary": "Discord"},
+    {"application.name": "Firefox", "application.process.binary": "firefox"},
+    {"application.name": "WEBRTC VoiceEngine"})) + "])")
+check(names == ["Discord", "Firefox", "WEBRTC VoiceEngine"],
+      "the privacy list names the app, not its voice library (and keeps an app's own name, or the stream name when nothing else is known)",
+      f"{names}")
 added = [c for c in evals()[n:] if "sleepyshell_clicks[" in c]
 check(added and "{ 272, 273 }" in added[-1] and "non_consuming = true" in added[-1], "they add two pass-through click binds, left and right",
       f"{evals()[n:]}")

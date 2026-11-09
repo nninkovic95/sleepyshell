@@ -36,6 +36,24 @@ def done():
     sys.exit(1 if _fails else 0)
 
 
+def recording_gaps(rows):
+    """What a frame recording (Shell.record_stop) missed: rows inside the motion (from the first change to the last)
+    that saw other than exactly one change since the row before, which is the check that counts; also frame numbers
+    skipped between rows (FrameAnimation numbers its own ticks, so a stalled render shows as a row with two changes, not
+    as a skipped number), an empty recording, or one that saw no change at all. An empty list means it is complete."""
+    if not rows:
+        return ["nothing was recorded"]
+    gaps = [f"frame {a[0]} -> {b[0]}" for a, b in zip(rows, rows[1:]) if b[0] - a[0] != 1]
+    changed = [i for i in range(1, len(rows)) if rows[i][1] != rows[i - 1][1]]
+    if not changed:
+        return gaps + ["no change was recorded"]
+    for i in range(changed[0], changed[-1] + 1):
+        seen = rows[i][1] - rows[i - 1][1]
+        if seen != 1:
+            gaps.append(f"frame {rows[i][0]} saw {seen} changes")
+    return gaps
+
+
 def wait_until(fn, timeout=10.0, step=0.1):
     end = time.monotonic() + timeout
     while True:
@@ -176,6 +194,18 @@ class Shell:
 
     def js(self, code):
         return self.json_call("js", code)
+
+    def record_start(self, probe, target, prop):
+        """Start the driver's frame recorder: `probe` (a JS expression) is kept every frame, with the frame number and
+        the count of `prop` changes on `target` (a JS expression). The probe is wrapped in parentheses so it never
+        starts with a bracket on the command line."""
+        r = self.ipc("recordStart", f"({probe})", target, prop)
+        if r != "ok":
+            raise RuntimeError(f"frame recorder did not start: {r}")
+
+    def record_stop(self):
+        """Stop the recorder; its rows, each [frame, changes so far, probe value]."""
+        return self.json_call("recordStop") or []
 
     def windows(self):
         return self.json_call("windows") or []

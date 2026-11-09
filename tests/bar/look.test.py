@@ -1,6 +1,7 @@
 """Cosmetic smoke (the bar renders broken: missing glyphs, a wrong palette, islands out of place): the bar's left island
 (the workspace dots) and right island at rest, compared with tests/refs/bar-left.png and bar-right.png within a small
-tolerance, and the right island again with its three indicators on (bar-right-on.png). The centre island is left out: it shows the clock and this machine's live CPU and memory. A new look is
+tolerance, and the right island again with its two steady indicators on (bar-right-on.png; the recording dot blinks,
+so a screenshot of it changes from frame to frame: recording.test.py checks its look as values). The centre island is left out: it shows the clock and this machine's live CPU and memory. A new look is
 taken on by hand: tests/run.sh --update-refs, check the candidate, copy it to tests/refs/."""
 import sys
 import time
@@ -14,11 +15,10 @@ for name, region in (("bar-left", (0, 0, 420, 60)), ("bar-right", (2560 - 420, 0
     ok, why = compare(img, name, tolerance=0.0005)  # small crops: a few pixels are a changed glyph
     check(ok, f"the bar's {name.split('-')[1]} island looks as in its reference", why)
 
-# the right island with its three indicators on: the keybind overlay, the click circles and a recording
+# the right island with its steady indicators on: the keybind overlay and the click circles
 from ui import hypr_event
 hypr_event("custom>>sleepyshell:keys", "custom>>sleepyshell:clicks")
-s.call("sleepybar", "recording", "true")
-s.wait(lambda: s.visible(objectName="recordingIndicator") and s.visible(objectName="clicksIndicator"), 5)
+s.wait(lambda: s.visible(objectName="keysIndicator") and s.visible(objectName="clicksIndicator"), 5)
 time.sleep(2)  # the island grows to its new width
 img = shot(RUN / "bar-right-on.png", (2560 - 420, 0, 420, 60))
 ok, why = compare(img, "bar-right-on", tolerance=0.0005)

@@ -40,6 +40,9 @@ Singleton {
     readonly property color popupBg: barBg
     // the lock screen's cover while the system goes to sleep: true black whatever the palette, so the screen looks off
     readonly property color blackout: "#000000"
+    // the recording dot: red whatever the palette, the colour people read as "recording"; the palette's error
+    // colours are a dark container or a pale pink
+    readonly property color recording: "#f44336"
 
     readonly property string font: "JetBrainsMono Nerd Font"
     readonly property int fontSize: Settings.fontSize

@@ -72,7 +72,8 @@ padding are settings.
     same) that are off until you switch them on in the Centre island tab and drag them into place, plus your
     own tools (an installed app, a command with or without a terminal, or a link), each with a label and a
     Material icon picked by name. A tool whose program is missing is greyed with the reason;
-  - output and input audio panels (mute, slider, device list; Easy Effects chains resolve to the hardware node)
+  - output and input audio panels (mute, slider, a list of the real devices, without virtual ones such as Easy
+    Effects'; Easy Effects chains resolve to the hardware node)
     and a backlight slider on laptops;
   - a Power button that opens the session menu.
 - The centre island can be stepped (a deeper outline under the clock) and the open panel uneven.
@@ -87,15 +88,20 @@ Reorder and hide them in the Right island tab. Default order:
 - **Package updates**: the count of repository and AUR updates, shown only when there are some. The dropdown
   lists up to 30 packages, refreshes, and starts the update in your terminal; right click re-checks. Checks
   every 30 min (a setting).
-- **Network**: glyph plus Wi-Fi signal. The dropdown shows the connection, the network list (scans while open,
+- **Network**: glyph plus Wi-Fi signal; the Wi-Fi fan is filled to the exact percentage beside it, not in four
+  steps. The glyph gets a "!" (a crossed cable when wired) while connected without
+  internet, from NetworkManager's own connectivity check; a network that needs a sign-in page says so. The
+  dropdown shows the connection, the network list (scans while open,
   sorted connected, saved, by signal; click to connect or disconnect; a password prompt inline; failure
-  reasons), live download and upload speed, and a button to the terminal network settings.
+  reasons), the most the connection can carry at its current signal (or the cable's speed), and a button to the
+  terminal network settings.
 - **Bluetooth**: the number of connected devices while the adapter is on.
 - **Battery**: percentage and glyph on laptops, red under the low level while discharging, accent while
   charging; click opens the Power tab.
 - **Privacy**: microphone, camera and screen-share indicators, only while something uses them (read from
   PipeWire; Easy Effects, meters and muted streams are ignored; portal screencasts are detected). The dropdown
-  names the app and what it uses.
+  names the app and what it uses (the program, where the stream carries only its voice library's name, as
+  Discord's does).
 - **Notifications**: the bell with a count while notifications wait, muted under Do not disturb. The dropdown
   has a Do not disturb switch, Clear all (the cards swipe out one by one) and the cards, newest or oldest
   first.
@@ -106,7 +112,7 @@ Reorder and hide them in the Right island tab. Default order:
   Super+Shift+L suggested), and a small indicator shows on the island only while it is on. Hyprland reports only
   keybinds that fire, never typing, and only while the overlay is on; it needs one line at the top of
   `hyprland.lua` (the Keybinds tab offers Set up).
-- **Recording**: a dot while a screen recorder says it is recording (over the shell's IPC, below).
+- **Recording**: a blinking red dot while a screen recorder says it is recording (over the shell's IPC, below).
 - **System tray**: StatusNotifier icons with a themed right-click menu (with submenus); middle click for the
   secondary action; the wheel scrolls the item. Hidden when empty.
 </details>

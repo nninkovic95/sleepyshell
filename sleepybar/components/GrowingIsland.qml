@@ -1,13 +1,11 @@
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Layouts
-import QtQuick.Shapes
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs
 import qs.services
-import qs.components
+import "CentreGeometry.js" as Geometry
 
 // The centre island, as its own layer surface, which grows into a panel. Collapsed it is
 // exactly the island (title pill at the top centre); hovered or clicked it animates to the full
@@ -24,7 +22,7 @@ import qs.components
 //   wantsKeyboard    true while a text field inside needs keys (layer surfaces get none by default)
 //   growing          how much taller the body is still animating towards (the control centre's
 //                    list sliding open), so the surface takes its end size in one step
-// The panel item is this island's host for dropdowns of the widgets in it (SideIsland.qml's header).
+// The island item is this island's host for dropdowns of the widgets in it (SideIsland.qml's header).
 PanelWindow {
     id: root
 
@@ -39,8 +37,8 @@ PanelWindow {
     property int pad: Theme.panelPad
     property Component leftComponent: null
     property Component rightComponent: null
-    readonly property Item leftItem: leftSlot.item
-    readonly property Item rightItem: rightSlot.item
+    readonly property Item leftItem: header.leftItem
+    readonly property Item rightItem: header.rightItem
     property Item middleItem: null
     property Item leftSide: null
     property Item rightSide: null
@@ -50,13 +48,8 @@ PanelWindow {
     property real growing: 0
     default property alias content: col.data
 
-    function toggle() {
-        open = !open;
-    }
-
     // ---- state and motion ----
-    // progress runs 0 (island) to 1 (panel) on the islands' one clock; every size below is
-    // interpolated from it, so the outline, the mask and the content move together.
+    // progress runs 0 (island) to 1 (panel) on the islands' one clock; the panel body fades on it
     property real progress: open ? 1 : 0
     Behavior on progress {
         NumberAnimation {
@@ -64,23 +57,13 @@ PanelWindow {
             easing.type: Theme.islandEaseGrow
         }
     }
-    // collapsed height, taller while the peek row shows (never while the panel is open)
-    readonly property bool showPeek: peeking && !open && peek !== null
-    // width of the island's taller clock part; wider while the volume peek shows under the clock
-    property real centreW: showPeek ? Math.max(clockBox.width, 220) : clockBox.width
-    Behavior on centreW {
-        NumberAnimation {
-            duration: 180
-            easing.type: Easing.OutCubic
-        }
-    }
-    property real baseH: showPeek ? startH + peek.implicitHeight + 10 : startH
-    Behavior on baseH {
-        NumberAnimation {
-            duration: 180
-            easing.type: Easing.OutCubic
-        }
-    }
+    // The volume peek row, only while closed and with no card open (a card needs the same room beside the clock; a peek
+    // still within its time shows once the card closes), widens the clock part to peekW and deepens it under the
+    // clock. The outline's morph animates the change (IslandMorph), so these are plain targets.
+    readonly property bool showPeek: peeking && !open && card === null && peek !== null
+    readonly property real peekW: Math.max(header.clockW, 220)
+    readonly property real centreW: aim.peek ? peekW : header.clockW
+    readonly property real baseH: aim.peek ? startH + peek.implicitHeight + 10 : startH
     // theme changes fade like the side islands do (SideIsland.qml animates its pill colour)
     property color fill: Theme.barBg
     Behavior on fill {
@@ -89,31 +72,49 @@ PanelWindow {
         }
     }
 
-    // ---- geometry ----
-    readonly property real startW: header.implicitWidth + 2 * Theme.islandRadius
-    // The collapsed island grows to fit a two-line header (clock and date, 5 px above and below it).
-    // While stepped (Settings.centreStep) and with side widgets, the clock part reaches at least
-    // stepCorner + stepFillet below the sides, so the step has room for its corners and fillets.
-    readonly property bool hasSides: leftSlot.visible || rightSlot.visible
-    readonly property real stepDepth: Settings.centreStep && hasSides ? Theme.barHeight + Theme.stepCorner + Theme.stepFillet : 0
-    readonly property real startH: Math.max(Theme.barHeight, Math.ceil(clockCol.implicitHeight) + 10, stepDepth)
-    readonly property real fullW: Math.max(startW, col.implicitWidth + pad * 2)
-    // the body starts 4 px under the collapsed header
-    readonly property real fullH: startH + 4 + col.implicitHeight + pad
-    // Open, the outer columns end higher than the middle one (same width): `middle` is
-    // the content column that hangs to the full depth, leftSide and rightSide the columns beside
-    // it, all top-aligned in one row at the top of the content. Both sides end where the deeper
-    // of the two columns does, not each at its own depth.
-    // Without a middle column (none given, or
-    // Settings.centreUneven off) the open panel is the plain rectangle.
+    // ---- geometry: the size rules (CentreGeometry.js), from what the content measures ----
+    // `middle` is the body column that hangs to the full depth open (none with Settings.centreUneven off); leftSide and
+    // rightSide are the columns beside it
     readonly property Item middle: Settings.centreUneven ? middleItem : null
     readonly property real sideDepth: Math.max(leftSide ? leftSide.implicitHeight : 0, rightSide ? rightSide.implicitHeight : 0)
-    readonly property real leftH: middle ? Math.min(fullH, startH + 4 + sideDepth + pad) : fullH
-    readonly property real rightH: leftH
+    readonly property var size: Geometry.sizes({
+        windowW: bar.screen.width, headerW: header.implicitWidth, clockH: header.clockH, bodyW: col.implicitWidth, bodyH: col.implicitHeight,
+        sideDepth: sideDepth, uneven: middle !== null, stepped: Settings.centreStep && (header.leftShown || header.rightShown),
+        pad: pad, barH: Theme.barHeight, radius: Theme.islandRadius, stepFillet: Theme.stepFillet, stepCorner: Theme.stepCorner
+    })
+    readonly property real startH: size.startH
+    readonly property var sky: Geometry.skylines(size, {
+        headerW: header.implicitWidth, clockX: header.clockX, clockW: header.clockW, centreW: centreW, baseH: baseH,
+        left: header.leftShown, right: header.rightShown, step: Settings.centreStep,
+        middle: middle ? { x: middle.x, width: middle.width } : null,
+        card: aim.card ? { side: aim.card.side, width: aim.card.width, height: aim.card.drop.fullH } : null,
+        pad: pad, barH: Theme.barHeight, radius: Theme.islandRadius, stepFillet: Theme.stepFillet, stepCorner: Theme.stepCorner
+    })
+    // a slot's card, one deeper part of the outline under its slot: { side, width, drop } (drop: its IslandDropdown),
+    // set through the host contract (fitPanel, releasePanel)
+    property var card: null
+    onCardChanged: restartMorph()
+
+    // ---- the outline's one morph (IslandMorph.qml) ----
+    // A new target (open or closed, the peek or a card while closed) starts it from the shape drawn right now, so the
+    // peek ending as the island opens cannot pull the outline in. `aim`, the state the outline heads for, is switched
+    // only after that start is taken and in one assignment, so it never depends on which binding updates first.
+    property var aim: ({ open: false, peek: false, card: null })
+    IslandMorph {
+        id: morph
+        target: root.aim.open ? root.sky.open : root.sky.closed
+        duration: Theme.islandMs
+        easing: Theme.islandEaseGrow
+    }
+    function restartMorph() {
+        morph.start(outline.current);
+        aim = { open: open, peek: showPeek, card: card };
+    }
+    onShowPeekChanged: restartMorph()
 
     // ---- surface height ----
     // The layer surface only ever grows, and in steps. The outline is drawn at the animated height
-    // (panel.height) inside a surface that is already big enough; the space below it is transparent and
+    // inside a surface that is already big enough; the space below it is transparent and
     // outside the input mask.
     //   - Never per frame: every resize is a round trip to the compositor, and one per frame of a body
     //     animating its height made the open panel shake. The surface takes the end size at once (fullH
@@ -122,7 +123,8 @@ PanelWindow {
     //     the panel and the dropdowns jittered (seen on Hyprland 0.57; likely the area a shrinking layer
     //     surface gives up is not repainted at once). Keeping the largest size needed this session
     //     removed both.
-    readonly property real wantH: Math.ceil(fullH + Math.max(0, growing))
+    // (a card can reach deeper than the open panel)
+    readonly property real wantH: Math.ceil(Math.max(size.fullH + Math.max(0, growing), sky.closed.cols[0].d, sky.closed.cols[2].d))
     property real surfaceH: wantH
     onWantHChanged: {
         if (wantH > surfaceH)
@@ -130,29 +132,41 @@ PanelWindow {
     }
 
     // ---- surface and input ----
+    // The window spans the screen and never changes its width or place: a layer surface resized and moved in one
+    // change shows an old frame at the new place on Hyprland for a frame or two, which made the island shake when its
+    // size changed (a corner roundness change). The island is drawn centred inside it, so a change of its size is a
+    // redraw only. Where nothing is drawn the window is transparent and outside the input mask (and the installer's
+    // blur rule ignores transparent pixels).
     screen: bar.screen
     visible: true
     color: "transparent"
     anchors.top: true
     anchors.left: true
+    anchors.right: true
     margins.top: 0
-    margins.left: Math.round((bar.screen.width - implicitWidth) / 2)
     exclusionMode: ExclusionMode.Ignore
-    implicitWidth: Math.ceil(fullW) + 2 * Theme.islandRadius
     implicitHeight: surfaceH
     WlrLayershell.namespace: "sleepyshell-popup"
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.keyboardFocus: wantsKeyboard ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
-    // input only where the island is drawn: the full-width top part and the tall middle part, so
-    // the empty corners under a stepped edge stay click-through and do not hold the panel open
+    WlrLayershell.keyboardFocus: wantsKeyboard || (card !== null && card.drop.wantsKeyboard) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    // input only where the island is drawn, the outline's three columns (rounded outward to whole pixels), so the
+    // empty corners under a stepped edge stay click-through and do not hold the panel open
     mask: Region {
-        item: maskLeft
         regions: [
             Region {
-                item: maskMiddle
+                x: Math.floor(outline.maskRects[0].x)
+                width: Math.ceil(outline.maskRects[0].x + outline.maskRects[0].width) - x
+                height: Math.ceil(outline.maskRects[0].height)
             },
             Region {
-                item: maskRight
+                x: Math.floor(outline.maskRects[1].x)
+                width: Math.ceil(outline.maskRects[1].x + outline.maskRects[1].width) - x
+                height: Math.ceil(outline.maskRects[1].height)
+            },
+            Region {
+                x: Math.floor(outline.maskRects[2].x)
+                width: Math.ceil(outline.maskRects[2].x + outline.maskRects[2].width) - x
+                height: Math.ceil(outline.maskRects[2].height)
             }
         ]
     }
@@ -191,6 +205,7 @@ PanelWindow {
     }
 
     onOpenChanged: {
+        restartMorph();
         if (open) {
             Popouts.opened(root);
             armGrab.restart();
@@ -203,247 +218,130 @@ PanelWindow {
     // Hover: entering the island opens the panel, leaving the panel closes it after a moment.
     // Not while a text field has the keyboard (a half-typed password would be lost); the panel
     // closes once typing ends with the pointer still outside.
+    // The pointer is on the island only where the outline is drawn: the input mask decides only where the pointer
+    // enters the window, and Hyprland then keeps sending it to the window anywhere in it, across the whole strip, so
+    // the window's own hover would last until the pointer leaves the strip.
+    readonly property bool pointerOn: panelHover.hovered && outline.contains(panelHover.point.position)
+    onPointerOnChanged: {
+        if (pointerOn) {
+            leaveTimer.stop();
+            // not while a card is open: the pointer on the card is for the card (a click on the clock still opens
+            // the panel)
+            if (!open && Settings.hoverOpen && card === null)
+                open = true;
+        } else {
+            leaveTimer.restart();
+        }
+    }
     Timer {
         id: leaveTimer
         interval: Settings.hoverCloseMs
         onTriggered: {
             // with hover opening off (settings) the panel was opened by a click and stays until
             // a click outside clears the focus grab
-            if (!panelHover.hovered && !root.wantsKeyboard && Settings.hoverOpen)
+            if (!root.pointerOn && !root.wantsKeyboard && Settings.hoverOpen)
                 root.open = false;
         }
     }
     onWantsKeyboardChanged: {
-        if (!wantsKeyboard && !panelHover.hovered)
+        if (!wantsKeyboard && !pointerOn)
             leaveTimer.restart();
     }
 
+    // The whole surface: the outline and the content are placed in its coordinates (see the skylines above).
     Item {
-        id: panel
-        anchors.top: parent.top
-        // centred on a whole pixel: the width changes a pixel at a time while it opens, and a centring anchor
-        // put the panel (and the clock in it) on a half pixel every other frame, which made the clock jitter
-        x: Math.round((parent.width - width) / 2)
-        width: Math.round(root.startW + (root.fullW - root.startW) * root.progress)
-        height: Math.round(root.baseH + (root.fullH - root.baseH) * root.progress)
+        id: island
+        anchors.fill: parent
 
         // ---- host contract (SideIsland.qml's header) ----
-        // An island in another window than the bar (hostX: that window's left edge on screen,
-        // hostWindow for the focus grab); a dropdown hangs from its collapsed bottom edge (hangY).
-        // It cannot widen itself for a dropdown, so one under it floats as a card.
+        // An island in another window than the bar (hostX: that window's left edge on screen, 0 as it spans the screen
+        // like the bar's; hostWindow for the focus grab). It draws a slot's card itself, as one deeper part of its
+        // outline under that slot (drawsPanel, in dropLayer, inside the fill), hanging from that side's bottom edge
+        // (hangY).
         readonly property string attach: "top"
-        readonly property bool glueLeft: false
-        readonly property bool glueRight: false
-        readonly property real hostX: root.margins.left
+        readonly property real hostX: 0
         readonly property var hostWindow: root
-        readonly property real hangY: root.startH
-        readonly property bool canExtend: false
-        function straightEdge() {
-            const x = mapToItem(null, 0, 0).x + hostX;
-            return {
-                l: x + Theme.islandRadius,
-                r: x + width - Theme.islandRadius
-            };
+        readonly property real hangY: root.sky.cardY
+        readonly property bool canExtend: true
+        readonly property bool drawsPanel: true
+        readonly property Item dropLayer: dropLayerItem
+        readonly property bool needsAnchor: true
+        // the card takes the side of the slot it sits under; its place comes back on screen
+        function fitPanel(panelX, panelW, drop) {
+            root.card = { side: panelX + panelW / 2 < hostX + root.sky.clockMid ? "left" : "right", width: panelW, drop: drop };
+            return { edgeL: hostX + root.sky.cardX, edgeR: hostX + root.sky.cardX + panelW };
+        }
+        function releasePanel(drop) {
+            if (root.card && root.card.drop === drop)
+                root.card = null;
         }
 
-        // hovering anywhere on the island (clock, CPU/memory, audio) opens the panel; leaving it
-        // closes the panel after a moment
+        // the window's hover and where the pointer is in it, for `pointerOn` (anywhere on the drawn island: clock,
+        // CPU/memory, audio, a card, the open panel)
         HoverHandler {
             id: panelHover
-            onHoveredChanged: {
-                if (hovered) {
-                    leaveTimer.stop();
-                    if (!root.open && Settings.hoverOpen)
-                        root.open = true;
-                } else {
-                    leaveTimer.restart();
-                }
-            }
         }
 
         // ---- drawing: the outline ----
-        // Collapsed it is stepped (Settings.centreStep): the sides with the widgets
-        // are as tall as the side islands (barHeight), only the clock part reaches down to fit the
-        // date, with small inverted fillets where the two meet. Opening lowers the sides' bottom
-        // edges to the ends of their columns (leftH, rightH) and widens the clock part to the
-        // middle column, which alone reaches the bottom; once the step is too small for its corners
-        // it is the plain hanging rectangle. Outer top fillets toward the screen edge as on every
-        // island.
-        Item {
+        // One path in every state (IslandShape.qml). Closed it is stepped (Settings.centreStep): the sides with the
+        // widgets are as tall as the side islands (barHeight), only the clock part reaches down to fit the date, with
+        // small inverted fillets where they meet. Opening morphs the closed skyline into the open one: the sides'
+        // bottom edges drop to the ends of their columns (the side depth), the clock part widens to the middle column,
+        // which alone reaches the bottom, and the corners grow from Theme.stepFillet / stepCorner to islandRadius.
+        // Outer top fillets toward the screen edge as on every island.
+        IslandShape {
             id: outline
             anchors.fill: parent
-            readonly property real r: Theme.islandRadius
-            // inverted fillet where the tall part meets a side, and the tall part's own bottom
-            // corners: the step tokens around the clock, the island radius on the open panel
-            // (the inner corner under a side is rounded too)
-            readonly property real f: Theme.stepFillet + (Theme.islandRadius - Theme.stepFillet) * root.progress
-            readonly property real rc: Theme.stepCorner + (Theme.islandRadius - Theme.stepCorner) * root.progress
-            readonly property real w: width
-            readonly property real h2: height
-            // the sides' bottom edges: bar-high while closed and stepped (flush with the bottom when
-            // not stepped), at the end of their columns when open
-            readonly property real h1Closed: Settings.centreStep ? Theme.barHeight : height
-            readonly property real h1L: h1Closed + ((root.middle ? root.leftH : height) - h1Closed) * root.progress
-            readonly property real h1R: h1Closed + ((root.middle ? root.rightH : height) - h1Closed) * root.progress
-            readonly property real h1: Math.max(h1L, h1R)
-            // the tall part: the clock part collapsed, the middle column (halfway into the 12 px
-            // gaps beside it, past the column dividers) open
-            readonly property real cx0Closed: header.x + clockBox.x + clockBox.width / 2 - root.centreW / 2
-            readonly property real cx0Open: root.middle ? col.x + root.middle.x - 6 : cx0Closed
-            readonly property real cx1Open: root.middle ? col.x + root.middle.x + root.middle.width + 6 : cx0Closed + root.centreW
-            readonly property real cx0: cx0Closed + (cx0Open - cx0Closed) * root.progress
-            readonly property real cx1: cx0Closed + root.centreW + (cx1Open - cx0Closed - root.centreW) * root.progress
-            readonly property bool stepped: h2 - h1 >= rc + f && cx0 - f >= r && w - cx1 - f >= r
-
-            Shape {
-                anchors.fill: parent
-                visible: outline.stepped
-                preferredRendererType: Shape.CurveRenderer
-
-                ShapePath {
-                    strokeWidth: 0
-                    strokeColor: "transparent"
-                    fillColor: root.fill
-                    startX: -outline.r
-                    startY: 0
-                    PathLine { x: outline.w + outline.r; y: 0 }
-                    PathArc { x: outline.w; y: outline.r; radiusX: outline.r; radiusY: outline.r; direction: PathArc.Counterclockwise }
-                    PathLine { x: outline.w; y: outline.h1R - outline.r }
-                    PathArc { x: outline.w - outline.r; y: outline.h1R; radiusX: outline.r; radiusY: outline.r; direction: PathArc.Clockwise }
-                    PathLine { x: outline.cx1 + outline.f; y: outline.h1R }
-                    PathArc { x: outline.cx1; y: outline.h1R + outline.f; radiusX: outline.f; radiusY: outline.f; direction: PathArc.Counterclockwise }
-                    PathLine { x: outline.cx1; y: outline.h2 - outline.rc }
-                    PathArc { x: outline.cx1 - outline.rc; y: outline.h2; radiusX: outline.rc; radiusY: outline.rc; direction: PathArc.Clockwise }
-                    PathLine { x: outline.cx0 + outline.rc; y: outline.h2 }
-                    PathArc { x: outline.cx0; y: outline.h2 - outline.rc; radiusX: outline.rc; radiusY: outline.rc; direction: PathArc.Clockwise }
-                    PathLine { x: outline.cx0; y: outline.h1L + outline.f }
-                    PathArc { x: outline.cx0 - outline.f; y: outline.h1L; radiusX: outline.f; radiusY: outline.f; direction: PathArc.Counterclockwise }
-                    PathLine { x: outline.r; y: outline.h1L }
-                    PathArc { x: 0; y: outline.h1L - outline.r; radiusX: outline.r; radiusY: outline.r; direction: PathArc.Clockwise }
-                    PathLine { x: 0; y: outline.r }
-                    PathArc { x: -outline.r; y: 0; radiusX: outline.r; radiusY: outline.r; direction: PathArc.Counterclockwise }
-                }
-            }
-
-            Highlight {
-                anchors.fill: parent
-                visible: !outline.stepped
-                radius: Theme.islandRadius
-                fillet: Theme.islandRadius
-                color: root.fill
-            }
-        }
-
-        // the window mask's three parts (see `mask`); unstepped, the left one covers the panel
-        Item {
-            id: maskLeft
-            width: outline.stepped ? outline.cx0 : panel.width
-            height: outline.stepped ? outline.h1L : panel.height
-        }
-        Item {
-            id: maskMiddle
-            x: outline.cx0
-            width: outline.cx1 - outline.cx0
-            height: panel.height
-        }
-        Item {
-            id: maskRight
-            x: outline.cx1
-            width: outline.stepped ? panel.width - outline.cx1 : 0
-            height: outline.h1R
+            from: morph.from
+            to: morph.target
+            t: morph.t
+            radius: Theme.islandRadius
+            fillItem: contentFill
         }
 
         // ---- content: header, peek row, panel body ----
-        // While the island grows the content is clipped to the outline itself, not to the panel's
-        // rectangle: a side's bottom edge is still short then, and its column showed below it, outside
-        // the island, and the middle seemed to open unevenly. At rest everything is inside the outline,
-        // so the mask is only on while the island moves and the resting pixels are drawn directly.
+        // The content is the outline's fill: it is drawn only through the path, never on its own (hideSource), so
+        // nothing it draws can show outside the island, in motion or at rest (a short side's column while the island
+        // grows, a lifted tile's shadow at the edge). It still takes hover and clicks where it is.
         ShaderEffectSource {
-            id: outlineMask
-            anchors.fill: outline
-            sourceItem: outline
-            hideSource: false
+            id: contentFill
+            anchors.fill: content
+            sourceItem: content
+            hideSource: true
             visible: false
         }
 
         Item {
+            id: content
             anchors.fill: parent
-            clip: true
-            layer.enabled: root.progress > 0 && root.progress < 1
-            layer.effect: MultiEffect {
-                maskEnabled: true
-                maskSource: outlineMask
-                maskSpreadAtMin: 1
+
+            // the island's colour, as the fill's backdrop
+            Rectangle {
+                anchors.fill: parent
+                color: root.fill
             }
 
-            // the island's top row: left widgets, the clock (title over subtitle), right widgets.
-            // The widgets hang from the top edge like the side islands' buttons; the clock is centred
-            // in the collapsed height. A click on the clock opens the panel too.
-            Row {
+            // the island's top row (CentreHeader.qml); a click on the clock opens the panel too
+            CentreHeader {
                 id: header
-                x: Math.round((panel.width - width) / 2)
+                x: root.size.headerX
                 y: 0
-                spacing: Theme.gap
-
-                Loader {
-                    id: leftSlot
-                    sourceComponent: root.leftComponent
-                    visible: item !== null && (item.shown ?? true)
-                }
-
-                Item {
-                    id: clockBox
-                    width: Math.ceil(clockCol.implicitWidth) + 24
-                    height: root.startH - 2
-
-                    Column {
-                        id: clockCol
-                        x: Math.round((parent.width - width) / 2)
-                        y: Math.round((parent.height - height) / 2)
-                        spacing: -1
-
-                        // the clock, in the lock screen clock's font and weight
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.title
-                            font.family: root.titleFont
-                            font.pixelSize: root.titleSize
-                            color: Theme.fg
-                        }
-
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            visible: root.subtitle !== ""
-                            text: root.subtitle
-                            font.family: Theme.font
-                            font.pixelSize: Theme.fontSize - 3
-                            font.letterSpacing: 1
-                            font.capitalization: Font.AllUppercase
-                            color: Theme.fgMuted
-                        }
-                    }
-
-                    // the plain arrow: hovering opens the panel already, a hand promised more
-                    MouseArea {
-                        anchors.fill: parent
-                        // open, not toggle: hover has usually opened the panel already, so a click must not close it
-                        onClicked: root.open = true
-                    }
-                }
-
-                Loader {
-                    id: rightSlot
-                    sourceComponent: root.rightComponent
-                    visible: item !== null && (item.shown ?? true)
-                }
+                leftComponent: root.leftComponent
+                rightComponent: root.rightComponent
+                title: root.title
+                subtitle: root.subtitle
+                titleFont: root.titleFont
+                titleSize: root.titleSize
+                closedH: root.startH
+                onClockClicked: root.open = true
             }
 
             // the peek row sits under the title, inside the collapsed island's width
             Item {
                 id: peekSlot
-                x: outline.cx0 + 8
+                x: root.sky.clockMid - root.peekW / 2 + 8
                 y: root.startH - 4
-                width: root.centreW - 16
+                width: root.peekW - 16
                 height: root.peek ? root.peek.implicitHeight : 0
                 opacity: root.showPeek ? 1 : 0
                 visible: opacity > 0
@@ -454,18 +352,22 @@ PanelWindow {
                 }
             }
 
-            // The body stays where it ends up, centred in the window, and the outline grows over it.
-            // It used to sit at the panel's left edge, which moves outward as the panel grows from the
-            // centre, so the columns slid across the middle while opening; the side
-            // islands' dropdowns keep their content still the same way (IslandDropdown.qml).
+            // The body stays where it ends up, centred in the window, and the outline grows over it (the side
+            // islands' dropdowns keep their content still the same way, IslandDropdown.qml).
             ColumnLayout {
                 id: col
-                x: Math.round(root.pad - (root.fullW - panel.width) / 2)
+                x: root.size.colX
                 y: root.startH + 4
                 width: implicitWidth
                 spacing: Theme.gap
                 opacity: root.progress
                 visible: root.progress > 0
+            }
+
+            // a slot's card (IslandDropdown places its panel here, in this surface's coordinates)
+            Item {
+                id: dropLayerItem
+                anchors.fill: parent
             }
         }
     }

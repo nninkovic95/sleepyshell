@@ -18,6 +18,9 @@ BarButton {
     readonly property bool shown: Privacy.anyActive
     visible: shown
     glyphText: Privacy.barGlyphs
+    // larger than the bar's other icons: the microphone glyph is narrow and read as smaller than its neighbours; an
+    // even pixel size keeps its centre on the buttons' line
+    glyphSize: 2 * Math.round(Theme.barIconSize * 1.2 / 2)
     // the indicators' accent colour (BarIndicator); clickable, so the hover highlight and lift show on hover, as on
     // every button of the bar, and while its list is open
     fg: Theme.accent
