@@ -6,13 +6,15 @@
 # rules (CentreGeometry.js, tst_centregeometry.qml) on their own, against hand-worked examples.
 #
 # IslandShape imports only QtQuick and QtQuick.Shapes, so it runs under qmltestrunner without Quickshell (offscreen,
-# software scene graph: no GPU, no compositor). The tree's component and the test files are copied into a run folder
-# in the repository's layout, and CMD runs there inside the sandbox with the checksum guard around it. Prints PASS or
-# FAIL per test function; exits 1 on any FAIL.
+# software scene graph: no GPU, no compositor). CMD below is also the CI job's command, word for word, run from the
+# repository root (.github/workflows/islandshape.yml); a tree with the repository's files is checked for that. Here
+# the tree's component and the test files are copied into a run folder in the repository's layout, and CMD runs there
+# inside the sandbox with the checksum guard around it. Prints PASS or FAIL per test function; exits 1 on any FAIL.
 set -uo pipefail
 . "$(dirname "$(readlink -f "$0")")/../common/env.sh"
 TREE=$(readlink -f "${1:-$LIVE}")
-CMD='env QT_QUICK_BACKEND=software /usr/lib/qt6/bin/qmltestrunner -platform offscreen -input tests/bar/islandshape'
+# (the results go to stdout and, for the CI job's summary, to a file in /tmp: the sandbox's own /tmp here)
+CMD='env QT_QUICK_BACKEND=software /usr/lib/qt6/bin/qmltestrunner -platform offscreen -input tests/bar/islandshape -o -,txt -o /tmp/islandshape-results.txt,txt'
 NAME=islandshape-$$
 D=$RUN/$NAME
 mkdir -p "$D/t/sleepybar/components" "$D/t/tests/bar"
@@ -39,6 +41,20 @@ grep -q "^Totals:" "$D/out.txt" || { echo "FAIL qmltestrunner did not finish:"; 
 grep -q "^PASS   : .*::test_" "$D/out.txt" || { echo "FAIL no test ran"; rc=1; }
 # on a failure, the lines qmltestrunner printed that are not test results (load errors name the file and line there)
 [ "$rc" = 0 ] || grep -E "\.qml:[0-9]+" "$D/out.txt" | grep -v "^FAIL!" | head -12 | sed 's/^ */    /'
+# CI runs CMD itself: a different command there would test something else than this run did. A shell tree copied
+# without the repository's files (a candidate) has no CI job to compare.
+WF=$TREE/.github/workflows/islandshape.yml
+if [ -d "$TREE/.github" ]; then
+    # the whole line, whatever its indent: an argument added in CI fails too
+    if sed 's/^[[:space:]]*//' "$WF" 2>/dev/null | grep -qxF -- "run: $CMD"; then
+        echo "PASS the CI job runs this same command"
+    else
+        echo "FAIL the CI job does not run this same command ($WF)"
+        rc=1
+    fi
+else
+    echo "SKIP the CI job's command: this tree has no .github"
+fi
 if ! python3 -I "$KIT/common/guard.py" verify "$NAME" >/dev/null; then
     echo "FAIL a real file changed"
     rc=1

@@ -1,0 +1,88 @@
+# The centre island's outline (sleepybar/components/IslandShape.qml) and its size rules (CentreGeometry.js), tested on
+# their own with Qt Quick Test: offscreen, software scene graph, no Quickshell, no compositor. The test step runs the
+# test kit's command word for word (tests/bar/islandshape.test.sh fails when the two differ). Packages come from one
+# Arch Linux Archive day, so the tests run against the Qt they were written for; moving the day is a deliberate change.
+name: islandshape
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - sleepybar/components/IslandShape.qml
+      - sleepybar/components/CentreGeometry.js
+      - tests/bar/islandshape/**
+      - .github/workflows/islandshape.yml
+  pull_request:
+    paths:
+      - sleepybar/components/IslandShape.qml
+      - sleepybar/components/CentreGeometry.js
+      - tests/bar/islandshape/**
+      - .github/workflows/islandshape.yml
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  islandshape:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container: archlinux:base
+    permissions:
+      contents: read
+    steps:
+      # that day's repositories hold qt6-declarative 6.12.0, the Qt the tests were written against
+      - name: Pin the packages to one archive day
+        run: echo 'Server = https://archive.archlinux.org/repos/2026/11/08/$repo/os/$arch' > /etc/pacman.d/mirrorlist
+      # QtQuick.Shapes, QtTest and qmltestrunner are all part of qt6-declarative; -uu also moves the image's
+      # packages back to that day, so Qt and its libraries match
+      - name: Install Qt Quick
+        run: |
+          pacman -Syyuu --noconfirm qt6-declarative
+          echo "$SECONDS" > /tmp/islandshape-install-seconds
+      # the pin is checked, not trusted: another Qt here would test something else than the kit did
+      - name: Check the Qt version
+        run: pacman -Q qt6-declarative | grep -q ' 6\.12\.0-' || { pacman -Q qt6-declarative; exit 1; }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Outline and size rules (Qt Quick Test)
+        run: env QT_QUICK_BACKEND=software /usr/lib/qt6/bin/qmltestrunner -platform offscreen -input tests/bar/islandshape -o -,txt -o /tmp/islandshape-results.txt,txt
+      # the run's summary page: the Qt that ran, how long the install and the tests took, and passed / failed /
+      # skipped per test case (each case's setup and teardown entries left out), also after a failed step
+      - name: Summary
+        if: always()
+        run: |
+          r=/tmp/islandshape-results.txt
+          {
+            echo "### Island outline and size rules"
+            echo
+            if [ -f /tmp/islandshape-install-seconds ]; then
+              install="$(cat /tmp/islandshape-install-seconds) s"
+            else
+              install="did not finish"
+            fi
+            tests=$(grep -o '[0-9]*ms$' "$r" 2>/dev/null | tr -d 'ms' | awk '{ printf "%.0f s", $1 / 1000 }')
+            echo "Qt: \`$(pacman -Q qt6-declarative 2>/dev/null || echo 'not installed')\` · install: $install · tests: ${tests:-did not run}"
+            echo
+            if [ -s "$r" ]; then
+              echo "| Test case | Passed | Failed | Skipped |"
+              echo "|---|---:|---:|---:|"
+              awk -F'::' '/^(PASS   |FAIL!  |SKIP   ): / {
+                  if ($3 ~ /^(initTestCase|cleanupTestCase)\(/) next
+                  if (!($2 in seen)) { seen[$2] = 1; order[++n] = $2 }
+                  count[$2, substr($0, 1, 4)]++
+                }
+                END { for (i = 1; i <= n; i++) printf "| %s | %d | %d | %d |\n", order[i], count[order[i], "PASS"], count[order[i], "FAIL"], count[order[i], "SKIP"] }' "$r"
+              echo
+              grep '^Totals:' "$r" || echo "No totals: the test run did not finish."
+              if grep -q '^FAIL!' "$r"; then
+                echo
+                echo "First failures:"
+                echo '```'
+                grep -A3 '^FAIL!' "$r" | head -40
+                echo '```'
+              fi
+            else
+              echo "No test results: an earlier step failed (see the steps above)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
