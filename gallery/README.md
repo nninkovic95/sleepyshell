@@ -3,7 +3,7 @@
 [Back to the README](../README.md)
 
 What Sleepy Shell looks like: the slideshow from the top of the README, then each of its slides as a full-size
-screenshot (2560x1440). Click an image to open it at full size.
+screenshot (2560x1440).
 
 ## Contents
 
