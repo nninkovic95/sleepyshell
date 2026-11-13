@@ -53,6 +53,28 @@ win.button("Discard")
 check(bar.wait(lambda: dot_h() == 31), "Discard takes the preview back off the bar", f"bar height {dot_h()}")
 check(written("barHeight") == 31, "and leaves the saved value")
 
+# Play of the urgent sound: the bar plays it, with the window's staged volume, and the window never connects to the
+# audio server itself
+from ui import commands
+win.tab("Notifications")
+win.reveal(props={"key": "urgentSoundVolume"})
+steps = win.find(type="StepButton", inside={"props": {"key": "urgentSoundVolume"}})
+if steps:  # a slider row has no step buttons; then the staged value is set the way the slider would
+    Input.click(*win.centre(min(steps, key=lambda e: e["x"])))
+else:
+    win.js("Settings.stage('urgentSoundVolume', 50)")
+check(win.wait(lambda: win.staged().get("urgentSoundVolume") not in (None, 100)), "a volume is staged in the window",
+      f"{win.staged()}")
+staged = win.staged().get("urgentSoundVolume")
+before = len([c for c in commands() if c.startswith("RUN pw-play ")])
+win.click(objectName="urgentPlay")
+plays = lambda: [c for c in commands() if c.startswith("RUN pw-play ")][before:]
+check(win.wait(lambda: len(plays()) == 1), "Play in the window plays the urgent sound once", f"{plays()}")
+want = f"{(staged / 100) ** 3:.5f}"
+check(plays() and f'"--volume", "{want}"' in plays()[0], f"with the staged volume ({staged} %)", f"{plays()}")
+check(not [e for e in win.log.read_text(errors="replace").splitlines() if "pipewire" in e.lower()],
+      "played by the bar: the window did not connect to the audio server")
+
 env_errors = ("pipewire", "quickshell.network", "Network will not work")
 errs = [e for e in bar.errors() + win.errors() if not any(x in e for x in env_errors)]
 check(not errs, "no QML errors in the bar or the window", "; ".join(errs[:3]))

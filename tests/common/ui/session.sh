@@ -14,7 +14,7 @@
 
 UI_FAKES="matugen magick awww swww nmcli paru yay pacman fakeroot lspci hypridle notify-send loginctl systemctl wpctl busctl
 systemd-inhibit wl-copy khal ikhal xdg-mime xdg-open walker pwvucontrol hyprpicker kitty ddcutil brightnessctl
-powerprofilesctl playerctl pactl grimblast uwsm"
+powerprofilesctl playerctl pactl grimblast uwsm pw-play"
 
 ui_start() {
     local d=$1 w=${2:-2560} h=${3:-1440} n

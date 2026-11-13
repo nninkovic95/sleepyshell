@@ -13,7 +13,10 @@ Item {
     signal picked(var v)
     // the shown option (null when `value` is none of them); headers are never one
     readonly property var shown: options.find(x => x.header !== true && x.value === value) ?? null
-    readonly property string current: cb.shown ? cb.shown.label : String(value)
+    // what the closed field says for a value that is none of the options ("" shows the value itself):
+    // "Custom" for a value set by hand in sleepysettings.toml, which is a state and never a choice in the list
+    property string otherLabel: ""
+    readonly property string current: cb.shown ? cb.shown.label : cb.otherLabel !== "" ? cb.otherLabel : String(value)
     Layout.fillWidth: true
     implicitHeight: 30
     property real radius: Theme.radiusSm

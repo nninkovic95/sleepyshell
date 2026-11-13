@@ -51,6 +51,7 @@ var LAYOUT = [
         { title: "Apps on workspaces", keys: ["workspaceApps"] }] },
     { tab: "notifications", section: "notifications", cards: [
         { title: "Notifications", keys: ["dnd", "toastStack", "shotPreview"] },
+        { title: "Urgent", keys: ["urgentApps", "urgentLook", "urgentSound", "urgentSoundFile", "urgentSoundVolume"] },
         { title: "Advanced", keys: ["toastMax", "shotPreviewMax", "notifOrder"] }] },
     { tab: "theme", section: "theme", needs: ["matugen"], cards: [
         { title: "Colours", keys: ["themePreset", "themeScheme", "themeMode", "themeContrast"] },
@@ -132,6 +133,11 @@ var DOCS = {
     notifOrder: "Order of the notification list in the bell: newest or oldest first.",
     dnd: "Do not disturb: no toasts for normal notifications.",
     shotPreview: "Show the picture under a screenshot's notification.",
+    urgentApps: "Apps whose notifications are urgent (pop up under do not disturb, stay until dismissed, play the sound), comma-separated desktop entries or app names, for example librewolf.",
+    urgentSound: "Play a sound when an urgent notification arrives, also under do not disturb.",
+    urgentSoundFile: "The sound an urgent notification plays.",
+    urgentSoundVolume: "How loud the urgent sound plays compared with the main output's volume, in percent (100 = the same).",
+    urgentLook: "How an urgent notification stands out: full, tint, chip, edge, or your own parts such as \"tint 30, edge 6, chip\".",
     polkitAgent: "The shell answers apps that ask for an admin password; off leaves that to another polkit agent you run.",
     shotPreviewMax: "Tallest a screenshot preview gets, in pixels.",
     // idle

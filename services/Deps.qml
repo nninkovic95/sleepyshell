@@ -18,10 +18,10 @@ Singleton {
 
     // The programs the shell needs for a feature (only what is needed): the bar needs quickshell, hyprland
     // and python; a feature greys out without its program (theme: matugen, ImageMagick and a wallpaper daemon; idle: hypridle; screenshot
-    // copy: wl-copy; the calendar: khal, optional; the rest are tools of the system). `want()` adds the ones found out while running.
+    // copy: wl-copy; the calendar: khal, optional; the urgent notification sound: pw-play; the rest are tools of the system). `want()` adds the ones found out while running.
     readonly property var builtin: [
         "matugen", "magick", "awww", "swww", "nmcli", "paru", "yay", "pacman", "fakeroot", "lspci", "hypridle", "python3",
-        "notify-send", "gdbus", "flock", "loginctl", "systemctl", "wpctl", "hyprctl", "busctl", "systemd-inhibit", "wl-copy", "khal", "xdg-mime"
+        "notify-send", "gdbus", "flock", "loginctl", "systemctl", "wpctl", "hyprctl", "busctl", "systemd-inhibit", "wl-copy", "khal", "xdg-mime", "pw-play"
     ]
     // Programs the shell only LAUNCHES (the launcher, the audio mixer, the colour picker, the terminal, the file manager and the editor
     // through the desktop's opener): they are the user's own apps, not dependencies. Probed so a tool can grey out, but the message is
@@ -60,7 +60,8 @@ Singleton {
             "python3": "python",
             "nmcli": "networkmanager",
             "gdbus": "glib2",
-            "wpctl": "wireplumber"
+            "wpctl": "wireplumber",
+            "pw-play": "pipewire-audio"
         })
     // Is the package in this machine's own repositories? Decided offline by pacman's sync database (`pacman -Si <pkg>`, read only, no
     // network), asked once per package and kept for the session; true until the answer is in. Not found there means the AUR for this user

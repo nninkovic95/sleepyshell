@@ -776,6 +776,7 @@ FloatingWindow {
             }
             NotificationsTab {
                 id: notificationsTab
+                picker: picker
                 tooltip: tooltip
                 query: root.query
             }

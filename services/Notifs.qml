@@ -10,9 +10,69 @@ import qs.services
 // The bar is the notification daemon; it replaced swaync. Notifications arrive here, stay in `list` until dismissed, and new ones pop
 // up as toasts (NotifPopups). The dropdown is sleepybar/widgets/notifications/Notifications.qml.
 // Notifications carry no timestamp of their own, so the receive time is kept in a map by id.
-// Do not disturb is a stored setting (Settings.dnd). Critical ones still pop up under it.
+// Do not disturb is a stored setting (Settings.dnd). Urgent ones (isUrgent) still pop up under it.
 Singleton {
     id: root
+
+    // Urgent: critical, or from an app the user listed (Settings.urgentApps). An urgent one pops up under
+    // do not disturb, stays until dismissed, keeps its toast slot and its place in the history, rings
+    // (Chime) and is drawn apart (NotifCard). Matched on the desktop entry or the app name only: a browser
+    // sends neither the site nor its address, so every site allowed to notify in a listed browser counts.
+    function isUrgent(n) {
+        if (!n)
+            return false;
+        if (n.urgency === NotificationUrgency.Critical)
+            return true;
+        const keys = root.urgentKeys;
+        return keys.length > 0 && [n.desktopEntry, n.appName].some(k => k && keys.includes(String(k).toLowerCase()));
+    }
+    // the listed apps (desktop entry names, from the settings window's app list) and their display names:
+    // some apps send only a name ("LibreWolf") and no desktop entry. Found in the list, not with byId, so
+    // the names arrive once the list has filled after start
+    readonly property var urgentKeys: {
+        const out = [];
+        const apps = DesktopEntries.applications.values;
+        for (const id of Settings.urgentApps) {
+            const low = id.toLowerCase();
+            out.push(low);
+            const name = apps.find(x => x.id.toLowerCase() === low)?.name ?? "";
+            if (name !== "")
+                out.push(name.toLowerCase());
+        }
+        return out;
+    }
+    // The Urgent look (Settings.urgentLook): a preset name, or its parts written out in sleepysettings.toml,
+    // e.g. "tint 30, edge 6, chip". tint: how strongly the card is coloured red, 0-100 (55 without a number);
+    // edge: the red edge's width in pixels, 0-12 (0 hides it); chip: the "Urgent" label. A value with no
+    // known part reads as the "full" preset, so a typo never hides what is urgent.
+    readonly property var urgentLooks: ({
+            full: "tint 55, edge 4, chip",
+            tint: "tint 55, edge 4",
+            chip: "edge 3, chip",
+            edge: "edge 3"
+        })
+    function lookParts(s) {
+        const name = String(s ?? "").trim().toLowerCase();
+        // own keys only: a typed "toString" must not find the object's built-in function
+        const spec = Object.prototype.hasOwnProperty.call(root.urgentLooks, name) ? root.urgentLooks[name] : name;
+        const out = { tint: 0, edge: 0, chip: false };
+        let known = false;
+        for (const part of spec.split(",")) {
+            const [k, v] = part.trim().toLowerCase().split(/\s+/);
+            const n = v === undefined ? NaN : Number(v);
+            if (k === "tint")
+                out.tint = isFinite(n) ? Math.max(0, Math.min(100, n)) : 55;
+            else if (k === "edge")
+                out.edge = isFinite(n) ? Math.max(0, Math.min(12, Math.round(n))) : 4;
+            else if (k === "chip")
+                out.chip = true;
+            else
+                continue;
+            known = true;
+        }
+        return known ? out : root.lookParts("full");
+    }
+    readonly property var urgentStyle: lookParts(Settings.urgentLook)
     readonly property var list: server.trackedNotifications.values.slice().reverse()
     readonly property int count: server.trackedNotifications.values.length
     // stored in Settings
@@ -73,25 +133,30 @@ Singleton {
             root.capHistory(n);
             if (n.lastGeneration)
                 return;
-            if (!root.dnd || n.urgency === NotificationUrgency.Critical)
+            const urgent = root.isUrgent(n);
+            if (!root.dnd || urgent)
                 root.popups = [n, ...root.popups.filter(p => p !== n)];
+            // rings under do not disturb too, since urgent is what must not be missed (urgentSound
+            // silences it); an app's own "no sound" hint is kept
+            if (urgent && n.hints?.["suppress-sound"] !== true)
+                Chime.play();
         }
     }
 
     // The history is capped at the newest `maxHistory` notifications (SECURITY.md finding #40: an app that sends
     // notifications in a loop grew the list, the popups and the bell without limit). When a new one arrives and the list is over the cap,
-    // the oldest are dismissed, silently: no popup, no sound, the sending app is only told the notification closed. A critical
-    // notification that is still a popup on screen is skipped, so a critical warning is never taken away before it was seen; the next
+    // the oldest are dismissed, silently: no popup, no sound, the sending app is only told the notification closed. An urgent
+    // notification that is still a popup on screen is skipped, so an urgent one is never taken away before it was seen; the next
     // oldest goes instead.
     readonly property int maxHistory: 100
     // `arriving` is the one that triggered the cap: it is never the one dismissed (it is not yet a popup, so the
-    // critical exemption cannot see it; dismissed here it would still be added to the popups as a closed object)
+    // urgent exemption cannot see it; dismissed here it would still be added to the popups as a closed object)
     function capHistory(arriving) {
         const all = server.trackedNotifications.values;
         let over = all.length - root.maxHistory;
         for (let i = 0; i < all.length && over > 0; i++) {
             const o = all[i];
-            if (o === arriving || (o.urgency === NotificationUrgency.Critical && root.popups.includes(o)))
+            if (o === arriving || (root.isUrgent(o) && root.popups.includes(o)))
                 continue;
             o.dismiss();
             over--;

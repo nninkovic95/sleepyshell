@@ -13,6 +13,8 @@ import qs.services
 //   window to bar   {type: "preview", previewing: bool, pending: {key: value}}   the staged values
 //                   {type: "commit", values: {key: value}}   Apply: the bar writes sleepysettings.toml
 //                   {type: "toggle", name: "..."}   open or close a dropdown (the wallpaper picker)
+//                   {type: "chime"}   the Play button of the urgent sound: the bar plays it with the staged
+//                                     values, through its own connection to the audio server
 //   bar to window   {type: "committed", keys: [...]}   the written keys are on disk
 //                   {type: "close"}   toggle while the window is up: it closes (asking about unapplied changes first)
 //                   {type: "show"}    toggle while it is up but hidden: it shows again
@@ -132,6 +134,9 @@ QtObject {
             }
         case "toggle":
             Popouts.toggle(m.name);
+            break;
+        case "chime":
+            Chime.play();
             break;
         default:
             console.warn("settings: unknown message from the window:", line);

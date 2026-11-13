@@ -123,7 +123,11 @@ Reorder and hide them in the Right island tab. Default order:
 - The shell is the notification daemon. Toasts appear under the bar, top right, newest on top or at the
   bottom, up to a set number at once; a notification's own timeout else 5 s; hovering holds them.
 - Arrivals during a hover queue as compact rows, then a "+N more" pill that opens the list.
-- Critical notifications never time out and show even under Do not disturb.
+- Urgent notifications (critical ones, and those from apps you list, such as your browser) never time out,
+  show even under Do not disturb, stand out (a red card and an "Urgent" label by default; other presets, or
+  your own mix in `sleepysettings.toml`) and play a sound (pw-play, a file you choose) on the main output, at
+  a volume set relative to it. A browser does not say which website sent a notification, so listing it covers every site
+  you allowed to notify.
 - A card shows the icon, summary, app and age, the body as plain text, the app's action buttons and a close
   button. Clicking a card runs the app's default action, else focuses the app's window, then dismisses it.
 - Images and icons load only from your own machine; a web address in a notification is never fetched.
@@ -184,8 +188,10 @@ clamped to their ranges; several rows take a custom value.
   say yes. Apps on workspaces: an app or command per workspace (or the special one), at login or on first
   visit, window state, delay, skip if running, Run now; the placements already in your Hyprland config are
   listed.
-- **Notifications**: Do not disturb, popup position, screenshot preview, test notifications (normal, critical,
-  screenshot). Advanced: max popups, preview height, list order.
+- **Notifications**: Do not disturb, popup position, screenshot preview, test notifications (normal, urgent,
+  screenshot). Urgent: the apps whose notifications are urgent (picked from your installed apps), their look, the
+  sound, its file and its volume. Advanced: max popups,
+  preview height, list order.
 - **Theme**: Sleepytheme (from the wallpaper) or a community theme and its variant, with colour strips; matugen
   scheme (Vibrant, Tonal spot, Expressive, Fidelity, Content, Fruit salad, Monochrome, Neutral, Rainbow), light
   or dark, text contrast; the palette as tiles (click copies the hex) and Shuffle colours; icon theme, folder
@@ -294,6 +300,7 @@ everything else works.
 | matugen, ImageMagick (`magick`), awww or swww (optional) | Theming from the wallpaper, the wallpaper picker and Shuffle colours |
 | hypridle (optional) | Idle dim, lock and sleep timers |
 | PipeWire with WirePlumber (`wpctl`) (optional) | The audio pill and panels, and the microphone, camera and screen-share indicators |
+| PipeWire's `pw-play` (pipewire-audio) (optional) | The sound of urgent notifications |
 | NetworkManager (optional) | The network widget and the Wi-Fi tile |
 | BlueZ (optional) | The Bluetooth tile and widget |
 | pacman, paru, fakeroot (optional) | The updates widget and Update now |

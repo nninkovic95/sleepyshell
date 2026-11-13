@@ -34,6 +34,10 @@ QtObject {
         send({ type: "toggle", name: name });
     }
 
+    function chime() {
+        send({ type: "chime" });
+    }
+
     function receive(line) {
         let m;
         try {

@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Widgets
-import Quickshell.Services.Notifications
 import qs
 import qs.components
 import qs.services
@@ -15,7 +14,7 @@ Rectangle {
     id: row
     required property var notif
     readonly property bool hovered: mouse.containsMouse
-    readonly property bool critical: notif?.urgency === NotificationUrgency.Critical
+    readonly property bool urgent: Notifs.isUrgent(notif)
     // the local icons this notification can show, best first, like NotifCard: an image that fails to
     // load gives way to the app's icon, and with none left the bell shows
     readonly property var iconSources: Notifs.iconUrls(notif)
@@ -24,8 +23,9 @@ Rectangle {
     readonly property string iconSource: iconSources[iconTry] ?? ""
     implicitHeight: 34
     radius: Theme.radiusMd
-    color: Qt.tint(Theme.popupBg, hovered ? Theme.hoverBg : "transparent")
-    border.width: critical ? 1 : 0
+    // tinted like an urgent card when the Urgent look tints them (NotifCard)
+    color: Qt.tint(Qt.tint(Theme.popupBg, urgent && Notifs.urgentStyle.tint > 0 ? Qt.alpha(Theme.urgent, Notifs.urgentStyle.tint / 100) : "transparent"), hovered ? Theme.hoverBg : "transparent")
+    border.width: urgent ? 1 : 0
     border.color: Theme.urgent
 
     RowLayout {

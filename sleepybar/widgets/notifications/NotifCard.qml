@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Widgets
-import Quickshell.Services.Notifications
 import qs
 import qs.components
 import qs.services
@@ -12,7 +11,11 @@ import qs.services
 Item {
     id: root
     required property var notif
-    readonly property bool critical: notif?.urgency === NotificationUrgency.Critical
+    // critical, or from an app on the urgent list (Notifs.isUrgent): as the Urgent look setting says, a
+    // red edge, a red-tinted card (reads apart at a glance) and an "Urgent" chip (says why in words)
+    readonly property bool urgent: Notifs.isUrgent(notif)
+    readonly property bool urgentTinted: urgent && Notifs.urgentStyle.tint > 0
+    readonly property bool urgentChip: urgent && Notifs.urgentStyle.chip
     // the pointer anywhere on the card, its buttons included: over the close or an action button
     // the card's own MouseArea lost the hover and a toast timed out under the pointer
     property int buttonHovers: 0
@@ -97,7 +100,7 @@ Item {
             id: surface
             anchors.fill: parent
             radius: root.radius
-            color: root.color
+            color: root.urgentTinted ? Qt.tint(root.color, Qt.alpha(Theme.urgent, Notifs.urgentStyle.tint / 100)) : root.color
 
             // leans toward the pointer's edge like the other big cards; Settings' Card
             // hover picks tilt or a plain lift for all of them
@@ -113,10 +116,10 @@ Item {
                 level: root.hovered ? 1 : 0
             }
 
-            // thin urgent edge on critical ones
+            // the urgent edge
             Rectangle {
-                visible: root.critical
-                width: 3
+                visible: root.urgent && Notifs.urgentStyle.edge > 0
+                width: Notifs.urgentStyle.edge
                 height: parent.height - 2 * root.radius
                 y: root.radius
                 radius: width / 2
@@ -216,14 +219,50 @@ Item {
                     }
                 }
 
-                Text {
+                RowLayout {
                     Layout.fillWidth: true
-                    text: [Notifs.appLabel(root.notif), Notifs.ago(root.notif)].filter(t => t !== "").join("  ·  ")
-                    textFormat: Text.PlainText
-                    font.family: Theme.font
-                    font.pixelSize: Theme.fontSize + 1
-                    color: Theme.fgMuted
-                    elide: Text.ElideRight
+                    spacing: 8
+
+                    Rectangle {
+                        objectName: "urgentChip"
+                        visible: root.urgentChip
+                        implicitWidth: chipRow.implicitWidth + 12
+                        implicitHeight: chipRow.implicitHeight + 2
+                        radius: height / 2
+                        color: Theme.urgent
+
+                        Row {
+                            id: chipRow
+                            anchors.centerIn: parent
+                            spacing: 4
+
+                            Glyph {
+                                cp: 0xF009E
+                                color: Theme.urgentFg
+                                font.pixelSize: Theme.fontSize + 1
+                                width: implicitWidth
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "Urgent"
+                                font.family: Theme.font
+                                font.pixelSize: Theme.fontSize
+                                font.weight: Font.Medium
+                                color: Theme.urgentFg
+                            }
+                        }
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: [Notifs.appLabel(root.notif), Notifs.ago(root.notif)].filter(t => t !== "").join("  ·  ")
+                        textFormat: Text.PlainText
+                        font.family: Theme.font
+                        font.pixelSize: Theme.fontSize + 1
+                        color: Theme.fgMuted
+                        elide: Text.ElideRight
+                    }
                 }
 
                 Text {

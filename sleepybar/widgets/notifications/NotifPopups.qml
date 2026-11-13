@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Services.Notifications
 import qs
 import qs.services
 
@@ -22,7 +21,7 @@ PanelWindow {
     // the newest Settings.toastMax (4 by default); "New toasts" puts the newest on top (default) or at the bottom
     readonly property bool newestOnTop: Settings.toastStack !== "bottom"
     readonly property int maxShown: Math.max(1, Settings.toastMax)
-    // Critical toasts keep their place: the slots go to them first, then to the newest others.
+    // Urgent toasts (Notifs.isUrgent) keep their place: the slots go to them first, then to the newest others.
     // `kept` stays in admitted order (newest first).
     // Toasts under the pointer are held too: they keep their slot ahead of newer normal ones.
     // Updated a tick later: a hover change can reshuffle `kept`, which destroys or creates cards,
@@ -51,18 +50,18 @@ PanelWindow {
         held = h.filter(n => Notifs.popups.includes(n));
     }
     readonly property var kept: {
-        const crit = admitted.filter(n => n.urgency === NotificationUrgency.Critical).slice(0, maxShown);
+        const crit = admitted.filter(n => Notifs.isUrgent(n)).slice(0, maxShown);
         const hov = admitted.filter(n => held.includes(n) && !crit.includes(n)).slice(0, Math.max(0, maxShown - crit.length));
         const rest = admitted.filter(n => !crit.includes(n) && !hov.includes(n)).slice(0, Math.max(0, maxShown - crit.length - hov.length));
         return admitted.filter(n => crit.includes(n) || hov.includes(n) || rest.includes(n));
     }
     readonly property var shownList: newestOnTop ? kept : kept.slice().reverse()
-    // critical toasts waiting past the limit; a pill says how many
-    readonly property int criticalWaiting: admitted.filter(n => n.urgency === NotificationUrgency.Critical && !kept.includes(n)).length
-    // One pill at the end of the chain for everything not on screen: "+3 more · 2 critical"
-    // (one merged pill when normal and critical overflow meet, instead of two)
-    readonly property int moreNormal: compactOver.filter(n => n.urgency !== NotificationUrgency.Critical).length
-    readonly property int moreCritical: criticalWaiting + compactOver.filter(n => n.urgency === NotificationUrgency.Critical).length
+    // urgent toasts waiting past the limit; a pill says how many
+    readonly property int urgentWaiting: admitted.filter(n => Notifs.isUrgent(n) && !kept.includes(n)).length
+    // One pill at the end of the chain for everything not on screen: "+3 more · 2 urgent"
+    // (one merged pill when normal and urgent overflow meet, instead of two)
+    readonly property int moreNormal: compactOver.filter(n => !Notifs.isUrgent(n)).length
+    readonly property int moreUrgent: urgentWaiting + compactOver.filter(n => Notifs.isUrgent(n)).length
 
     Connections {
         target: Notifs
@@ -92,7 +91,7 @@ PanelWindow {
             while (waiting.length > 0) {
                 const next = waiting[waiting.length - 1];
                 const age = Date.now() - (Notifs.times[next.id] ?? Date.now());
-                if (next.urgency === NotificationUrgency.Critical || age <= 10000) {
+                if (Notifs.isUrgent(next) || age <= 10000) {
                     root.admitted = [next, ...root.admitted];
                     root.trim();
                     return;
@@ -106,11 +105,11 @@ PanelWindow {
 
     // A toast pushed past the limit leaves the toast stack (it stays in the bell's list). Kept
     // waiting off screen it had no timer and came back much later, long after it was new.
-    // Critical ones are never trimmed; past the limit they wait for a free slot (they have no
+    // Urgent ones are never trimmed; past the limit they wait for a free slot (they have no
     // timeout anyway).
     function trim() {
         for (const n of admitted)
-            if (!kept.includes(n) && n.urgency !== NotificationUrgency.Critical && !held.includes(n))
+            if (!kept.includes(n) && !Notifs.isUrgent(n) && !held.includes(n))
                 Notifs.unpop(n);
     }
     onMaxShownChanged: trim()
@@ -195,13 +194,13 @@ PanelWindow {
 
                 // expireTimeout is in milliseconds as the app sent it (`notify-send --expire-time=3000`
                 // arrives as 3000; read as seconds, Hyprshot's 5000 kept its
-                // toast up for 83 minutes); <= 0 means no time given, so 5 s. Critical ones stay
+                // toast up for 83 minutes); <= 0 means no time given, so 5 s. Urgent ones stay
                 // until dismissed.
                 Timer {
                     interval: card.notif.expireTimeout > 0 ? card.notif.expireTimeout : 5000
                     // every toast's timer waits while any toast is hovered: one timing out above
                     // the hovered card moved it up the chain
-                    running: !card.critical && !card.hovered && !root.frozen
+                    running: !card.urgent && !card.hovered && !root.frozen
                     onTriggered: Notifs.unpop(card.notif)
                 }
                 onHoveredChanged: root.hold(card.notif, hovered)
@@ -254,9 +253,9 @@ PanelWindow {
         }
 
         MorePill {
-            visible: root.moreNormal + root.moreCritical > 0
+            visible: root.moreNormal + root.moreUrgent > 0
             count: root.moreNormal
-            criticalCount: root.moreCritical
+            urgentCount: root.moreUrgent
             x: Math.round((stack.width - width) / 2)
         }
     }

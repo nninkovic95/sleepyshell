@@ -142,6 +142,12 @@ Singleton {
             dnd: { tab: "notifications", def: false },
             shotPreview: { tab: "notifications", def: true },
             shotPreviewMax: { tab: "notifications", def: 200, min: 100, max: 360, step: 20, spin: true },
+            // urgent notifications (Notifs.isUrgent): critical ones, or from these apps
+            urgentApps: { tab: "notifications", def: "" },
+            urgentSound: { tab: "notifications", def: true },
+            urgentSoundFile: { tab: "notifications", def: "/usr/share/sounds/freedesktop/stereo/message-new-instant.oga" },
+            urgentSoundVolume: { tab: "notifications", def: 100, min: 0, max: 150, step: 5 },
+            urgentLook: { tab: "notifications", def: "full" },
             // idle: read by scripts/idle.py (hypridle.conf), see IdleTab.qml; the shell itself only
             // reacts to the "sleepyshell:dim" / "undim" events, so these never preview
             idleDim: { tab: "idle", def: true },
@@ -277,6 +283,16 @@ Singleton {
     // do not disturb, stored so it survives a restart; the bell's switch and the control-centre
     // tile save it at once (Notifs.toggleDnd), the Notifications tab stages it like the rest
     readonly property bool dnd: live("dnd")
+    // apps whose notifications count as urgent, matched on the desktop entry or the app name
+    // (comma-separated, any case); a browser does not say which site sent a notification
+    readonly property var urgentApps: String(live("urgentApps")).split(",").map(a => a.trim()).filter(a => a !== "")
+    readonly property bool urgentSound: live("urgentSound")
+    readonly property string urgentSoundFile: expand(live("urgentSoundFile"))
+    // percent, on the scale a mixer shows (Chime turns it into the stream's own volume)
+    readonly property int urgentSoundVolume: live("urgentSoundVolume")
+    // how an urgent card stands out: a preset ("full", "tint", "chip", "edge") or its parts written out
+    // (Notifs.lookParts reads both)
+    readonly property string urgentLook: live("urgentLook")
     // centre island
     readonly property bool hoverOpen: live("hoverOpen")
     readonly property int hoverCloseMs: live("hoverCloseMs")
@@ -1316,6 +1332,11 @@ Singleton {
             property string notifOrder: root.schema.notifOrder.def
             property int toastMax: root.schema.toastMax.def
             property bool dnd: root.schema.dnd.def
+            property string urgentApps: root.schema.urgentApps.def
+            property bool urgentSound: root.schema.urgentSound.def
+            property string urgentSoundFile: root.schema.urgentSoundFile.def
+            property int urgentSoundVolume: root.schema.urgentSoundVolume.def
+            property string urgentLook: root.schema.urgentLook.def
             property bool hoverOpen: root.schema.hoverOpen.def
             property int hoverCloseMs: root.schema.hoverCloseMs.def
             property int peekMs: root.schema.peekMs.def

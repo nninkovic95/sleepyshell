@@ -36,12 +36,15 @@ SettingRow {
     // ---- END toml custom ----
     extraSearch: cr.shown.map(o => o.label + " " + (o.hint ?? "")).join(" ")
     property var picker: null
+    // passed to the Combo: what it says for a value that is none of the options (Combo.otherLabel)
+    property string otherLabel: ""
     format: v => (cr.options.find(o => o.value === v) ?? {
             label: String(v)
         }).label
 
     Combo {
         picker: cr.picker
+        otherLabel: cr.otherLabel
         value: cr.customOn ? cr.customMark : Settings.get(cr.key)
         options: cr.shown
         onPicked: v => cr.pick(v)
